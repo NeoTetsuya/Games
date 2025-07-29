@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obligation and Prohibition Board Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f7f9fc;
+            --board-bg: #ffffff;
+            --prompt-color: #e0f2fe;
+            --action-color: #cffafe;
+            --miss-turn-color: #fee2e2;
+            --start-color: #dcfce7;
+            --finish-color: #fef9c3;
+            --border-color: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-light: #475569;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+        }
+        
+        /* New board layout for a winding path */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 12px;
+            padding: 20px;
+            background-color: var(--board-bg);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .square {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.75rem; /* Increased font size */
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: default;
+        }
+        
+        .square:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .square .number {
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        /* Themed square colors */
+        .square.prompt { background-color: var(--prompt-color); border-color: #bae6fd; }
+        .square.start { background-color: var(--start-color); border-color: #86efac; font-size: 1.2rem; }
+        .square.finish { background-color: var(--finish-color); border-color: #fde047; font-size: 1.2rem;}
+        .square.action { background-color: var(--action-color); border-color: #67e8f9; }
+        .square.miss-turn { background-color: var(--miss-turn-color); border-color: #fca5a5; }
+        
+        .pawn-container {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            display: flex;
+            gap: 4px;
+            pointer-events: none;
+        }
+        .pawn {
+            width: 20px; /* Larger pawns */
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.5s ease-in-out;
+        }
+
+        .dice-container { perspective: 1000px; }
+        .dice {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncier animation */
+        }
+        .dice-face {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-color: #fff;
+            border: 3px solid var(--text-dark);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--text-dark);
+        }
+        .face-1 { transform: rotateY(0deg) translateZ(40px); }
+        .face-2 { transform: rotateY(90deg) translateZ(40px); }
+        .face-3 { transform: rotateY(180deg) translateZ(40px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(40px); }
+        .face-5 { transform: rotateX(90deg) translateZ(40px); }
+        .face-6 { transform: rotateX(-90deg) translateZ(40px); }
+        
+        #messageModal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #messageModal.hidden {
+            transform: scale(0.9);
+            opacity: 0;
+        }
+        
+        .turn-indicator-glow {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 5px currentColor; }
+            to { text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+        }
+
+        #confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0.7;
+            animation: fall 5s linear forwards;
+        }
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div id="confetti-container"></div>
+
+    <!-- Setup Screen -->
+    <div id="setupScreen" class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl text-center transition-all duration-500">
+        <h1 class="text-4xl font-bold text-slate-800 mb-4">Obligation & Prohibition</h1>
+        <p class="text-slate-600 mb-8 text-lg">Select the number of teams to start.</p>
+        <div class="flex justify-center gap-4 mb-8">
+            <button onclick="setupGame(2)" class="w-20 h-20 bg-blue-500 text-white font-bold text-3xl rounded-2xl shadow-lg hover:bg-blue-600 hover:scale-110 transition-all duration-200">2</button>
+            <button onclick="setupGame(3)" class="w-20 h-20 bg-green-500 text-white font-bold text-3xl rounded-2xl shadow-lg hover:bg-green-600 hover:scale-110 transition-all duration-200">3</button>
+            <button onclick="setupGame(4)" class="w-20 h-20 bg-red-500 text-white font-bold text-3xl rounded-2xl shadow-lg hover:bg-red-600 hover:scale-110 transition-all duration-200">4</button>
+            <button onclick="setupGame(5)" class="w-20 h-20 bg-purple-500 text-white font-bold text-3xl rounded-2xl shadow-lg hover:bg-purple-600 hover:scale-110 transition-all duration-200">5</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="hidden w-full">
+        <div class="board">
+            <!-- Board squares will be generated by JavaScript -->
+        </div>
+
+        <div class="mt-8 flex flex-col md:flex-row items-center justify-around gap-8 w-full max-w-5xl mx-auto">
+            <div class="w-full md:w-1/2 bg-white p-6 rounded-2xl shadow-xl">
+                <h2 id="turnIndicator" class="text-3xl font-bold text-center mb-4">Team 1's Turn</h2>
+                <div id="teamInfo" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Team info will be generated here -->
+                </div>
+            </div>
+            <div class="flex flex-col items-center justify-center gap-6">
+                <div class="dice-container">
+                    <div id="dice" class="dice">
+                        <div class="dice-face face-1">1</div>
+                        <div class="dice-face face-2">2</div>
+                        <div class="dice-face face-3">3</div>
+                        <div class="dice-face face-4">4</div>
+                        <div class="dice-face face-5">5</div>
+                        <div class="dice-face face-6">6</div>
+                    </div>
+                </div>
+                <button id="rollButton" class="px-10 py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-all duration-200 hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100">Roll Dice</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+            <h3 id="modalTitle" class="text-3xl font-bold text-slate-800 mb-4"></h3>
+            <p id="modalMessage" class="text-slate-600 mb-8 text-lg"></p>
+            <button id="modalButton" class="w-full px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-200 hover:scale-105">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Data ---
+        const boardSquaresData = [
+            { text: "START", type: "start" }, { text: "Miss a turn", type: "miss-turn" }, { text: "Three things you can't do in a cinema", type: "prompt" }, { text: "Three things you had to do last week", type: "prompt" }, { text: "Three things you can't do in a library", type: "prompt" }, { text: "Three things you have to do after this class", type: "prompt" },
+            { text: "Go back two spaces", type: "action", value: -2 }, { text: "Three things teenagers aren't allowed to do", type: "prompt" }, { text: "Three things you mustn't do if you shop online", type: "prompt" }, { text: "Three things you have to take with you when you travel", type: "prompt" }, { text: "Three things you weren't allowed to do in school", type: "prompt" }, { text: "Three things people don't have to do after they retire", type: "prompt" },
+            { text: "Move forward one space", type: "action", value: 1 }, { text: "Three things a teacher has to do before class", type: "prompt" }, { text: "Three things you aren't allowed to do in an office", type: "prompt" }, { text: "Go back one space", type: "action", value: -1 }, { text: "Three things you mustn't do when driving a car", type: "prompt" }, { text: "Two things you must do to be healthy", type: "prompt" },
+            { text: "Three things you have to do in the morning", type: "prompt" }, { text: "Three things you don't have to do when you're on holiday", type: "prompt" }, { text: "Two things you mustn't do with a fire", type: "prompt" }, { text: "Three things you mustn't do", type: "prompt" }, { text: "Two things you can't do before you turn 18", type: "prompt" }, { text: "Three things your parents/guardians didn't let you do as a child", type: "prompt" },
+            { text: "Three things you have to do if you want to improve your English", type: "prompt" }, { text: "Three things you have to do every day", type: "prompt" }, { text: "Move forward two spaces", type: "action", value: 2 }, { text: "Three household chores you had to do when you were a child", type: "prompt" }, { text: "Three things you have to do if you have a pet", type: "prompt" }, { text: "FINISH", type: "finish" }
+        ];
+
+        // Map for the winding path on a 6x5 grid
+        const visualMap = [
+             0,  1,  2,  3,  4,  5,
+            11, 10,  9,  8,  7,  6,
+            12, 13, 14, 15, 16, 17,
+            23, 22, 21, 20, 19, 18,
+            24, 25, 26, 27, 28, 29
+        ];
+        const boardSquares = visualMap.map(i => boardSquaresData[i]);
+
+        const teamColors = ['bg-blue-500', 'bg-green-500', 'bg-red-500', 'bg-purple-500', 'bg-yellow-500'];
+        const confettiColors = ['#4f46e5', '#22c55e', '#ef4444', '#a855f7', '#eab308'];
+
+        // --- Game State ---
+        let teams = [];
+        let currentTurn = 0;
+        let gameActive = false;
+
+        // --- DOM Elements ---
+        const setupScreen = document.getElementById('setupScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const boardElement = document.querySelector('.board');
+        const turnIndicator = document.getElementById('turnIndicator');
+        const teamInfoContainer = document.getElementById('teamInfo');
+        const diceElement = document.getElementById('dice');
+        const rollButton = document.getElementById('rollButton');
+        const messageModal = document.getElementById('messageModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalButton = document.getElementById('modalButton');
+        const confettiContainer = document.getElementById('confetti-container');
+
+        // --- Functions ---
+        function setupGame(numTeams) {
+            teams = [];
+            for (let i = 0; i < numTeams; i++) {
+                teams.push({
+                    id: i + 1,
+                    name: `Team ${i + 1}`,
+                    color: teamColors[i],
+                    position: 0,
+                    missNextTurn: false,
+                });
+            }
+            currentTurn = 0;
+            gameActive = true;
+
+            setupScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+
+            renderBoard();
+            updateTeamInfo();
+            updateTurnIndicator();
+        }
+
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            boardSquares.forEach((square, index) => {
+                const squareEl = document.createElement('div');
+                squareEl.id = `square-${index}`;
+                squareEl.className = `square ${square.type}`;
+                
+                const numberEl = document.createElement('span');
+                numberEl.className = 'number';
+                numberEl.textContent = visualMap[index] + 1;
+                
+                const textEl = document.createElement('p');
+                textEl.textContent = square.text;
+
+                const pawnContainer = document.createElement('div');
+                pawnContainer.className = 'pawn-container';
+                pawnContainer.id = `pawns-on-${index}`;
+
+                squareEl.appendChild(numberEl);
+                squareEl.appendChild(textEl);
+                squareEl.appendChild(pawnContainer);
+                boardElement.appendChild(squareEl);
+            });
+            renderPawns();
+        }
+        
+        function renderPawns() {
+            document.querySelectorAll('.pawn').forEach(p => p.remove());
+            teams.forEach(team => {
+                const pawnEl = document.createElement('div');
+                pawnEl.className = `pawn ${team.color}`;
+                pawnEl.id = `pawn-team-${team.id}`;
+                // Find the visual index for the team's logical position
+                const visualIndex = visualMap.indexOf(team.position);
+                const container = document.getElementById(`pawns-on-${visualIndex}`);
+                if (container) {
+                    container.appendChild(pawnEl);
+                }
+            });
+        }
+        
+        function updateTeamInfo() {
+            teamInfoContainer.innerHTML = '';
+            teams.forEach(team => {
+                const teamDiv = document.createElement('div');
+                teamDiv.className = 'flex items-center gap-3 p-2 rounded-lg';
+                if (teams[currentTurn].id === team.id) {
+                    teamDiv.classList.add('bg-slate-100');
+                }
+                teamDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full ${team.color} flex-shrink-0"></div>
+                    <div class="flex-grow">
+                        <span class="font-semibold">${team.name}:</span>
+                        <span class="text-slate-600">Square ${team.position + 1}</span>
+                    </div>
+                `;
+                teamInfoContainer.appendChild(teamDiv);
+            });
+        }
+
+        function updateTurnIndicator() {
+            const currentTeam = teams[currentTurn];
+            turnIndicator.textContent = `${currentTeam.name}'s Turn`;
+            turnIndicator.className = `text-3xl font-bold text-center mb-4 turn-indicator-glow ${currentTeam.color.replace('bg-', 'text-')}`;
+        }
+        
+        rollButton.addEventListener('click', () => {
+            if (!gameActive) return;
+
+            rollButton.disabled = true;
+            const roll = Math.floor(Math.random() * 6) + 1;
+            
+            const xRand = (Math.floor(Math.random() * 4) + 8) * 90;
+            const yRand = (Math.floor(Math.random() * 4) + 8) * 90;
+            diceElement.style.transform = `rotateX(${xRand}deg) rotateY(${yRand}deg)`;
+
+            setTimeout(() => {
+                const rotations = {
+                    1: 'rotateY(0deg)', 2: 'rotateY(-90deg)', 3: 'rotateY(-180deg)',
+                    4: 'rotateY(90deg)', 5: 'rotateX(-90deg)', 6: 'rotateX(90deg)'
+                };
+                diceElement.style.transform = rotations[roll];
+                
+                setTimeout(() => movePlayer(roll), 500);
+            }, 1500);
+        });
+
+        async function movePlayer(roll) {
+            const team = teams[currentTurn];
+            const startPos = team.position;
+            let newPosition = startPos + roll;
+            const maxPosition = boardSquaresData.length - 1;
+
+            if (newPosition > maxPosition) {
+                newPosition = maxPosition; // Land exactly on finish, no bounce back
+            }
+            
+            // Animate pawn hop
+            for (let i = startPos + 1; i <= newPosition; i++) {
+                team.position = i;
+                await new Promise(resolve => setTimeout(resolve, 150));
+                renderPawns();
+            }
+
+            team.position = newPosition;
+            renderPawns();
+            updateTeamInfo();
+            
+            const landedSquare = boardSquaresData[newPosition];
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            showModal(`Landed on Square ${newPosition + 1}`, landedSquare.text, () => {
+                handleSquareAction(landedSquare);
+            });
+        }
+
+        async function handleSquareAction(square) {
+            const team = teams[currentTurn];
+            let actionTaken = false;
+
+            switch (square.type) {
+                case 'action':
+                    actionTaken = true;
+                    let targetPos = team.position + square.value;
+                    if (targetPos < 0) targetPos = 0;
+                    
+                    showModal('Special Action!', `Moved ${square.value > 0 ? 'forward' : 'back'} ${Math.abs(square.value)} spaces.`, async () => {
+                        for (let i = 1; i <= Math.abs(square.value); i++) {
+                            team.position += Math.sign(square.value);
+                            await new Promise(resolve => setTimeout(resolve, 150));
+                            renderPawns();
+                        }
+                        updateTeamInfo();
+                        nextTurn();
+                    });
+                    break;
+                
+                case 'miss-turn':
+                    actionTaken = true;
+                    team.missNextTurn = true;
+                    showModal('Oh no!', 'You miss your next turn!', nextTurn);
+                    break;
+                
+                case 'finish':
+                    actionTaken = true;
+                    gameActive = false;
+                    triggerConfetti();
+                    showModal('Congratulations!', `${team.name} has won the game!`, () => {
+                        modalButton.textContent = 'Play Again';
+                        modalButton.onclick = () => window.location.reload();
+                    });
+                    break;
+            }
+            if (!actionTaken) {
+                nextTurn();
+            }
+        }
+        
+        function nextTurn() {
+            if (!gameActive) return;
+            currentTurn = (currentTurn + 1) % teams.length;
+            
+            if (teams[currentTurn].missNextTurn) {
+                teams[currentTurn].missNextTurn = false;
+                showModal('Turn Skipped!', `${teams[currentTurn].name} misses a turn.`, () => {
+                    currentTurn = (currentTurn + 1) % teams.length;
+                    updateTurnIndicator();
+                    updateTeamInfo();
+                    rollButton.disabled = false;
+                });
+            } else {
+                updateTurnIndicator();
+                updateTeamInfo();
+                rollButton.disabled = false;
+            }
+        }
+
+        function showModal(title, message, callback) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            messageModal.classList.remove('hidden');
+            
+            // The callback runs when the OK button is clicked
+            modalButton.onclick = () => {
+                messageModal.classList.add('hidden');
+                if (callback) callback();
+            };
+        }
+        
+        function triggerConfetti() {
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                confetti.style.backgroundColor = color;
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.top = `${-20 - Math.random() * 20}px`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                confettiContainer.appendChild(confetti);
+            }
+        }
+
+    </script>
+</body>
+</html>
