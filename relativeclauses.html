@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relative Clause Race (Speaking Version)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff;
+        }
+        .patrick-hand-regular {
+            font-family: "Patrick Hand", cursive;
+            font-weight: 400;
+            font-style: normal;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 5px;
+            width: 90vw;
+            max-width: 1200px;
+            margin: auto;
+            aspect-ratio: 9/5;
+        }
+        .board-space {
+            border: 2px solid #9ca3af;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            position: relative;
+            background-color: white;
+            padding: 2px;
+            font-size: clamp(0.5rem, 1.2vw, 1rem);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .corner { grid-column: span 2; grid-row: span 2; }
+        .center-area {
+            grid-column: 2 / span 7;
+            grid-row: 2 / span 3;
+            background-color: #e0f2fe;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .pawn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.5s ease-in-out;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        #modal-timer {
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body class="bg-blue-50 text-gray-800">
+
+    <div id="setup-screen" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md w-full">
+            <h1 class="text-4xl font-bold text-blue-600 mb-2 patrick-hand-regular">Relative Clause Race</h1>
+            <p class="text-gray-600 mb-6">Welcome! How many teams will be playing?</p>
+            <div class="flex justify-center space-x-4 mb-8">
+                <button onclick="setupGame(1)" class="w-16 h-16 bg-blue-500 text-white font-bold text-2xl rounded-full hover:bg-blue-600 transition-transform transform hover:scale-110">1</button>
+                <button onclick="setupGame(2)" class="w-16 h-16 bg-green-500 text-white font-bold text-2xl rounded-full hover:bg-green-600 transition-transform transform hover:scale-110">2</button>
+                <button onclick="setupGame(3)" class="w-16 h-16 bg-yellow-500 text-white font-bold text-2xl rounded-full hover:bg-yellow-600 transition-transform transform hover:scale-110">3</button>
+                <button onclick="setupGame(4)" class="w-16 h-16 bg-red-500 text-white font-bold text-2xl rounded-full hover:bg-red-600 transition-transform transform hover:scale-110">4</button>
+            </div>
+            <p class="text-xs text-gray-400">Speaking Version</p>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div class="container mx-auto p-4">
+            <div id="scoreboard" class="flex flex-wrap justify-center gap-4 mb-4"></div>
+            <div class="board" id="game-board"></div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div id="modal-timer" class="text-3xl font-bold text-red-500 mb-4"></div>
+            <h2 id="modal-title" class="text-2xl font-bold mb-4 patrick-hand-regular"></h2>
+            <div id="modal-body" class="text-gray-700 mb-6"></div>
+            <div id="modal-footer"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA FROM PDFS ---
+        const boardSpaces = [
+            { type: 'start', text: 'Start! Collect 5 points every time you pass.', color: 'bg-green-200' },
+            { type: 'pronoun', text: 'who', color: 'bg-blue-200' },
+            { type: 'pronoun', text: 'that', color: 'bg-red-200' },
+            { type: 'pronoun', text: 'when', color: 'bg-yellow-200' },
+            { type: 'pronoun', text: 'who', color: 'bg-blue-200' },
+            { type: 'pronoun', text: 'where', color: 'bg-purple-200' },
+            { type: 'challenge', text: 'Challenge Card', color: 'bg-orange-300' },
+            { type: 'pronoun', text: 'that', color: 'bg-red-200' },
+            { type: 'pronoun', text: 'which', color: 'bg-indigo-200' },
+            { type: 'corner', text: 'If odd, move. If even, get a Challenge Card.', color: 'bg-gray-200' },
+            { type: 'pronoun', text: 'which', color: 'bg-indigo-200' },
+            { type: 'pronoun', text: 'where', color: 'bg-purple-200' },
+            { type: 'pronoun', text: 'who', color: 'bg-blue-200' },
+            { type: 'pronoun', text: 'when', color: 'bg-yellow-200' },
+            { type: 'challenge', text: 'Challenge Card', color: 'bg-orange-300' },
+            { type: 'pronoun', text: 'where', color: 'bg-purple-200' },
+            { type: 'pronoun', text: 'whose', color: 'bg-teal-200' },
+            { type: 'pronoun', text: 'whom', color: 'bg-cyan-200' },
+            { type: 'corner', text: 'Pick up a Challenge Card. Good luck!', color: 'bg-orange-300' },
+            { type: 'pronoun', text: 'when', color: 'bg-yellow-200' },
+            { type: 'pronoun', text: 'where', color: 'bg-purple-200' },
+            { type: 'pronoun', text: 'which', color: 'bg-indigo-200' },
+            { type: 'pronoun', text: 'that', color: 'bg-red-200' },
+            { type: 'pronoun', text: 'which', color: 'bg-indigo-200' },
+            { type: 'pronoun', text: 'whose', color: 'bg-teal-200' },
+            { type: 'pronoun', text: 'who', color: 'bg-blue-200' },
+            { type: 'challenge', text: 'Challenge Card', color: 'bg-orange-300' },
+            { type: 'corner', text: 'Roll a dice!', color: 'bg-gray-200' },
+            { type: 'pronoun', text: 'when', color: 'bg-yellow-200' },
+            { type: 'pronoun', text: 'where', color: 'bg-purple-200' },
+            { type: 'pronoun', text: 'whom', color: 'bg-cyan-200' },
+            { type: 'pronoun', text: 'whose', color: 'bg-teal-200' },
+            { type: 'challenge', text: 'Challenge Card', color: 'bg-orange-300' },
+            { type: 'pronoun', text: 'that', color: 'bg-red-200' },
+            { type: 'pronoun', text: 'which', color: 'bg-indigo-200' },
+        ];
+
+        const sentenceCards = [
+            "He lives in Bristol.", "That's the singer.", "I don't like the movie.", "I am happy with my work.", "My sister had been known to lie.", "The toy is already broken.", "The painting was very beautiful.", "The book was damaged.", "She's the lady.", "The athlete was breathless.", "The house was a new build.", "The meadow was next to our house.", "Our patio table was getting rusty.", "Mum wanted to replace Dad's favourite chair.", "We turned our fan on.", "I swam in the pool.", "My coat was wet.", "The girl is coming to visit.", "Her puppy unconditionally loved her.", "We visited the hospital.", "Spring is a great season.", "My family likes to holiday at the beach.", "Mum drove us to school in her new car.", "Our tent collapsed in the rain.", "I know a great restaurant.", "Kara knows the nice man.", "Miss Arnold is the headteacher.", "The plant was placed by the window.", "His shoes were left by the door.", "Our holiday was full of adventures.", "Their garden had many high bushes.", "The man liked to be by the river.", "Her computer was so slow.", "They played a board game during the thunderstorm.", "The cat liked to hide in the bush.", "The doctor ate pizza.", "The businessman danced with joy.", "We had to go home.", "Their shoes were scuffed.", "She travelled on a train to Spain."
+        ];
+
+        const challengeCards = [
+            { text: "Combine: 'The tree was full of bright, green leaves. They glistened in the sun.'", points: 5 },
+            { text: "Combine: 'I was scared of the house. It stood on a lonely hill.'", points: 6 },
+            { text: "Combine: 'The firefighter saved the man. He had become trapped in his house.'", points: 5 },
+            { text: "Combine: 'Lucy was excited about Christmas. She had tried to be good all year.'", points: 7 },
+            { text: "Combine: 'He complimented the woman. Her first book was a great success.'", points: 6 },
+            { text: "Combine: 'We visited the house. It was where our grandmother had been born.'", points: 7 },
+            { text: "Combine: 'The last day of school is a special day. Both teachers and children are happy to soon be on holiday.'", points: 8 },
+            { text: "Combine: 'The actor gave a heartfelt acceptance speech. His family stood by him happily.'", points: 8 }
+        ];
+
+        // --- GAME STATE ---
+        let teams = [];
+        let currentPlayerIndex = 0;
+        const winningScore = 50;
+        let sentenceCardDecks = [];
+        const boardSize = boardSpaces.length;
+        let timerInterval = null;
+        const questionTimeLimit = 120; // 2 minutes
+        let synth;
+
+        // --- DOM ELEMENTS ---
+        let setupScreen, gameScreen, gameBoard, scoreboard, modal, modalTitle, modalBody, modalFooter, modalTimer;
+
+        // --- INITIALIZE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupScreen = document.getElementById('setup-screen');
+            gameScreen = document.getElementById('game-screen');
+            gameBoard = document.getElementById('game-board');
+            scoreboard = document.getElementById('scoreboard');
+            modal = document.getElementById('modal');
+            modalTitle = document.getElementById('modal-title');
+            modalBody = document.getElementById('modal-body');
+            modalFooter = document.getElementById('modal-footer');
+            modalTimer = document.getElementById('modal-timer');
+        });
+
+        // --- GAME SETUP ---
+        async function setupGame(numTeams) {
+            // Initialize audio context on user gesture
+            await Tone.start();
+            synth = new Tone.Synth().toDestination();
+
+            const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500'];
+            const pawnOffsets = [
+                { top: '10%', left: '10%' },
+                { top: '10%', right: '10%' },
+                { bottom: '10%', left: '10%' },
+                { bottom: '10%', right: '10%' }
+            ];
+            
+            teams = [];
+            for (let i = 0; i < numTeams; i++) {
+                teams.push({
+                    id: i,
+                    name: `Team ${i + 1}`,
+                    score: 0,
+                    position: 0,
+                    color: colors[i],
+                    pawnOffset: pawnOffsets[i]
+                });
+            }
+
+            let shuffledSentences = [...sentenceCards].sort(() => 0.5 - Math.random());
+            sentenceCardDecks = teams.map(() => []);
+            shuffledSentences.forEach((card, index) => {
+                sentenceCardDecks[index % numTeams].push(card);
+            });
+
+            setupScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            createBoard();
+            createCenterArea();
+            updateScoreboard();
+        }
+
+        function createBoard() {
+            gameBoard.innerHTML = '';
+            
+            const gridPositions = [
+                { r: 1, c: 1, rs: 2, cs: 2 }, { r: 1, c: 3 }, { r: 1, c: 4 }, { r: 1, c: 5 }, { r: 1, c: 6 }, { r: 1, c: 7 }, { r: 1, c: 8 }, { r: 2, c: 8 }, { r: 3, c: 8 }, { r: 4, c: 8, rs: 2, cs: 2 }, { r: 5, c: 7 }, { r: 5, c: 6 }, { r: 5, c: 5 }, { r: 5, c: 4 }, { r: 5, c: 3 }, { r: 4, c: 3 }, { r: 3, c: 3 }, { r: 2, c: 3 }, { r: 2, c: 1, rs: 2, cs: 2 }, { r: 3, c: 1 }, { r: 4, c: 1 }, { r: 5, c: 1 }, { r: 5, c: 2 }, { r: 5, c: 3 }, { r: 5, c: 4 }, { r: 5, c: 5 }, { r: 5, c: 6 }, { r: 4, c: 6, rs: 2, cs: 2 }, { r: 3, c: 6 }, { r: 2, c: 6 }, { r: 1, c: 6 }, { r: 1, c: 5 }, { r: 1, c: 4 }, { r: 1, c: 3 }, { r: 2, c: 3 }
+            ];
+
+            boardSpaces.forEach((spaceData, index) => {
+                const space = document.createElement('div');
+                space.id = `space-${index}`;
+                space.className = `board-space ${spaceData.color}`;
+                space.innerHTML = `<span>${spaceData.text}</span>`;
+                
+                const pos = gridPositions[index];
+                if(pos) {
+                    space.style.gridRow = `${pos.r} / span ${pos.rs || 1}`;
+                    space.style.gridColumn = `${pos.c} / span ${pos.cs || 1}`;
+                }
+
+                if (index === 0) {
+                    teams.forEach(team => {
+                        const pawn = document.createElement('div');
+                        pawn.id = `pawn-${team.id}`;
+                        pawn.className = `pawn ${team.color}`;
+                        Object.assign(pawn.style, team.pawnOffset);
+                        space.appendChild(pawn);
+                    });
+                }
+                gameBoard.appendChild(space);
+            });
+            
+            const center = document.createElement('div');
+            center.className = 'center-area';
+            center.id = 'center-area';
+            gameBoard.appendChild(center);
+        }
+        
+        function createCenterArea() {
+            const centerArea = document.getElementById('center-area');
+            centerArea.innerHTML = `
+                <h2 class="text-3xl font-bold text-blue-700 mb-4 patrick-hand-regular">Relative Clause Race</h2>
+                <div id="dice-area" class="text-center">
+                    <div id="dice" class="w-24 h-24 bg-white rounded-lg flex items-center justify-center text-6xl font-bold shadow-md mb-4">?</div>
+                    <button id="roll-button" onclick="rollDice()" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-xl hover:bg-blue-700 transition-all shadow-lg">Roll Dice</button>
+                </div>
+                <p id="turn-indicator" class="mt-4 text-lg font-medium"></p>
+            `;
+        }
+
+        function updateScoreboard() {
+            scoreboard.innerHTML = '';
+            teams.forEach((team, index) => {
+                const scoreCard = document.createElement('div');
+                scoreCard.className = `p-4 rounded-lg shadow-md w-48 text-center ${team.color} text-white`;
+                if (index === currentPlayerIndex) {
+                    scoreCard.classList.add('ring-4', 'ring-offset-2', 'ring-yellow-400');
+                }
+                scoreCard.innerHTML = `
+                    <div class="font-bold text-lg">${team.name}</div>
+                    <div class="text-3xl font-bold">${team.score}</div>
+                    <div class="text-sm opacity-80">Cards: ${sentenceCardDecks[index].length}</div>
+                `;
+                scoreboard.appendChild(scoreCard);
+            });
+            document.getElementById('turn-indicator').innerHTML = `It's <span class="font-bold">${teams[currentPlayerIndex].name}'s</span> turn!`;
+        }
+
+        async function movePawn(teamId, steps) {
+            const team = teams[teamId];
+            const pawn = document.getElementById(`pawn-${teamId}`);
+            let passedStart = false;
+
+            for (let i = 0; i < steps; i++) {
+                const oldPosition = team.position;
+                team.position = (team.position + 1) % boardSize;
+
+                if (team.position < oldPosition) {
+                    passedStart = true;
+                }
+
+                const targetSpace = document.getElementById(`space-${team.position}`);
+                targetSpace.appendChild(pawn);
+                await new Promise(resolve => setTimeout(resolve, 250));
+            }
+
+            if (passedStart) {
+                team.score += 5;
+                showModal('Passed Start!', 'You get 5 bonus points!', () => {
+                    updateScoreboard();
+                    if (!checkWin()) {
+                       handleLanding(team);
+                    }
+                });
+            } else {
+                updateScoreboard();
+                handleLanding(team);
+            }
+        }
+
+        // --- GAMEPLAY ---
+        function rollDice() {
+            document.getElementById('roll-button').disabled = true;
+            const roll = Math.floor(Math.random() * 6) + 1;
+            const diceEl = document.getElementById('dice');
+            diceEl.textContent = roll;
+            
+            setTimeout(() => {
+                const currentTeam = teams[currentPlayerIndex];
+                const space = boardSpaces[currentTeam.position];
+
+                if (space.type === 'corner' && space.text.includes('If even')) {
+                    if (roll % 2 === 0) {
+                        showModal('Even Roll!', 'You get to pick a Challenge Card.', () => handleCard());
+                    } else {
+                        movePawn(currentPlayerIndex, roll);
+                    }
+                } else {
+                    movePawn(currentPlayerIndex, roll);
+                }
+            }, 500);
+        }
+
+        function handleLanding(team) {
+            const space = boardSpaces[team.position];
+            switch (space.type) {
+                case 'pronoun':
+                    handlePronounSpace(team, space.text);
+                    break;
+                case 'challenge':
+                    handleCard();
+                    break;
+                case 'corner':
+                     if (space.text.includes('Challenge Card')) {
+                        handleCard();
+                     } else {
+                        nextTurn();
+                     }
+                    break;
+                default: 
+                    nextTurn();
+            }
+        }
+
+        function handlePronounSpace(team, pronoun) {
+            const teamDeck = sentenceCardDecks[team.id];
+            if (teamDeck.length === 0) {
+                showModal('No Cards!', 'You have no more sentence cards.', nextTurn);
+                return;
+            }
+            const sentence = teamDeck.shift(); 
+            modalTitle.textContent = `Use: "${pronoun}"`;
+            modalBody.innerHTML = `Create a relative clause for this sentence: <br><strong class="text-xl my-2 block">"${sentence}"</strong>`;
+            modalFooter.innerHTML = `
+                <button onclick="awardPoints(5, true)" class="bg-green-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-600">Correct! (+5 pts)</button>
+                <button onclick="closeModal(true)" class="bg-gray-400 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-500 ml-2">Incorrect</button>
+            `;
+            startTimer();
+            modal.classList.remove('hidden');
+        }
+
+        function handleCard() {
+            const card = challengeCards[Math.floor(Math.random() * challengeCards.length)];
+            modalTitle.textContent = 'Challenge Card!';
+            modalBody.innerHTML = `<strong>${card.text}</strong>`;
+            modalFooter.innerHTML = `
+                <button onclick="awardPoints(${card.points}, true)" class="bg-green-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-600">Correct! (+${card.points} pts)</button>
+                <button onclick="closeModal(true)" class="bg-gray-400 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-500 ml-2">Incorrect</button>
+            `;
+            startTimer();
+            modal.classList.remove('hidden');
+        }
+        
+        function awardPoints(points, shouldAdvanceTurn) {
+            teams[currentPlayerIndex].score += points;
+            updateScoreboard();
+            if (!checkWin()) {
+                closeModal(shouldAdvanceTurn);
+            }
+        }
+
+        function checkWin() {
+            const winner = teams.find(team => team.score >= winningScore);
+            if (winner) {
+                showModal('Game Over!', `${winner.name} wins with ${winner.score} points! The first player to reach 50 points is the winner!`, () => {
+                    gameScreen.classList.add('hidden');
+                    setupScreen.classList.remove('hidden');
+                });
+                document.getElementById('roll-button').disabled = true;
+                return true;
+            }
+            return false;
+        }
+
+        function nextTurn() {
+            if (teams.some(t => t.score >= winningScore)) return; 
+            currentPlayerIndex = (currentPlayerIndex + 1) % teams.length;
+            updateScoreboard();
+            document.getElementById('roll-button').disabled = false;
+        }
+
+        // --- TIMER CONTROLS ---
+        function startTimer() {
+            stopTimer();
+            let timeLeft = questionTimeLimit;
+            modalTimer.style.display = 'block';
+
+            const updateTimerDisplay = () => {
+                const minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+                modalTimer.textContent = `${minutes}:${seconds}`;
+            };
+
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                // Play sound for the last 5 seconds
+                if (timeLeft <= 5 && timeLeft > 0) {
+                    if (synth) synth.triggerAttackRelease("C5", "8n", Tone.now());
+                }
+
+                if (timeLeft <= 0) {
+                    modalTimer.textContent = "Time's Up!";
+                    setTimeout(() => {
+                        closeModal(true);
+                    }, 1000);
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            if (modalTimer) {
+                modalTimer.style.display = 'none';
+            }
+        }
+
+        // --- MODAL CONTROLS ---
+        function showModal(title, body, onClose) {
+            stopTimer();
+            modalTitle.textContent = title;
+            modalBody.innerHTML = body;
+            modalFooter.innerHTML = `<button id="modal-ok" class="bg-blue-500 text-white font-bold py-2 px-8 rounded-lg hover:bg-blue-600">OK</button>`;
+            modal.classList.remove('hidden');
+            
+            document.getElementById('modal-ok').onclick = () => {
+                modal.classList.add('hidden');
+                if (onClose) onClose();
+            };
+        }
+        
+        function closeModal(shouldAdvanceTurn) {
+            stopTimer();
+            modal.classList.add('hidden');
+            if (shouldAdvanceTurn) {
+                nextTurn();
+            }
+        }
+    </script>
+
+</body>
+</html>
