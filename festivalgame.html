@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fun Vietnamese Festivals Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #FFFDE7 0%, #E3F2FD 100%);
+        }
+        .game-card {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .option-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .option-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .correct {
+            background-color: #4CAF50 !important;
+            color: white !important;
+            transform: scale(1.05);
+            border: 2px solid #388E3C;
+        }
+        .incorrect {
+            background-color: #F44336 !important;
+            color: white !important;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .progress-bar-inner {
+            transition: width 0.5s ease-in-out;
+        }
+        .team-score-card.active {
+            transform: scale(1.1);
+            border: 3px solid #FBC02D;
+            box-shadow: 0 0 20px rgba(251, 192, 45, 0.7);
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0.7;
+            border-radius: 50%;
+            animation: fall 3s linear forwards;
+        }
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        .podium-block {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            width: 30%;
+            padding: 1rem;
+            transition: all 0.5s ease-in-out;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div id="game-container" class="w-full max-w-4xl mx-auto">
+
+        <!-- Setup Screen -->
+        <div id="setup-screen" class="game-card rounded-2xl p-8 text-center shadow-2xl">
+            <h1 class="text-4xl md:text-5xl font-black text-amber-500 mb-2" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">Fun Vietnamese Festivals</h1>
+            <p class="text-gray-600 mb-6">Welcome to the game! Let's explore the amazing festivals of Vietnam!</p>
+            <div class="mb-6">
+                <label for="team-count" class="block text-lg font-semibold text-gray-700 mb-2">Select number of teams:</label>
+                <select id="team-count" class="p-3 rounded-lg border-2 border-amber-300 focus:ring-amber-500 focus:border-amber-500 w-full max-w-xs mx-auto text-center text-xl">
+                    <option value="1">1 Team</option>
+                    <option value="2">2 Teams</option>
+                    <option value="3">3 Teams</option>
+                    <option value="4">4 Teams</option>
+                </select>
+            </div>
+            <button id="start-btn" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-12 rounded-full text-xl transition-transform transform hover:scale-105 shadow-lg">Start!</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden">
+            <!-- Scoreboard -->
+            <div id="score-board" class="flex justify-center gap-2 md:gap-4 mb-4 flex-wrap"></div>
+            
+            <div class="game-card rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden">
+                <div id="confetti-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+                <!-- Round and Question Info -->
+                <div class="flex justify-between items-center mb-4">
+                    <span id="round-info" class="text-xl font-bold text-indigo-600">Round 1</span>
+                    <span id="question-progress" class="text-lg font-semibold text-gray-500">Question 1 / 15</span>
+                </div>
+
+                <!-- Question Content -->
+                <div id="question-area" class="text-center">
+                    <img id="question-image" src="" alt="Image illustrating the question" class="w-full max-w-md mx-auto h-48 md:h-64 object-cover rounded-xl mb-4 shadow-lg border-4 border-white" onerror="this.onerror=null;this.src='https://placehold.co/600x400/CCCCCC/FFFFFF?text=Image+Not+Found';">
+                    <p id="question-text" class="text-xl md:text-2xl font-semibold text-gray-800 min-h-[6rem] flex items-center justify-center"></p>
+                </div>
+
+                <!-- Options -->
+                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6"></div>
+                
+                <!-- Feedback -->
+                <div id="feedback-area" class="text-center mt-4">
+                    <p id="feedback-text" class="text-2xl font-bold h-8"></p>
+                    <button id="next-btn" class="hidden mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-full text-lg transition-transform transform hover:scale-105 shadow-md">Next</button>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-200 rounded-full h-4 mt-8">
+                    <div id="progress-bar" class="bg-gradient-to-r from-yellow-400 to-amber-500 h-4 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="hidden game-card rounded-2xl p-8 text-center shadow-2xl relative overflow-hidden">
+            <div id="end-confetti-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+            <h2 class="text-4xl font-black text-green-500 mb-4">Final Results!</h2>
+            <div id="podium-container" class="flex items-end justify-center gap-2 md:gap-4 mt-8 h-64 w-full max-w-lg mx-auto">
+                <!-- Podium will be generated by JS -->
+            </div>
+            <div id="single-player-score" class="hidden"></div>
+            <h3 id="winner-text" class="text-2xl font-bold text-amber-500 mt-8 h-8"></h3>
+            <button id="restart-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-12 rounded-full text-xl transition-transform transform hover:scale-105 shadow-lg mt-8">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Configuration ---
+        const questions = [
+            // Round 1: Easy
+            {
+                question: "Which festival is the Vietnamese Lunar New Year?",
+                image: "https://images.unsplash.com/photo-1642880718092-2200be2b088b?q=80&w=1932&auto=format&fit=crop",
+                options: ["Mid-Autumn Festival", "Tet Holiday", "Independence Day", "Hung Kings' Day"],
+                answer: 1
+            },
+            {
+                question: "What do children carry during the Mid-Autumn Festival?",
+                image: "https://images.unsplash.com/photo-1569402927899-706b49472365?q=80&w=1935&auto=format&fit=crop",
+                options: ["Balloons", "Flags", "Lanterns", "Backpacks"],
+                answer: 2
+            },
+            {
+                question: "Hung Kings' Day honors the first kings of which country?",
+                image: "https://static.vinwonders.com/production/hung-kings-temple-festival-1.jpg",
+                options: ["China", "Thailand", "Cambodia", "Vietnam"],
+                answer: 3
+            },
+            {
+                question: "What event is celebrated on Vietnam's Independence Day?",
+                image: "https://images.unsplash.com/photo-1588225334293-9a3b6f01a413?q=80&w=2070&auto=format&fit=crop",
+                options: ["A royal wedding", "A big harvest", "The nation's freedom", "The first moon landing"],
+                answer: 2
+            },
+            {
+                question: "What special cake is the symbol of the Mid-Autumn festival?",
+                image: "https://images.unsplash.com/photo-1600887624149-1e2451905d38?q=80&w=1964&auto=format&fit=crop",
+                options: ["Chocolate Cake", "Cheesecake", "Mooncake", "Carrot Cake"],
+                answer: 2
+            },
+            // Round 2: Medium
+            {
+                question: "During Tet, what color is considered lucky for the envelopes with money inside?",
+                image: "https://images.unsplash.com/photo-1547595628-c69a847d37b9?q=80&w=2070&auto=format&fit=crop",
+                options: ["Yellow", "Blue", "Green", "Red"],
+                answer: 3
+            },
+            {
+                question: "What kind of performance with drums is often seen during the Mid-Autumn Festival?",
+                image: "https://images.unsplash.com/photo-1599328325396-6b2f76530634?q=80&w=1931&auto=format&fit=crop",
+                options: ["Ballet Dance", "Hip Hop Dance", "Lion Dance", "Salsa Dance"],
+                answer: 2
+            },
+            {
+                question: "What are the two traditional cakes offered during the Hung Kings' festival?",
+                image: "https://static.vinwonders.com/production/Banh-chung-banh-day-1.jpg",
+                options: ["Donuts and Croissants", "Banh Chung and Banh Day", "Cupcakes and Brownies", "Pancakes and Waffles"],
+                answer: 1
+            },
+            {
+                question: "On Independence Day, there are often large parades in which capital city?",
+                image: "https://images.unsplash.com/photo-1596392927852-2a18c41879d0?q=80&w=1974&auto=format&fit=crop",
+                options: ["Bangkok", "Phnom Penh", "Vientiane", "Hanoi"],
+                answer: 3
+            },
+            {
+                question: "TRUE or FALSE: A popular activity during Tet is to visit family and friends.",
+                image: "https://images.unsplash.com/photo-1516223428383-85353591325c?q=80&w=2070&auto=format&fit=crop",
+                options: ["True", "False"],
+                answer: 0
+            },
+            // Round 3: A Little Tricky
+            {
+                question: "What pink flower is the symbol of Tet in Northern Vietnam?",
+                image: "https://images.unsplash.com/photo-1642211379361-948835512497?q=80&w=1974&auto=format&fit=crop",
+                options: ["Apricot Blossom", "Peach Blossom", "Lotus", "Orchid"],
+                answer: 1
+            },
+            {
+                question: "What yellow flower is the symbol of Tet in Southern Vietnam?",
+                image: "https://images.unsplash.com/photo-1612425720766-3cfc7858c414?q=80&w=1887&auto=format&fit=crop",
+                options: ["Peach Blossom", "Sunflower", "Apricot Blossom", "Rose"],
+                answer: 2
+            },
+            {
+                question: "The Mid-Autumn Festival is a time for family reunions to watch what?",
+                image: "https://images.unsplash.com/photo-1535233211184-f54271a53993?q=80&w=1887&auto=format&fit=crop",
+                options: ["The Sunset", "A Movie", "The Full Moon", "A Sports Game"],
+                answer: 2
+            },
+            {
+                question: "On Hung Kings' Day, what do people offer at the temples to honor their ancestors?",
+                image: "https://static.vinwonders.com/production/hung-kings-temple-festival-3.jpg",
+                options: ["Money and Jewelry", "Books and Pens", "Incense and Food", "Toys and Games"],
+                answer: 2
+            },
+            {
+                question: "TRUE or FALSE: On Independence Day, many buildings are decorated with the Vietnamese flag.",
+                image: "https://images.unsplash.com/photo-1558225354-b382f594a1f1?q=80&w=1932&auto=format&fit=crop",
+                options: ["True", "False"],
+                answer: 0
+            }
+        ];
+
+        // --- DOM Elements ---
+        const setupScreen = document.getElementById('setup-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const teamCountSelect = document.getElementById('team-count');
+        
+        const scoreBoard = document.getElementById('score-board');
+        const roundInfo = document.getElementById('round-info');
+        const questionProgress = document.getElementById('question-progress');
+        const questionImage = document.getElementById('question-image');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackText = document.getElementById('feedback-text');
+        const nextBtn = document.getElementById('next-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const podiumContainer = document.getElementById('podium-container');
+        const singlePlayerScore = document.getElementById('single-player-score');
+        const winnerText = document.getElementById('winner-text');
+        const confettiContainer = document.getElementById('confetti-container');
+        const endConfettiContainer = document.getElementById('end-confetti-container');
+
+        // --- Game State ---
+        let currentQuestionIndex = 0;
+        let scores = [];
+        let teamCount = 1;
+        let currentTeamIndex = 0;
+
+        // --- Sound Synthesis ---
+        const synth = new Tone.Synth().toDestination();
+        const correctSound = () => synth.triggerAttackRelease("C5", "8n", Tone.now());
+        const incorrectSound = () => synth.triggerAttackRelease("C3", "8n", Tone.now());
+
+        // --- Game Functions ---
+        function startGame() {
+            teamCount = parseInt(teamCountSelect.value);
+            scores = new Array(teamCount).fill(0);
+            currentQuestionIndex = 0;
+            currentTeamIndex = 0;
+
+            setupScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+
+            renderScoreBoard();
+            displayQuestion();
+        }
+
+        function renderScoreBoard() {
+            scoreBoard.innerHTML = '';
+            if (teamCount > 1) {
+                for (let i = 0; i < teamCount; i++) {
+                    const scoreCard = document.createElement('div');
+                    scoreCard.id = `team-score-${i}`;
+                    scoreCard.className = 'team-score-card p-2 md:p-4 rounded-lg text-center transition-all duration-300 shadow-md bg-white';
+                    scoreCard.innerHTML = `
+                        <div class="text-sm md:text-base font-bold text-gray-600">TEAM ${i + 1}</div>
+                        <div class="text-xl md:text-3xl font-black text-indigo-600">${scores[i]}</div>
+                    `;
+                    scoreBoard.appendChild(scoreCard);
+                }
+                updateActiveTeam();
+            }
+        }
+        
+        function updateActiveTeam() {
+            if (teamCount <= 1) return;
+            document.querySelectorAll('.team-score-card').forEach((card, index) => {
+                if (index === currentTeamIndex) {
+                    card.classList.add('active', 'bg-yellow-100');
+                } else {
+                    card.classList.remove('active', 'bg-yellow-100');
+                }
+            });
+        }
+
+        function displayQuestion() {
+            // Reset state
+            optionsContainer.innerHTML = '';
+            feedbackText.textContent = '';
+            nextBtn.classList.add('hidden');
+
+            const q = questions[currentQuestionIndex];
+            
+            // Update info
+            const roundNumber = Math.floor(currentQuestionIndex / 5) + 1;
+            roundInfo.textContent = `Round ${roundNumber}`;
+            questionProgress.textContent = `Question ${currentQuestionIndex + 1} / ${questions.length}`;
+            progressBar.style.width = `${((currentQuestionIndex + 1) / questions.length) * 100}%`;
+
+            questionImage.src = q.image;
+            questionImage.alt = `Illustration for: ${q.question}`;
+            questionText.textContent = q.question;
+
+            q.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.className = 'option-btn w-full p-4 rounded-lg text-lg font-semibold bg-white hover:bg-amber-100 text-gray-700 border-2 border-amber-200';
+                button.onclick = () => handleAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+            
+            updateActiveTeam();
+        }
+
+        function handleAnswer(selectedIndex) {
+            const q = questions[currentQuestionIndex];
+            const optionButtons = optionsContainer.querySelectorAll('button');
+
+            // Disable all buttons after an answer is chosen
+            optionButtons.forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === q.answer) {
+                // Correct answer
+                optionButtons[selectedIndex].classList.add('correct');
+                feedbackText.textContent = 'Correct!';
+                feedbackText.className = 'text-2xl font-bold h-8 text-green-500';
+                scores[currentTeamIndex] += 10;
+                correctSound();
+                triggerConfetti(confettiContainer);
+                nextBtn.classList.remove('hidden');
+            } else {
+                // Incorrect answer
+                optionButtons[selectedIndex].classList.add('incorrect');
+                optionButtons[q.answer].classList.add('correct');
+                feedbackText.textContent = "Oops, that's not right!";
+                feedbackText.className = 'text-2xl font-bold h-8 text-red-500';
+                incorrectSound();
+                nextBtn.classList.remove('hidden');
+            }
+            
+            updateScoreBoard();
+            currentTeamIndex = (currentTeamIndex + 1) % teamCount;
+        }
+        
+        function updateScoreBoard() {
+            if (teamCount <= 1) return;
+             for (let i = 0; i < teamCount; i++) {
+                const scoreCard = document.getElementById(`team-score-${i}`);
+                if (scoreCard) {
+                    scoreCard.querySelector('.text-xl').textContent = scores[i];
+                }
+             }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                displayQuestion();
+            } else {
+                showEndScreen();
+            }
+        }
+
+        function showEndScreen() {
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+            podiumContainer.innerHTML = '';
+            winnerText.innerHTML = '';
+            singlePlayerScore.classList.add('hidden');
+            podiumContainer.classList.add('hidden');
+
+            triggerConfetti(endConfettiContainer, 100);
+
+            if (teamCount === 1) {
+                podiumContainer.classList.add('hidden');
+                singlePlayerScore.classList.remove('hidden');
+                singlePlayerScore.innerHTML = `<p class="text-xl text-gray-700">Your final score is:</p><p class="text-6xl font-black text-indigo-600 mt-2">${scores[0]}</p>`;
+            } else {
+                podiumContainer.classList.remove('hidden');
+                singlePlayerScore.classList.add('hidden');
+                
+                const rankedTeams = scores
+                    .map((score, index) => ({ team: index + 1, score }))
+                    .sort((a, b) => b.score - a.score);
+
+                const podiumData = [
+                    { team: rankedTeams[1], height: 'h-40', color: 'bg-slate-400', rank: '2nd' },
+                    { team: rankedTeams[0], height: 'h-56', color: 'bg-yellow-500', rank: '1st' },
+                    { team: rankedTeams[2], height: 'h-32', color: 'bg-orange-600', rank: '3rd' }
+                ];
+
+                podiumData.forEach(item => {
+                    if (item.team) {
+                        const block = document.createElement('div');
+                        block.className = `podium-block ${item.height} ${item.color}`;
+                        block.innerHTML = `
+                            <div class="text-3xl font-black">${item.rank}</div>
+                            <div class="text-lg mt-2">Team ${item.team.team}</div>
+                            <div class="text-2xl font-bold mt-1">${item.team.score}</div>
+                        `;
+                        podiumContainer.appendChild(block);
+                    }
+                });
+                
+                const winners = rankedTeams.filter(t => t.score === rankedTeams[0].score);
+                if (winners.length > 1) {
+                    winnerText.textContent = `It's a tie for first place!`;
+                } else {
+                    winnerText.textContent = `Team ${winners[0].team} is the champion!`;
+                }
+            }
+        }
+        
+        function triggerConfetti(container, count = 50) {
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                container.appendChild(confetti);
+            }
+        }
+
+        function restartGame() {
+            endScreen.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startGame);
+        nextBtn.addEventListener('click', nextQuestion);
+        restartBtn.addEventListener('click', restartGame);
+
+    </script>
+</body>
+</html>
