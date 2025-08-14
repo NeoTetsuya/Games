@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Grammar Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        .card {
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .btn:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .option-btn.correct {
+            animation: pulse-green 0.8s ease-in-out;
+            background-color: #22c55e !important; /* green-500 */
+            color: white !important;
+            border-color: #16a34a;
+        }
+        .option-btn.incorrect {
+            animation: shake 0.5s ease-in-out;
+            background-color: #ef4444 !important; /* red-500 */
+            color: white !important;
+            border-color: #dc2626;
+        }
+        .scale-up {
+            animation: scale-up 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+        }
+        .score-pop {
+            animation: score-pop 0.5s ease-out;
+        }
+        .timer-warning {
+            animation: timer-throb 1s infinite;
+        }
+        .question-type {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            background-color: #e0e7ff; /* indigo-100 */
+            color: #4338ca; /* indigo-700 */
+        }
+
+        /* --- Animation Keyframes --- */
+        @keyframes scale-up {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes score-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        @keyframes timer-throb {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-4xl mx-auto">
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="card p-8 md:p-12 text-center scale-up">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Classroom Grammar Quiz</h1>
+            <p class="text-lg text-gray-600 mb-8">Enter your team names and get ready to compete!</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label for="team1-name" class="block text-sm font-medium text-gray-700 mb-2">Team 1 Name</label>
+                    <input type="text" id="team1-name" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value="The Grammarians">
+                </div>
+                <div>
+                    <label for="team2-name" class="block text-sm font-medium text-gray-700 mb-2">Team 2 Name</label>
+                    <input type="text" id="team2-name" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value="The Syntax Squad">
+                </div>
+            </div>
+            <button id="start-game-btn" class="btn w-full md:w-1/2 bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Start Game</button>
+        </div>
+
+        <!-- Set Selection Screen -->
+        <div id="set-selection-screen" class="hidden card p-8 md:p-12 text-center scale-up">
+            <h1 id="set-selection-title" class="text-4xl font-bold text-gray-800 mb-8"></h1>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button data-set="set1" class="set-btn btn w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Set 1</button>
+                <button data-set="set2" class="set-btn btn w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700">Set 2</button>
+                <button data-set="set3" class="set-btn btn w-full bg-sky-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-sky-700">Set 3</button>
+                <button data-set="set4" class="set-btn btn w-full bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700">Set 4</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden card p-8 md:p-12 scale-up">
+            <div class="flex justify-between items-center mb-6">
+                <div id="team-indicator" class="text-xl font-bold text-indigo-600"></div>
+                <div id="timer" class="text-2xl font-bold text-red-500 bg-red-100 px-4 py-2 rounded-full">5:00</div>
+            </div>
+            <div class="mb-6 text-center">
+                <div class="text-lg font-semibold" id="current-score-display">Score: 0</div>
+            </div>
+
+            <div class="mb-6">
+                <div id="question-type-display" class="question-type"></div>
+                <p class="text-gray-600 font-semibold mb-2" id="question-counter"></p>
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800" id="question-text"></h2>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div id="feedback-container" class="mt-6 text-center text-xl font-bold"></div>
+        </div>
+
+        <!-- Transition Screen -->
+        <div id="transition-screen" class="hidden card p-8 md:p-12 text-center scale-up">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Round Complete!</h1>
+            <p id="transition-score-text" class="text-2xl font-semibold text-gray-700 mb-8"></p>
+            <button id="next-turn-btn" class="btn w-full md:w-1/2 bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700">Next Team's Turn!</button>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="hidden card p-8 md:p-12 text-center scale-up">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4" id="end-title">Game Over!</h1>
+            <p class="text-2xl font-semibold text-indigo-600 mb-6" id="winner-text"></p>
+            
+            <div class="flex flex-col md:flex-row justify-around items-center mb-8 text-xl w-full">
+                <div class="p-4 rounded-lg bg-gray-100 w-full md:w-2/5 mb-4 md:mb-0">
+                    <p class="font-bold text-2xl" id="final-team1-name"></p>
+                    <p class="text-4xl font-bold text-indigo-500" id="final-team1-score"></p>
+                </div>
+                <div class="p-4 rounded-lg bg-gray-100 w-full md:w-2/5">
+                    <p class="font-bold text-2xl" id="final-team2-name"></p>
+                    <p class="text-4xl font-bold text-purple-500" id="final-team2-score"></p>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="btn bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENTS ---
+        const startScreen = document.getElementById('start-screen');
+        const setSelectionScreen = document.getElementById('set-selection-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const transitionScreen = document.getElementById('transition-screen');
+        const endScreen = document.getElementById('end-screen');
+        
+        const team1NameInput = document.getElementById('team1-name');
+        const team2NameInput = document.getElementById('team2-name');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const setSelectionTitle = document.getElementById('set-selection-title');
+        const setButtons = document.querySelectorAll('.set-btn');
+
+        const timerDisplay = document.getElementById('timer');
+        const teamIndicator = document.getElementById('team-indicator');
+        const currentScoreDisplay = document.getElementById('current-score-display');
+        const questionTypeDisplay = document.getElementById('question-type-display');
+        const questionCounter = document.getElementById('question-counter');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackContainer = document.getElementById('feedback-container');
+
+        const transitionScoreText = document.getElementById('transition-score-text');
+        const nextTurnBtn = document.getElementById('next-turn-btn');
+
+        const endTitle = document.getElementById('end-title');
+        const winnerText = document.getElementById('winner-text');
+        const finalTeam1Name = document.getElementById('final-team1-name');
+        const finalTeam2Name = document.getElementById('final-team2-name');
+        const finalTeam1Score = document.getElementById('final-team1-score');
+        const finalTeam2Score = document.getElementById('final-team2-score');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // --- SOUND EFFECTS SETUP ---
+        let soundsReady = false;
+        const correctSound = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
+        const incorrectSound = new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 } }).toDestination();
+        const clickSound = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+        const timerTickSound = new Tone.MembraneSynth().toDestination();
+        const winSound = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 1 } }).toDestination();
+
+        async function initializeAudio() {
+            await Tone.start();
+            soundsReady = true;
+            console.log("Audio is ready!");
+        }
+
+        // --- GAME DATA ---
+        const gameData = {
+            set1: {
+                questions: [
+                    { t: "V-ing vs. to-V", q: "I enjoy ___ to music in my free time.", o: ["listening", "to listen", "listen", "listened"], a: 0 },
+                    { t: "Participles", q: "The movie was so ___. I was ___.", o: ["boring / bored", "bored / boring", "boring / boring", "bored / bored"], a: 0 },
+                    { t: "Clauses", q: "She went to the library ___ she could study quietly.", o: ["because", "so that", "although", "if"], a: 1 },
+                    { t: "Relative Clauses", q: "The woman ___ lives next door is a doctor.", o: ["which", "who", "whose", "where"], a: 1 },
+                    { t: "It / There", q: "___ is a big park in the center of the city.", o: ["It", "There", "That", "Here"], a: 1 },
+                    { t: "V-ing vs. to-V", q: "He decided ___ a new car.", o: ["buying", "buy", "to buy", "bought"], a: 2 },
+                    { t: "Participles", q: "I saw a cat ___ across the road.", o: ["running", "ran", "run", "to run"], a: 0 },
+                    { t: "Clauses", q: "___ it was raining, we still went for a walk.", o: ["Because", "So that", "Although", "Unless"], a: 2 },
+                    { t: "Relative Clauses", q: "This is the book ___ I was telling you about.", o: ["who", "where", "which", "whose"], a: 2 },
+                    { t: "It / There", q: "___ is important to get enough sleep.", o: ["There", "That", "It", "Here"], a: 2 },
+                    { t: "V-ing vs. to-V (Error)", q: "Find the error: 'She is good at to play the piano.'", o: ["She is", "good at", "to play", "the piano"], a: 2 },
+                    { t: "Participles (Combine)", q: "Combine: The boy was hit by a car. He had to go to the hospital.", o: ["Hitting a car, the boy...", "Hit by a car, the boy...", "The boy hitting a car...", "The boy was hit by a car and..."], a: 1 },
+                    { t: "Clauses (Meaning)", q: "Which sentence means 'I will bring an umbrella to be prepared'?", o: ["I'll bring an umbrella if it rains.", "I'll bring an umbrella in case it rains.", "I'll bring an umbrella although it rains.", "I'll bring an umbrella because it rains."], a: 1 },
+                    { t: "Relative Clauses (Combine)", q: "Combine: The project is complete. This means we can relax.", o: ["The project is complete, that means...", "The project, which is complete, means...", "The project is complete, which means...", "The project that is complete means..."], a: 2 },
+                    { t: "It / There (Rewrite)", q: "Rewrite using 'It': 'To learn a new language is difficult.'", o: ["There is difficult to learn...", "It is difficult to learn...", "It is difficult learning...", "There is difficult learning..."], a: 1 },
+                ]
+            },
+            set2: {
+                questions: [
+                    { t: "V-ing vs. to-V", q: "She is not used to ___ up so early.", o: ["get", "to get", "getting", "got"], a: 2 },
+                    { t: "Participles", q: "The instructions were very ___. I was ___.", o: ["confusing / confused", "confused / confusing", "confusing / confusing", "confused / confused"], a: 0 },
+                    { t: "Clauses", q: "I wonder ___ he will come to the party.", o: ["that", "if", "because", "so"], a: 1 },
+                    { t: "Relative Clauses", q: "That's the restaurant ___ we had dinner last night.", o: ["which", "who", "where", "when"], a: 2 },
+                    { t: "It / There", q: "___ are many reasons to exercise regularly.", o: ["It", "They", "There", "Those"], a: 2 },
+                    { t: "V-ing vs. to-V", q: "I look forward to ___ you again soon.", o: ["see", "seeing", "to see", "saw"], a: 1 },
+                    { t: "Participles", q: "The ___ window has been repaired.", o: ["breaking", "broke", "broken", "break"], a: 2 },
+                    { t: "Clauses", q: "He speaks so quietly ___ I can't understand him.", o: ["because", "that", "so", "although"], a: 1 },
+                    { t: "Relative Clauses", q: "Do you know the reason ___ the flight was delayed?", o: ["which", "where", "when", "why"], a: 3 },
+                    { t: "It / There", q: "___ takes a long time to become a doctor.", o: ["There", "That", "It", "She"], a: 2 },
+                    { t: "V-ing vs. to-V (Error)", q: "Find the error: 'I want that you help me with my homework.'", o: ["I want", "that you help", "with my", "homework"], a: 1 },
+                    { t: "Participles (Combine)", q: "Combine: I felt tired. I went to bed early.", o: ["Feeling tired, I went...", "Felt tired, I went...", "Tired, I feeling went...", "I went to bed early feeling tired."], a: 0 },
+                    { t: "Clauses (Meaning)", q: "Which has a different meaning?", o: ["Because I was sick, I stayed home.", "As I was sick, I stayed home.", "Since I was sick, I stayed home.", "Although I was sick, I stayed home."], a: 3 },
+                    { t: "Relative Clauses (Combine)", q: "Combine: He is the only person. I can rely on him.", o: ["He is the only person who I can rely on.", "He is the only person whom I can rely.", "He is the only person that I can rely on.", "He is the only person which I can rely on."], a: 2 },
+                    { t: "It / There (Rewrite)", q: "Rewrite using 'It': 'The Internet makes accessing information easy.'", o: ["The Internet makes easy it to access...", "The Internet makes it easy to access...", "The Internet makes to access it easy...", "The Internet makes it easy accessing..."], a: 1 },
+                ]
+            },
+            set3: {
+                questions: [
+                    { t: "V-ing vs. to-V", q: "He promised ___ late again.", o: ["not being", "not to be", "to not be", "being not"], a: 1 },
+                    { t: "Participles", q: "This is the most ___ story I have ever heard.", o: ["amazing", "amazed", "amazes", "amaze"], a: 0 },
+                    { t: "Clauses", q: "___ you study hard, you will pass the exam.", o: ["Unless", "Although", "If", "Because"], a: 2 },
+                    { t: "Relative Clauses", q: "I remember the day ___ we first met.", o: ["which", "where", "when", "who"], a: 2 },
+                    { t: "It / There", q: "___ seems that we are lost.", o: ["There", "It", "That", "He"], a: 1 },
+                    { t: "V-ing vs. to-V", q: "They advised me ___ on time.", o: ["be", "being", "to be", "am"], a: 2 },
+                    { t: "Participles", q: "He listened to the song with his eyes ___.", o: ["closing", "closed", "close", "to close"], a: 1 },
+                    { t: "Clauses", q: "I don't know ___ to say.", o: ["what", "if", "that", "because"], a: 0 },
+                    { t: "Relative Clauses", q: "The man ___ car was stolen called the police.", o: ["who", "which", "that", "whose"], a: 3 },
+                    { t: "It / There", q: "___ is no reason for you to worry.", o: ["It", "That", "There", "Here"], a: 2 },
+                    { t: "V-ing vs. to-V (Error)", q: "Find the error: 'I object to go there alone.'", o: ["I object", "to go", "there", "alone"], a: 1 },
+                    { t: "Participles (Combine)", q: "Combine: She was left alone. She began to cry.", o: ["Leaving alone, she began...", "Left alone, she began...", "She, leaving alone, began...", "She began to cry left alone."], a: 1 },
+                    { t: "Clauses (Meaning)", q: "Which sentence is correct?", o: ["I was so tired that I fell asleep.", "I was very tired that I fell asleep.", "I was too tired that I fell asleep.", "I was enough tired that I fell asleep."], a: 0 },
+                    { t: "Relative Clauses (Combine)", q: "Combine: This is the restaurant. She works at the restaurant.", o: ["This is the restaurant that she works.", "This is the restaurant at that she works.", "This is the restaurant which she works at.", "This is the restaurant at where she works."], a: 2 },
+                    { t: "It / There (Rewrite)", q: "Rewrite using 'It': 'How much does building the house cost?'", o: ["How much does it cost to build the house?", "How much does there cost to build the house?", "How much it costs to build the house?", "How much there costs to build the house?"], a: 0 },
+                ]
+            },
+            set4: {
+                questions: [
+                    { t: "V-ing vs. to-V", q: "She denied ___ the test.", o: ["to cheat on", "cheating on", "cheat on", "cheated on"], a: 1 },
+                    { t: "Participles", q: "He is a well-___ professor.", o: ["knowing", "know", "known", "knew"], a: 2 },
+                    { t: "Clauses", q: "I was touched ___ everyone tried to cheer me up.", o: ["because", "that", "if", "so"], a: 1 },
+                    { t: "Relative Clauses", q: "Tell me anything ___ you want.", o: ["which", "who", "that", "what"], a: 2 },
+                    { t: "It / There", q: "___ was a book on the table.", o: ["It", "There", "That", "This"], a: 1 },
+                    { t: "V-ing vs. to-V", q: "He is rich enough ___ a big house.", o: ["buying", "buy", "to buy", "bought"], a: 2 },
+                    { t: "Participles", q: "___ to music, I fell asleep.", o: ["Listened", "To listen", "Listening", "Listen"], a: 2 },
+                    { t: "Clauses", q: "I'm not sure ___ she will come or not.", o: ["if", "that", "whether", "what"], a: 2 },
+                    { t: "Relative Clauses", q: "This is the town ___ I was born.", o: ["which", "that", "where", "when"], a: 2 },
+                    { t: "It / There", q: "___ is true that some video games are educational.", o: ["There", "That", "It", "This"], a: 2 },
+                    { t: "V-ing vs. to-V (Error)", q: "Find the error: 'The bread is too hard for slice.'", o: ["The bread is", "too hard", "for slice", "No error"], a: 2 },
+                    { t: "Participles (Combine)", q: "Combine: He turned left. You will see the store.", o: ["Turned left, you will see...", "If you turning left, you will see...", "Turning left, you will see...", "You will see the store turning left."], a: 2 },
+                    { t: "Clauses (Meaning)", q: "Which sentence is NOT correct?", o: ["John is fat, whereas his father is skinny.", "John is fat whereas his father is skinny.", "Whereas his father is skinny, John is fat.", "John is fat, while his father is skinny."], a: 1 },
+                    { t: "Relative Clauses (Combine)", q: "Combine: Laura lives next door. She just got married.", o: ["Laura who lives next door, just got married.", "Laura, that lives next door, just got married.", "Laura, who lives next door, just got married.", "Laura, which lives next door, just got married."], a: 2 },
+                    { t: "It / There (Rewrite)", q: "Rewrite using 'It': 'Who you are does not matter.'", o: ["It does not matter who you are.", "There does not matter who you are.", "It is who you are that does not matter.", "Who you are, it does not matter."], a: 0 },
+                ]
+            }
+        };
+
+        // --- GAME STATE ---
+        let state = {};
+
+        function resetState() {
+            state = {
+                team1Name: 'Team 1',
+                team2Name: 'Team 2',
+                team1Score: 0,
+                team2Score: 0,
+                currentPlayingTeam: 0, 
+                playedSets: [],
+                timer: 300,
+                timerInterval: null,
+                questions: [],
+                currentQuestionIndex: 0
+            };
+        }
+
+        function showScreen(screen) {
+            [startScreen, setSelectionScreen, gameScreen, transitionScreen, endScreen].forEach(s => s.classList.add('hidden'));
+            screen.classList.remove('hidden');
+            screen.classList.add('scale-up');
+        }
+        
+        async function handleStartGame() {
+            if (!soundsReady) {
+                await initializeAudio();
+            }
+            clickSound.triggerAttackRelease("C4", "8n");
+            state.team1Name = team1NameInput.value || 'Team 1';
+            state.team2Name = team2NameInput.value || 'Team 2';
+            showSetSelection(1);
+        }
+
+        function showSetSelection(teamNumber) {
+            state.currentPlayingTeam = teamNumber;
+            const teamName = teamNumber === 1 ? state.team1Name : state.team2Name;
+            setSelectionTitle.textContent = `${teamName}, Choose Your Set!`;
+            
+            setButtons.forEach(button => {
+                button.disabled = state.playedSets.includes(button.dataset.set);
+            });
+            showScreen(setSelectionScreen);
+        }
+
+        function playSet(setName) {
+            clickSound.triggerAttackRelease("C4", "8n");
+            state.playedSets.push(setName);
+            state.questions = [...gameData[setName].questions];
+            state.currentQuestionIndex = 0;
+            state.timer = 300;
+
+            const teamName = state.currentPlayingTeam === 1 ? state.team1Name : state.team2Name;
+            teamIndicator.textContent = `${teamName} is playing`;
+            
+            const currentScore = state.currentPlayingTeam === 1 ? state.team1Score : state.team2Score;
+            currentScoreDisplay.textContent = `Score: ${currentScore}`;
+            
+            showScreen(gameScreen);
+            displayQuestion();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(state.timerInterval);
+            timerDisplay.classList.remove('timer-warning');
+            state.timerInterval = setInterval(() => {
+                state.timer--;
+                const minutes = Math.floor(state.timer / 60);
+                const seconds = state.timer % 60;
+                timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (state.timer === 10) {
+                    timerDisplay.classList.add('timer-warning');
+                }
+                if (state.timer <= 10 && state.timer > 0) {
+                    timerTickSound.triggerAttackRelease("C2", "8n");
+                }
+                if (state.timer <= 0) {
+                    endTurn("Time's Up!");
+                }
+            }, 1000);
+        }
+
+        function displayQuestion() {
+            if (state.currentQuestionIndex >= state.questions.length) {
+                endTurn("Set Complete!");
+                return;
+            }
+            
+            feedbackContainer.innerHTML = '';
+            optionsContainer.innerHTML = '';
+            
+            const currentQuestion = state.questions[state.currentQuestionIndex];
+            questionTypeDisplay.textContent = currentQuestion.t;
+            questionCounter.textContent = `Question ${state.currentQuestionIndex + 1} / ${state.questions.length}`;
+            questionText.textContent = currentQuestion.q;
+            
+            currentQuestion.o.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.innerHTML = option;
+                button.classList.add('option-btn', 'btn', 'w-full', 'text-left', 'p-4', 'border-2', 'border-gray-300', 'rounded-lg', 'hover:bg-gray-100', 'hover:border-indigo-400', 'text-gray-700');
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectAnswer(selectedIndex) {
+            const currentQuestion = state.questions[state.currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQuestion.a;
+            
+            const optionButtons = optionsContainer.querySelectorAll('.option-btn');
+            optionButtons.forEach(btn => btn.disabled = true);
+            
+            if (isCorrect) {
+                if (state.currentPlayingTeam === 1) state.team1Score += 10;
+                else state.team2Score += 10;
+                
+                correctSound.triggerAttackRelease("C5", "8n", Tone.now());
+                optionButtons[selectedIndex].classList.add('correct');
+                feedbackContainer.textContent = "Correct! +10 points";
+                feedbackContainer.className = 'mt-6 text-center text-xl font-bold text-green-500';
+            } else {
+                incorrectSound.triggerAttackRelease("C3", "4n", Tone.now());
+                optionButtons[selectedIndex].classList.add('incorrect');
+                optionButtons[currentQuestion.a].classList.add('correct');
+                feedbackContainer.textContent = "Incorrect!";
+                feedbackContainer.className = 'mt-6 text-center text-xl font-bold text-red-500';
+            }
+            
+            const currentScore = state.currentPlayingTeam === 1 ? state.team1Score : state.team2Score;
+            currentScoreDisplay.textContent = `Score: ${currentScore}`;
+            currentScoreDisplay.classList.add('score-pop');
+            setTimeout(() => currentScoreDisplay.classList.remove('score-pop'), 500);
+
+            state.currentQuestionIndex++;
+            setTimeout(displayQuestion, 2000);
+        }
+
+        function endTurn(reason) {
+            clearInterval(state.timerInterval);
+            timerDisplay.classList.remove('timer-warning');
+            if (state.currentPlayingTeam === 1) {
+                transitionScoreText.textContent = `${state.team1Name}'s score is: ${state.team1Score}`;
+                nextTurnBtn.textContent = `${state.team2Name}, Get Ready!`;
+                showScreen(transitionScreen);
+            } else {
+                showFinalResults(reason);
+            }
+        }
+
+        function showFinalResults(title) {
+            winSound.triggerAttackRelease("C4", "2n", Tone.now());
+            winSound.triggerAttackRelease("E4", "2n", Tone.now() + 0.2);
+            winSound.triggerAttackRelease("G4", "2n", Tone.now() + 0.4);
+
+            endTitle.textContent = title;
+            finalTeam1Name.textContent = state.team1Name;
+            finalTeam2Name.textContent = state.team2Name;
+            finalTeam1Score.textContent = state.team1Score;
+            finalTeam2Score.textContent = state.team2Score;
+
+            if (state.team1Score > state.team2Score) {
+                winnerText.textContent = `${state.team1Name} wins! 🎉`;
+            } else if (state.team2Score > state.team1Score) {
+                winnerText.textContent = `${state.team2Name} wins! 🥳`;
+            } else {
+                winnerText.textContent = "It's a tie! 🤝";
+            }
+            showScreen(endScreen);
+        }
+
+        function restart() {
+            clickSound.triggerAttackRelease("C4", "8n");
+            resetState();
+            showScreen(startScreen);
+        }
+
+        // --- EVENT LISTENERS ---
+        startGameBtn.addEventListener('click', handleStartGame);
+        setButtons.forEach(button => {
+            button.addEventListener('click', () => playSet(button.dataset.set));
+        });
+        nextTurnBtn.addEventListener('click', () => {
+            clickSound.triggerAttackRelease("C4", "8n");
+            showSetSelection(2);
+        });
+        restartBtn.addEventListener('click', restart);
+
+        // --- INITIALIZE ---
+        resetState();
+        showScreen(startScreen);
+    </script>
+</body>
+</html>
