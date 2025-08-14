@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Reading Quiz Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .btn:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .option-btn.correct {
+            background-color: #22c55e !important; /* green-500 */
+            color: white !important;
+            border-color: #16a34a;
+        }
+        .option-btn.incorrect {
+            background-color: #ef4444 !important; /* red-500 */
+            color: white !important;
+            border-color: #dc2626;
+        }
+        .scale-up {
+            animation: scale-up 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+        }
+        @keyframes scale-up {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-4xl mx-auto">
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="card p-8 md:p-12 text-center scale-up">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Classroom Reading Quiz</h1>
+            <p class="text-lg text-gray-600 mb-8">Enter your team names and get ready to compete!</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label for="team1-name" class="block text-sm font-medium text-gray-700 mb-2">Team 1 Name</label>
+                    <input type="text" id="team1-name" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value="Team Alpha">
+                </div>
+                <div>
+                    <label for="team2-name" class="block text-sm font-medium text-gray-700 mb-2">Team 2 Name</label>
+                    <input type="text" id="team2-name" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value="Team Bravo">
+                </div>
+            </div>
+            <button id="start-game-btn" class="btn w-full md:w-1/2 bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Start Game</button>
+        </div>
+
+        <!-- Set Selection Screen -->
+        <div id="set-selection-screen" class="hidden card p-8 md:p-12 text-center scale-up">
+            <h1 id="set-selection-title" class="text-4xl font-bold text-gray-800 mb-8"></h1>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button data-set="set1" class="set-btn btn w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Set 1</button>
+                <button data-set="set2" class="set-btn btn w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700">Set 2</button>
+                <button data-set="set3" class="set-btn btn w-full bg-sky-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-sky-700">Set 3</button>
+                <button data-set="set4" class="set-btn btn w-full bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700">Set 4</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden card p-8 md:p-12 scale-up">
+            <div class="flex justify-between items-center mb-6">
+                <div id="team-indicator" class="text-xl font-bold text-indigo-600"></div>
+                <div id="timer" class="text-2xl font-bold text-red-500 bg-red-100 px-4 py-2 rounded-full">5:00</div>
+            </div>
+            <div class="mb-6">
+                <div class="text-lg font-semibold text-center" id="current-score-display">Score: 0</div>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-gray-600 font-semibold mb-2" id="question-counter"></p>
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800" id="question-text"></h2>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div id="feedback-container" class="mt-6 text-center text-xl font-bold"></div>
+        </div>
+
+        <!-- Transition Screen -->
+        <div id="transition-screen" class="hidden card p-8 md:p-12 text-center scale-up">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Round Complete!</h1>
+            <p id="transition-score-text" class="text-2xl font-semibold text-gray-700 mb-8"></p>
+            <button id="next-turn-btn" class="btn w-full md:w-1/2 bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700">Team 2, Get Ready!</button>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="hidden card p-8 md:p-12 text-center scale-up">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4" id="end-title">Game Over!</h1>
+            <p class="text-2xl font-semibold text-indigo-600 mb-6" id="winner-text"></p>
+            
+            <div class="flex flex-col md:flex-row justify-around items-center mb-8 text-xl w-full">
+                <div class="p-4 rounded-lg bg-gray-100 w-full md:w-2/5 mb-4 md:mb-0">
+                    <p class="font-bold text-2xl" id="final-team1-name"></p>
+                    <p class="text-4xl font-bold text-indigo-500" id="final-team1-score"></p>
+                </div>
+                <div class="p-4 rounded-lg bg-gray-100 w-full md:w-2/5">
+                    <p class="font-bold text-2xl" id="final-team2-name"></p>
+                    <p class="text-4xl font-bold text-purple-500" id="final-team2-score"></p>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="btn bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700">
+                Play Again
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DOM ELEMENTS ---
+        const startScreen = document.getElementById('start-screen');
+        const setSelectionScreen = document.getElementById('set-selection-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const transitionScreen = document.getElementById('transition-screen');
+        const endScreen = document.getElementById('end-screen');
+        
+        const team1NameInput = document.getElementById('team1-name');
+        const team2NameInput = document.getElementById('team2-name');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const setSelectionTitle = document.getElementById('set-selection-title');
+        const setButtons = document.querySelectorAll('.set-btn');
+
+        const timerDisplay = document.getElementById('timer');
+        const teamIndicator = document.getElementById('team-indicator');
+        const currentScoreDisplay = document.getElementById('current-score-display');
+        const questionCounter = document.getElementById('question-counter');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackContainer = document.getElementById('feedback-container');
+
+        const transitionScoreText = document.getElementById('transition-score-text');
+        const nextTurnBtn = document.getElementById('next-turn-btn');
+
+        const endTitle = document.getElementById('end-title');
+        const winnerText = document.getElementById('winner-text');
+        const finalTeam1Name = document.getElementById('final-team1-name');
+        const finalTeam2Name = document.getElementById('final-team2-name');
+        const finalTeam1Score = document.getElementById('final-team1-score');
+        const finalTeam2Score = document.getElementById('final-team2-score');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // --- GAME DATA (60 unique questions) ---
+        const gameData = {
+            set1: {
+                questions: [
+                    { q: "How long is the IELTS Reading test?", o: ["40 minutes", "60 minutes", "90 minutes", "No time limit"], a: 1 },
+                    { q: "In the survival text, what is RARELY the first priority?", o: ["Finding shelter", "Finding water", "Food", "Making a fire"], a: 2 },
+                    { q: "What does 'on impulse' mean when shopping?", o: ["After careful planning", "Because it's on sale", "Suddenly, without planning", "To buy a gift"], a: 2 },
+                    { q: "Which of these is a requirement to be a Peace Corps volunteer?", o: ["Must be over 30", "Must be a U.S. citizen", "Must have a master's degree", "Must speak French"], a: 1 },
+                    { q: "What does 'inhibit' mean in the context of solar panels?", o: ["To encourage", "To reflect", "To prevent or restrain", "To cool down"], a: 2 },
+                    { q: "Why are the shelves at the beginning of a supermarket aisle called 'the graveyard'?", o: ["They are for unpopular items", "Shoppers walk straight past them", "They are always empty", "They are poorly lit"], a: 1 },
+                    { q: "What does a person agree to when they sign for a library card?", o: ["To donate books", "To volunteer at the library", "To obey the library's rules", "To pay a monthly fee"], a: 2 },
+                    { q: "According to the 'Crowding Human Life' text, what is a harmful effect of overcrowding?", o: ["Slower economic growth", "Better public transport", "Pollution", "More job opportunities"], a: 2 },
+                    { q: "In the 'Cancer-Prone' text, what does it mean to 'repress' emotions?", o: ["To express them loudly", "To discuss them with others", "To hide them inside", "To not have any"], a: 2 },
+                    { q: "What is a stated benefit of using more recycled paper?", o: ["Paper becomes cheaper", "It creates new jobs", "It improves paper quality", "It reduces the need for libraries"], a: 1 },
+                    { q: "What material are solar collector panels usually NOT made of?", o: ["Aluminium", "Copper", "Steel", "Wood"], a: 3 },
+                    { q: "Which cancer patients, in one study, were found to die sooner?", o: ["Those who fight the disease", "Those who get angry", "Those who accept it without anger", "Those who hide their illness"], a: 2 },
+                    { q: "What does 'traffic congestion' mean?", o: ["Fast-moving traffic", "An accident on the road", "Too much traffic, slowing things down", "A new highway"], a: 2 },
+                    { q: "How are Peace Corps volunteers paid for their living expenses?", o: ["In US Dollars", "They are not paid", "In local currency", "With food and housing"], a: 2 },
+                    { q: "By the year 2025, what might the human population reach according to the text?", o: ["5.3 billion", "6.0 billion", "8.5 billion", "10 billion"], a: 2 },
+                ]
+            },
+            set2: {
+                questions: [
+                    { q: "A 'borrower's card' is used for what purpose in a library?", o: ["To get discounts on books", "To access the internet", "To officially borrow something", "To pay fines"], a: 2 },
+                    { q: "In polar regions, what are the main survival concerns?", o: ["Food and water", "Shelter and fire", "Finding people", "Wild animals"], a: 1 },
+                    { q: "What does 'eye-catching' mean in the context of product displays?", o: ["Expensive", "Hard to see", "Visually attractive", "A new product"], a: 2 },
+                    { q: "What is the function of the glass/plastic cover on a solar collector?", o: ["To keep it clean", "To trap heat", "To make it waterproof", "To protect from birds"], a: 1 },
+                    { q: "What is a common 'impulse' buy mentioned at the check-out?", o: ["Fruits", "Bread", "Sweets", "Milk"], a: 2 },
+                    { q: "Why do products on the left side of an aisle tend to sell better?", o: ["They are cheaper", "People read and look from left to right", "They are better quality", "They are advertised more"], a: 1 },
+                    { q: "What does 'competitive' mean for the Peace Corps application process?", o: ["Applicants must compete in sports", "The job is very difficult", "Many people apply for few spots", "Volunteers get a high salary"], a: 2 },
+                    { q: "What is one threat to the environment mentioned by the Friends of the Earth Trust?", o: ["Noise pollution", "Destruction of wildlife", "Over-tourism", "Light pollution"], a: 1 },
+                    { q: "What is the main purpose of a 'flow chart' as described in the text?", o: ["To show a map", "To list headings", "To summarize a process", "To classify information"], a: 2 },
+                    { q: "According to the survival text, what can be fatal even in mild climates?", o: ["Starvation", "Thirst", "Exposure to wind, rain, and cold", "Loneliness"], a: 2 },
+                    { q: "What does 'outwardly' mean in the 'Cancer-Prone' text?", o: ["Secretly", "On the surface or visibly", "Internally", "Emotionally"], a: 1 },
+                    { q: "What is a problem with solar collectors mentioned in the text?", o: ["They are too expensive", "They don't work in summer", "Storing heat for nighttime/cloudy days", "They are very noisy"], a: 2 },
+                    { q: "What must you usually do before you can borrow materials from a library?", o: ["Pass a test", "Pay a fee", "Register", "Donate a book"], a: 2 },
+                    { q: "What was the world's population in 1950?", o: ["1.5 billion", "2.5 billion", "3.5 billion", "4.5 billion"], a: 1 },
+                    { q: "What does 'priorities' mean?", o: ["Daily tasks", "Things that are most important", "Shopping lists", "Future goals"], a: 1 },
+                ]
+            },
+            set3: {
+                questions: [
+                    { q: "According to the 'Survival' text, what is the first step to survival?", o: ["Finding food", "Building a shelter", "Ordering your priorities", "Making a fire"], a: 2 },
+                    { q: "What does the black coloring on a solar panel do?", o: ["Makes it look nice", "Inhibits reflection and encourages absorption", "Protects it from rain", "Keeps it cool"], a: 1 },
+                    { q: "What does 'qualified' mean in the phrase 'qualified volunteers'?", o: ["Wealthy", "Young", "Willing to work", "Having the necessary skills"], a: 3 },
+                    { q: "In a library context, what does it mean to 'renew' a book?", o: ["To buy it", "To extend the borrowing period", "To return it", "To write a review of it"], a: 1 },
+                    { q: "Which traits are associated with the 'cancer-prone personality'?", o: ["Loud, aggressive, and angry", "Polite, unaggressive, and agreeable", "Shy, quiet, and sad", "Creative and artistic"], a: 1 },
+                    { q: "Why is an eye-catching product position important in a supermarket?", o: ["It makes the store look organized", "Many shopping decisions are made on impulse", "It helps staff find items", "It prevents theft"], a: 1 },
+                    { q: "What does it mean to 'take for granted'?", o: ["To steal something", "To not appreciate something you're used to", "To understand completely", "To borrow without asking"], a: 1 },
+                    { q: "What is suggested as the best way to control population in developing nations?", o: ["Provide free housing", "Limit family size by law", "Raise the standard of living", "Offer financial rewards"], a: 2 },
+                    { q: "On average, how many volunteers does the Peace Corps send abroad annually?", o: ["About 300", "About 1,000", "About 6,000", "About 10,000"], a: 2 },
+                    { q: "What happens to radiation when it passes through the glass of a solar collector?", o: ["It gets weaker", "It is reflected", "It changes from short-wave to long-wave", "It disappears"], a: 2 },
+                    { q: "What is a 'fine' in a library context?", o: ["A very good book", "A penalty payment for being late", "A type of book classification", "A quiet reading area"], a: 1 },
+                    { q: "What is a counter-argument to the 'cancer-prone personality' theory?", o: ["The theory is too old", "Getting cancer might cause the personality traits", "Only scientists believe it", "There is no research"], a: 1 },
+                    { q: "What is 'space management' in a supermarket?", o: ["A way of influencing how people shop", "Hiring more staff", "Making aisles wider", "A new type of shelving"], a: 0 },
+                    { q: "What would building more cycleways achieve?", o: ["Increase car traffic", "Save energy and reduce pollution", "Make cycling more difficult", "Destroy wildlife habitats"], a: 1 },
+                    { q: "What does the 'gist' of a text mean?", o: ["The specific details", "The author's opinion", "The main point or idea", "The vocabulary used"], a: 2 },
+                ]
+            },
+            set4: {
+                questions: [
+                    { q: "According to the supermarket text, where do products generally sell best?", o: ["On the bottom shelf", "At the end of aisles", "At eye level", "Near the entrance"], a: 2 },
+                    { q: "Why might a survivor at sea be desperate for water?", o: ["They are not thirsty", "The water is too cold", "The sea water is not drinkable", "They prefer juice"], a: 2 },
+                    { q: "What does 'overdue' mean for a library book?", o: ["It is very popular", "It is damaged", "It is kept past the return date", "It is a new arrival"], a: 2 },
+                    { q: "What helps Peace Corps volunteers learn the local language and culture?", o: ["Reading books", "Watching local TV", "Living with host families", "Attending classes"], a: 2 },
+                    { q: "What is the purpose of insulation behind a solar collector?", o: ["To make it look bigger", "To prevent heat loss", "To absorb sunlight", "To keep it cool"], a: 1 },
+                    { q: "What is the main purpose of the Friends of the Earth Trust?", o: ["To fund political campaigns", "To promote recycling only", "To make people aware of environmental threats", "To organize nature hikes"], a: 2 },
+                    { q: "What are the two types of Multiple-Choice Questions mentioned in the text?", o: ["Easy and Hard", "Long and Short", "Standard and Modified", "Fact and Opinion"], a: 2 },
+                    { q: "What happens to population growth in industrial nations when most people can live in comfort?", o: ["It speeds up", "It stops completely", "It slows down", "It becomes unpredictable"], a: 2 },
+                    { q: "In the IELTS Reading test, is extra time given to transfer answers to the answer sheet?", o: ["Yes, 10 minutes", "Yes, 5 minutes", "No, no extra time is given", "It depends on the test center"], a: 2 },
+                    { q: "What is the purpose of the money Peace Corps volunteers receive after their service?", o: ["As a final salary", "To help them get back on their feet in the US", "To pay for their travel home", "To donate to their host country"], a: 1 },
+                    { q: "What is a 'circulation desk' in a library?", o: ["A round table for reading", "The place to check out/return books", "The information office", "A place to use computers"], a: 1 },
+                    { q: "According to the text, which is cheaper: saving energy or producing it?", o: ["Producing it", "They cost the same", "Saving it", "The text doesn't say"], a: 2 },
+                    { q: "What is the minimum service time for a Peace Corps volunteer?", o: ["Six months", "One year", "Two years", "Three years"], a: 2 },
+                    { q: "What are 'traits' in the context of personality?", o: ["Habits", "Skills", "Qualities or characteristics", "Opinions"], a: 2 },
+                    { q: "In the context of wildlife, what does 'extinct' mean?", o: ["Endangered", "No longer in existence", "Living in a zoo", "A newly discovered species"], a: 1 },
+                ]
+            }
+        };
+
+        // --- GAME STATE ---
+        let state = {};
+
+        function resetState() {
+            state = {
+                team1Name: 'Team Alpha',
+                team2Name: 'Team Bravo',
+                team1Score: 0,
+                team2Score: 0,
+                currentPlayingTeam: 0, // 1 for team1, 2 for team2
+                playedSets: [],
+                timer: 300,
+                timerInterval: null,
+                questions: [],
+                currentQuestionIndex: 0
+            };
+        }
+
+        function showScreen(screen) {
+            [startScreen, setSelectionScreen, gameScreen, transitionScreen, endScreen].forEach(s => s.classList.add('hidden'));
+            screen.classList.remove('hidden');
+            screen.classList.add('scale-up');
+        }
+        
+        function handleStartGame() {
+            state.team1Name = team1NameInput.value || 'Team Alpha';
+            state.team2Name = team2NameInput.value || 'Team Bravo';
+            showSetSelection(1);
+        }
+
+        function showSetSelection(teamNumber) {
+            state.currentPlayingTeam = teamNumber;
+            const teamName = teamNumber === 1 ? state.team1Name : state.team2Name;
+            setSelectionTitle.textContent = `${teamName}, Choose Your Set!`;
+            
+            setButtons.forEach(button => {
+                if (state.playedSets.includes(button.dataset.set)) {
+                    button.disabled = true;
+                } else {
+                    button.disabled = false;
+                }
+            });
+            showScreen(setSelectionScreen);
+        }
+
+        function playSet(setName) {
+            state.playedSets.push(setName);
+            state.questions = [...gameData[setName].questions].sort(() => Math.random() - 0.5);
+            state.currentQuestionIndex = 0;
+            state.timer = 300;
+
+            const teamName = state.currentPlayingTeam === 1 ? state.team1Name : state.team2Name;
+            teamIndicator.textContent = `${teamName} is playing`;
+            currentScoreDisplay.textContent = `Score: 0`;
+            
+            showScreen(gameScreen);
+            displayQuestion();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                state.timer--;
+                const minutes = Math.floor(state.timer / 60);
+                const seconds = state.timer % 60;
+                timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                if (state.timer <= 0) {
+                    endTurn("Time's Up!");
+                }
+            }, 1000);
+        }
+
+        function displayQuestion() {
+            if (state.currentQuestionIndex >= state.questions.length) {
+                endTurn("Set Complete!");
+                return;
+            }
+            
+            feedbackContainer.innerHTML = '';
+            optionsContainer.innerHTML = '';
+            
+            const currentQuestion = state.questions[state.currentQuestionIndex];
+            questionCounter.textContent = `Question ${state.currentQuestionIndex + 1} / ${state.questions.length}`;
+            questionText.textContent = currentQuestion.q;
+            
+            currentQuestion.o.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-btn', 'btn', 'w-full', 'text-left', 'p-4', 'border-2', 'border-gray-300', 'rounded-lg', 'hover:bg-gray-100', 'hover:border-indigo-400', 'text-gray-700');
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectAnswer(selectedIndex) {
+            const currentQuestion = state.questions[state.currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQuestion.a;
+            
+            const optionButtons = optionsContainer.querySelectorAll('.option-btn');
+            optionButtons.forEach(btn => btn.disabled = true);
+            
+            if (isCorrect) {
+                if (state.currentPlayingTeam === 1) {
+                    state.team1Score += 10;
+                } else {
+                    state.team2Score += 10;
+                }
+                optionButtons[selectedIndex].classList.add('correct');
+                feedbackContainer.textContent = "Correct! +10 points";
+                feedbackContainer.classList.add('text-green-500');
+            } else {
+                optionButtons[selectedIndex].classList.add('incorrect');
+                optionButtons[currentQuestion.a].classList.add('correct');
+                feedbackContainer.textContent = "Incorrect!";
+                feedbackContainer.classList.add('text-red-500');
+            }
+            
+            const currentScore = state.currentPlayingTeam === 1 ? state.team1Score : state.team2Score;
+            currentScoreDisplay.textContent = `Score: ${currentScore}`;
+
+            state.currentQuestionIndex++;
+            setTimeout(displayQuestion, 2000);
+        }
+
+        function endTurn(reason) {
+            clearInterval(state.timerInterval);
+            if (state.currentPlayingTeam === 1) {
+                transitionScoreText.textContent = `${state.team1Name}'s score is: ${state.team1Score}`;
+                showScreen(transitionScreen);
+            } else {
+                showFinalResults(reason);
+            }
+        }
+
+        function showFinalResults(title) {
+            endTitle.textContent = title;
+            finalTeam1Name.textContent = state.team1Name;
+            finalTeam2Name.textContent = state.team2Name;
+            finalTeam1Score.textContent = state.team1Score;
+            finalTeam2Score.textContent = state.team2Score;
+
+            if (state.team1Score > state.team2Score) {
+                winnerText.textContent = `${state.team1Name} wins! 🎉`;
+            } else if (state.team2Score > state.team1Score) {
+                winnerText.textContent = `${state.team2Name} wins! 🥳`;
+            } else {
+                winnerText.textContent = "It's a tie! 🤝";
+            }
+            showScreen(endScreen);
+        }
+
+        function restart() {
+            resetState();
+            showScreen(startScreen);
+        }
+
+        // --- EVENT LISTENERS ---
+        startGameBtn.addEventListener('click', handleStartGame);
+        setButtons.forEach(button => {
+            button.addEventListener('click', () => playSet(button.dataset.set));
+        });
+        nextTurnBtn.addEventListener('click', () => showSetSelection(2));
+        restartBtn.addEventListener('click', restart);
+
+        // --- INITIALIZE ---
+        resetState();
+        showScreen(startScreen);
+
+    </script>
+</body>
+</html>
