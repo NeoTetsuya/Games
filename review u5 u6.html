@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary & Grammar Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .team-active {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.7);
+        }
+        .btn-glowing {
+            box-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 15px #3b82f6;
+        }
+        #timer {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-blue-50 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="w-full max-w-6xl mx-auto">
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-blue-600 mb-4">Vocabulary & Grammar Challenge!</h1>
+            <p class="text-lg md:text-xl text-gray-600 mb-8">Get ready to test your knowledge. Three teams will compete for victory!</p>
+            <button id="start-game-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-xl transition duration-300 transform hover:scale-105 btn-glowing">
+                Start Game
+            </button>
+        </div>
+
+        <!-- Main Game Screen -->
+        <div id="main-game" class="hidden">
+            <header class="mb-6 text-center">
+                <h1 class="text-3xl font-bold text-blue-600">Game Board</h1>
+                <div id="timer-container" class="mt-4 text-6xl font-bold text-blue-800 hidden">
+                    <span id="timer">03:00</span>
+                </div>
+            </header>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div id="team-1-card" class="team-card bg-white p-4 rounded-lg shadow-md text-center transition-all duration-300">
+                    <h2 class="text-2xl font-bold text-red-500">Team 1</h2>
+                    <p class="text-4xl font-bold mt-2" id="team-1-score">0</p>
+                </div>
+                <div id="team-2-card" class="team-card bg-white p-4 rounded-lg shadow-md text-center transition-all duration-300">
+                    <h2 class="text-2xl font-bold text-green-500">Team 2</h2>
+                    <p class="text-4xl font-bold mt-2" id="team-2-score">0</p>
+                </div>
+                <div id="team-3-card" class="team-card bg-white p-4 rounded-lg shadow-md text-center transition-all duration-300">
+                    <h2 class="text-2xl font-bold text-yellow-500">Team 3</h2>
+                    <p class="text-4xl font-bold mt-2" id="team-3-score">0</p>
+                </div>
+            </div>
+
+            <div id="turn-controls" class="bg-white p-6 rounded-lg shadow-lg text-center">
+                <p id="turn-prompt" class="text-lg mb-4">Ready, Team 1?</p>
+                <button id="start-turn-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 transform hover:scale-105">
+                    Start Team 1's Turn
+                </button>
+            </div>
+            
+            <!-- Question Area -->
+            <div id="question-area" class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto p-6 md:p-8 mt-6 hidden">
+                <h3 id="question-title" class="text-2xl font-bold mb-6 text-center">Question for Team 1</h3>
+                <div id="question-text" class="text-xl mb-6 text-center"></div>
+                <div id="answer-options" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Answer buttons will be injected here -->
+                </div>
+                <div id="teacher-decision-controls" class="hidden text-center">
+                    <p class="text-lg mb-4">Teacher, please evaluate the team's answer.</p>
+                    <button data-correct="true" class="teacher-award-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg mr-4">Correct (+10)</button>
+                    <button data-correct="false" class="teacher-award-btn bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg">Incorrect (+0)</button>
+                </div>
+                <div id="feedback" class="text-center font-bold text-xl mt-4"></div>
+            </div>
+
+        </div>
+    </div>
+    
+    <!-- Winner Modal -->
+    <div id="winner-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl text-center p-8">
+            <h2 class="text-4xl font-bold mb-4" id="winner-text"></h2>
+            <p class="text-xl mb-6">Final Scores:</p>
+            <div id="final-scores" class="text-lg space-y-2"></div>
+            <button id="play-again-btn" class="mt-8 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-xl transition duration-300 transform hover:scale-105">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- SOUNDS ---
+        const synth = new Tone.Synth().toDestination();
+        const polySynth = new Tone.PolySynth(Tone.Synth).toDestination();
+
+        function playCorrectSound() {
+            Tone.start();
+            const now = Tone.now();
+            synth.triggerAttackRelease("C4", "8n", now);
+            synth.triggerAttackRelease("E4", "8n", now + 0.2);
+            synth.triggerAttackRelease("G4", "8n", now + 0.4);
+        }
+
+        function playIncorrectSound() {
+            Tone.start();
+            synth.triggerAttackRelease("C3", "4n");
+        }
+        
+        function playTimesUpSound() {
+            Tone.start();
+            const now = Tone.now();
+            synth.triggerAttackRelease("G3", "8n", now);
+            synth.triggerAttackRelease("G3", "8n", now + 0.2);
+            synth.triggerAttackRelease("G3", "8n", now + 0.4);
+        }
+
+        function playWinnerSound() {
+            Tone.start();
+            const now = Tone.now();
+            polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "1n", now);
+            polySynth.triggerAttackRelease(["F4", "A4", "C5", "F5"], "1n", now + 1);
+            polySynth.triggerAttackRelease(["G4", "B4", "D5", "G5"], "1n", now + 2);
+        }
+
+        // --- GAME DATA ---
+        const questions = {
+             team1: [
+                { type: 'mc', question: "What is the <strong><em>opposite</em></strong> of 'generous'?", options: ["Kind", "Mean", "Happy", "Rich"], answer: "Mean" },
+                { type: 'mc', question: "Fill in the blank: Natalie is still very keen ___ football.", options: ["of", "with", "on", "about"], answer: "on" },
+                { type: 'teacher', question: "Use the word '<strong><em>proud</em></strong>' in a sentence." },
+                { type: 'tf', question: "True or False: A long, dull movie is <strong><em>bored</em></strong>.", answer: false },
+                { type: 'teacher', question: "Unscramble the word: <strong>L O U S J E A</strong> (Hint: It's a feeling)" },
+                { type: 'mc', question: "You ___ pay to enter; it's free for students.", options: ["mustn't", "don't have to", "can't", "shouldn't"], answer: "don't have to" },
+                { type: 'mc', question: "What is the <strong><em>noun form</em></strong> of 'afraid'?", options: ["Fright", "Fear", "Afraidness", "Scared"], answer: "Fear" },
+                { type: 'mc', question: "Which word means the same as '<strong><em>worried</em></strong>'?", options: ["Bored", "Anxious", "Proud", "Sad"], answer: "Anxious" },
+                { type: 'teacher', question: "Correct the sentence: 'She's very proud <strong><em>on</em></strong> her new car.'" },
+                { type: 'tf', question: "True or False: 'Ordinary' means something is very special.", answer: false },
+                { type: 'mc', question: "He was disappointed ___ his exam results.", options: ["of", "with", "on", "about"], answer: "with" },
+                { type: 'mc', question: "I felt so ___ when I dropped my books.", options: ["embarrassing", "embarrassed", "bored", "boring"], answer: "embarrassed" },
+                { type: 'mc', question: "What do you call the break in the middle of a show?", options: ["Admission", "Performance", "Interval", "Review"], answer: "Interval" },
+                { type: 'mc', question: "It ___ rain later, the sky is very cloudy.", options: ["can", "have to", "should", "might"], answer: "might" },
+                { type: 'tf', question: "True or False: If you are 'keen on' something, you are very interested in it.", answer: true },
+                { type: 'teacher', question: "Unscramble the word: <strong>D O U R P</strong>" },
+                { type: 'mc', question: "What is the <strong><em>opposite</em></strong> of 'ashamed'?", options: ["Embarrassed", "Guilty", "Proud", "Sorry"], answer: "Proud" },
+                { type: 'mc', question: "Which word means '<strong><em>very bad</em></strong>'?", options: ["Excellent", "Good", "Okay", "Terrible"], answer: "Terrible" },
+                { type: 'tf', question: "True or False: The adjective '<strong><em>amazing</em></strong>' describes how a person feels.", answer: false },
+                { type: 'mc', question: "You ___ take your passport to travel internationally; it's a rule.", options: ["should", "might", "have to", "can"], answer: "have to" },
+                { type: 'mc', question: "A written opinion of a show or movie is called a ___.", options: ["Cartoon", "Review", "Pocket", "Interval"], answer: "Review" },
+            ],
+            team2: [
+                { type: 'mc', question: "What is the <strong><em>opposite</em></strong> of 'happy'?", options: ["Sad", "Joyful", "Glad", "Content"], answer: "Sad" },
+                { type: 'mc', question: "Fill in the blank: I'm getting tired ___ studying all day.", options: ["of", "with", "on", "about"], answer: "of" },
+                { type: 'teacher', question: "Correct the sentence: 'The story was very <strong><em>interested</em></strong>.'" },
+                { type: 'tf', question: "True or False: 'You must go' and 'You should go' mean the same thing.", answer: false },
+                { type: 'teacher', question: "Unscramble the word: <strong>V O U S E R N</strong> (Hint: How you feel before a test)" },
+                { type: 'mc', question: "To give strong advice, you should use the word ___.", options: ["can", "might", "should", "have to"], answer: "should" },
+                { type: 'mc', question: "What is the <strong><em>noun form</em></strong> of 'angry'?", options: ["Anger", "Angryness", "Enraged", "Agitation"], answer: "Anger" },
+                { type: 'mc', question: "Which word describes a person who feels awkward?", options: ["Embarrassing", "Embarrassed", "Boring", "Bored"], answer: "Embarrassed" },
+                { type: 'teacher', question: "Use the word '<strong><em>admission</em></strong>' in a sentence." },
+                { type: 'tf', question: "True or False: 'You don't have to go' means it is forbidden to go.", answer: false },
+                { type: 'mc', question: "Don't be frightened ___ the dog; it's friendly.", options: ["of", "with", "on", "about"], answer: "of" },
+                { type: 'mc', question: "The journey was long and ___.", options: ["tiring", "tired", "tire", "tiresome"], answer: "tiring" },
+                { type: 'mc', question: "Fill in the blank: I ___ swim when I was five, but now I can.", options: ["can't", "couldn't", "don't have to", "might not"], answer: "couldn't" },
+                { type: 'mc', question: "What do you call the people watching a show?", options: ["Performers", "Cartoons", "Audiences", "Reviews"], answer: "Audiences" },
+                { type: 'tf', question: "True or False: 'Mean' is the opposite of 'kind'.", answer: true },
+                { type: 'teacher', question: "Unscramble the word: <strong>D E R O B</strong>" },
+                { type: 'mc', question: "'Very bad' is a definition for ___.", options: ["Excellent", "Ordinary", "Terrible", "Anxious"], answer: "Terrible" },
+                { type: 'mc', question: "He's crazy ___ video games.", options: ["of", "with", "on", "about"], answer: "about" },
+                { type: 'tf', question: "True or False: The adjective '<strong><em>bored</em></strong>' describes a thing, not a person.", answer: false },
+                { type: 'mc', question: "If you are not sure about something, you say 'It ___ happen.'", options: ["must", "should", "might", "has to"], answer: "might" },
+                { type: 'teacher', question: "Create one sentence using an '<strong><em>-ed</em></strong>' adjective and an '<strong><em>-ing</em></strong>' adjective." },
+            ],
+            team3: [
+                { type: 'mc', question: "If you are not interested in something, you are ___.", options: ["Bored", "Excited", "Keen", "Frightened"], answer: "Bored" },
+                { type: 'mc', question: "Fill in the blank: She was very sad ___ the news.", options: ["of", "with", "on", "about"], answer: "about" },
+                { type: 'teacher', question: "Use the word '<strong><em>nervous</em></strong>' in a sentence." },
+                { type: 'tf', question: "True or False: 'You must wear a helmet' is just a suggestion.", answer: false },
+                { type: 'teacher', question: "Unscramble the word: <strong>D A S H E M A</strong> (Hint: Feeling guilty)" },
+                { type: 'mc', question: "I was ___ by the magician's tricks.", options: ["amazed", "amazing", "amaze", "amazement"], answer: "amazed" },
+                { type: 'mc', question: "'Anxious' is a synonym for ___.", options: ["Calm", "Happy", "Excited", "Worried"], answer: "Worried" },
+                { type: 'mc', question: "What is another word for a 'live performance'?", options: ["Cartoon", "Review", "Show", "Pocket"], answer: "Show" },
+                { type: 'teacher', question: "Correct the sentence: 'I felt very <strong><em>embarrassing</em></strong> when I forgot her name.'" },
+                { type: 'tf', question: "True or False: The correct phrase is 'jealous on someone'.", answer: false },
+                { type: 'mc', question: "___ you help me with this box? It's heavy.", options: ["Should", "Might", "Could", "Must"], answer: "Could" },
+                { type: 'mc', question: "A story that holds your attention is ___.", options: ["interesting", "interested", "interest", "interests"], answer: "interesting" },
+                { type: 'mc', question: "Fill in the blank: The ___ for the concert was $20.", options: ["review", "performance", "admission", "interval"], answer: "admission" },
+                { type: 'mc', question: "He is very proud ___ his daughter's success.", options: ["of", "with", "on", "about"], answer: "of" },
+                { type: 'tf', question: "True or False: If something is 'frightening', it makes you feel scared.", answer: true },
+                { type: 'teacher', question: "Unscramble the word: <strong>L E B R I T E R</strong>" },
+                { type: 'mc', question: "What an ___ story! I couldn't stop reading.", options: ["excited", "exciting", "excite", "excitement"], answer: "exciting" },
+                { type: 'mc', question: "Which word means '<strong><em>normal and not unusual</em></strong>'?", options: ["Strange", "Ordinary", "Special", "Unique"], answer: "Ordinary" },
+                { type: 'tf', question: "True or False: '<strong><em>Might</em></strong>' expresses a strong certainty.", answer: false },
+                { type: 'mc', question: "If you can't do something, you say 'I ___ do it.'", options: ["can't", "shouldn't", "mustn't", "don't have to"], answer: "can't" },
+                { type: 'teacher', question: "Correct the sentence: 'My mum often wears <strong><em>colour</em></strong> shirts.'" },
+            ]
+        };
+
+        // --- GAME STATE ---
+        let scores = { team1: 0, team2: 0, team3: 0 };
+        let currentTeam = 1;
+        let questionIndexes = { team1: 0, team2: 0, team3: 0 };
+        const totalQuestionsPerTeam = questions.team1.length;
+        let timerInterval;
+        let timeLeft;
+        let isTurnActive = false;
+
+        // --- DOM ELEMENTS ---
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const mainGame = document.getElementById('main-game');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const startTurnBtn = document.getElementById('start-turn-btn');
+        const turnPrompt = document.getElementById('turn-prompt');
+        const turnControls = document.getElementById('turn-controls');
+        const timerContainer = document.getElementById('timer-container');
+        const timerDisplay = document.getElementById('timer');
+        const questionArea = document.getElementById('question-area');
+        const questionTitle = document.getElementById('question-title');
+        const questionText = document.getElementById('question-text');
+        const answerOptions = document.getElementById('answer-options');
+        const teacherControls = document.getElementById('teacher-decision-controls');
+        const feedback = document.getElementById('feedback');
+        const winnerModal = document.getElementById('winner-modal');
+        const winnerText = document.getElementById('winnerText');
+        const finalScores = document.getElementById('final-scores');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        // --- GAME LOGIC ---
+        function initGame() {
+            scores = { team1: 0, team2: 0, team3: 0 };
+            currentTeam = 1;
+            questionIndexes = { team1: 0, team2: 0, team3: 0 };
+            isTurnActive = false;
+            clearInterval(timerInterval);
+            
+            Object.values(questions).forEach(shuffleArray);
+
+            updateScoreboard();
+            prepareNextTurn();
+
+            welcomeScreen.classList.add('hidden');
+            mainGame.classList.remove('hidden');
+            winnerModal.classList.add('hidden');
+            winnerModal.classList.remove('flex');
+            timerContainer.classList.add('hidden');
+            turnControls.classList.remove('hidden');
+            questionArea.classList.add('hidden');
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function updateScoreboard() {
+            document.getElementById('team-1-score').textContent = scores.team1;
+            document.getElementById('team-2-score').textContent = scores.team2;
+            document.getElementById('team-3-score').textContent = scores.team3;
+        }
+
+        function startTurn() {
+            isTurnActive = true;
+            timeLeft = 180; // 3 minutes
+            turnControls.classList.add('hidden');
+            timerContainer.classList.remove('hidden');
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    endTurn(true); // true indicates time is up
+                }
+            }, 1000);
+            
+            showQuestion();
+        }
+
+        function endTurn(isTimeUp = false) {
+            if (!isTurnActive) return;
+            isTurnActive = false;
+            clearInterval(timerInterval);
+            
+            if (isTimeUp) {
+                playTimesUpSound();
+            }
+            hideQuestion(false); // don't show next question
+            
+            currentTeam++;
+            if (currentTeam > 3) {
+                checkForWinner();
+            } else {
+                prepareNextTurn();
+                timerContainer.classList.add('hidden');
+                turnControls.classList.remove('hidden');
+            }
+        }
+        
+        function prepareNextTurn() {
+            turnPrompt.textContent = `Ready, Team ${currentTeam}?`;
+            startTurnBtn.textContent = `Start Team ${currentTeam}'s Turn`;
+            
+            document.querySelectorAll('.team-card').forEach((card, index) => {
+                card.classList.toggle('team-active', index + 1 === currentTeam);
+            });
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function showQuestion() {
+            const teamKey = `team${currentTeam}`;
+            const qIndex = questionIndexes[teamKey];
+
+            if (qIndex >= totalQuestionsPerTeam) {
+                endTurn();
+                return;
+            }
+
+            const question = questions[teamKey][qIndex];
+            
+            questionTitle.textContent = `Question for Team ${currentTeam}`;
+            questionText.innerHTML = question.question;
+            answerOptions.innerHTML = '';
+            feedback.innerHTML = '';
+            
+            if (question.type === 'mc' || question.type === 'tf') {
+                answerOptions.classList.remove('hidden');
+                teacherControls.classList.add('hidden');
+                const options = question.type === 'tf' ? ['True', 'False'] : question.options;
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.className = 'w-full bg-gray-200 hover:bg-blue-500 hover:text-white p-4 rounded-lg text-lg transition duration-200';
+                    button.onclick = () => checkAnswer(option, question.answer);
+                    answerOptions.appendChild(button);
+                });
+            } else if (question.type === 'teacher') {
+                answerOptions.classList.add('hidden');
+                teacherControls.classList.remove('hidden');
+                // Re-enable buttons for the next teacher question
+                teacherControls.querySelectorAll('button').forEach(b => b.disabled = false);
+            }
+
+            questionArea.classList.remove('hidden');
+        }
+
+        function checkAnswer(selected, correct) {
+            const isCorrect = String(selected).toLowerCase() === String(correct).toLowerCase();
+            
+            document.querySelectorAll('#answer-options button').forEach(button => {
+                button.disabled = true;
+                if (String(button.textContent).toLowerCase() === String(correct).toLowerCase()) {
+                    button.classList.add('bg-green-500', 'text-white');
+                } else if (String(button.textContent).toLowerCase() === String(selected).toLowerCase()) {
+                    button.classList.add('bg-red-500', 'text-white');
+                }
+            });
+
+            if (isCorrect) {
+                feedback.textContent = 'Correct! +10 points';
+                feedback.className = 'text-center font-bold text-xl mt-4 text-green-500';
+                scores[`team${currentTeam}`] += 10;
+                playCorrectSound();
+            } else {
+                feedback.textContent = 'Incorrect!';
+                feedback.className = 'text-center font-bold text-xl mt-4 text-red-500';
+                playIncorrectSound();
+            }
+
+            updateScoreboard();
+            questionIndexes[`team${currentTeam}`]++;
+            setTimeout(() => hideQuestion(true), 2000);
+        }
+        
+        function handleTeacherDecision(isCorrect) {
+            teacherControls.querySelectorAll('button').forEach(b => b.disabled = true);
+            if (isCorrect) {
+                feedback.textContent = 'Points Awarded! +10';
+                feedback.className = 'text-center font-bold text-xl mt-4 text-green-500';
+                scores[`team${currentTeam}`] += 10;
+                playCorrectSound();
+            } else {
+                feedback.textContent = 'No points awarded.';
+                feedback.className = 'text-center font-bold text-xl mt-4 text-red-500';
+                playIncorrectSound();
+            }
+            updateScoreboard();
+            questionIndexes[`team${currentTeam}`]++;
+            setTimeout(() => hideQuestion(true), 2000);
+        }
+
+        function hideQuestion(showNext) {
+            if (showNext && isTurnActive) {
+                showQuestion();
+            } else {
+                questionArea.classList.add('hidden');
+            }
+        }
+
+        function checkForWinner() {
+            let winner = '';
+            let highScore = -1;
+            
+            const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+            
+            highScore = sortedScores[0][1];
+            const winners = sortedScores.filter(team => team[1] === highScore);
+
+            if (winners.length > 1) {
+                winnerText.textContent = "It's a Tie!";
+            } else {
+                const winnerNum = winners[0][0].replace('team', '');
+                winnerText.textContent = `Team ${winnerNum} Wins!`;
+            }
+
+            finalScores.innerHTML = sortedScores.map(([team, score]) => {
+                const teamNum = team.replace('team', '');
+                return `<div><strong>Team ${teamNum}:</strong> ${score} points</div>`;
+            }).join('');
+
+            showWinnerModal();
+            playWinnerSound();
+        }
+        
+        function showWinnerModal() {
+            winnerModal.classList.remove('hidden');
+            winnerModal.classList.add('flex');
+        }
+
+        // --- EVENT LISTENERS ---
+        startGameBtn.addEventListener('click', initGame);
+        startTurnBtn.addEventListener('click', startTurn);
+        playAgainBtn.addEventListener('click', initGame);
+        document.querySelectorAll('.teacher-award-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                handleTeacherDecision(e.target.dataset.correct === 'true');
+            });
+        });
+
+    </script>
+</body>
+</html>
