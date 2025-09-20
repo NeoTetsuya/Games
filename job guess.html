@@ -137,6 +137,21 @@
 
           <!-- Status/Feedback -->
           <div id="statusBox" class="mt-4 hidden rounded-xl p-4"></div>
+
+          <!-- Answer Visual Card -->
+          <div id="answerCard" class="mt-4 hidden">
+            <div class="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div id="answerEmoji" class="text-5xl">🎯</div>
+              <div class="min-w-0 flex-1">
+                <div id="answerTitle" class="text-xl font-extrabold text-slate-900">Answer</div>
+                <div id="answerNote" class="text-slate-600 text-sm">Revealed after guessing or showing all hints.</div>
+                <div id="multiAnswers" class="mt-2 hidden">
+                  <p class="text-slate-700 text-sm font-bold">Also accepted:</p>
+                  <ul id="altAnswersList" class="mt-1 list-disc list-inside text-slate-700 text-sm"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -446,6 +461,11 @@
     let guessesLeft = {}; // teamId -> remaining (2 per job)
     let winningTeamId = null;
     let someoneGuessedThisRound = false;
+    // Multi-answer per job support
+    // answerGroups: Array of groups, each group is an array of acceptable strings
+    // foundAnswers: boolean array same length as answerGroups
+    let answerGroups = [];
+    let foundAnswers = [];
 
     // -------------------------
     // Helpers
@@ -552,18 +572,41 @@
 
       const allHintsShown = revealedHints >= currentJob().hints.length;
 
+      // Update progress bar fill
+      const progress = qs('#hintProgress');
+      const total = currentJob().hints.length;
+      progress.style.width = `${Math.min(100, Math.round((revealedHints/total)*100))}%`;
+
       showHintBtn.disabled = roundOver || allHintsShown;
       revealAnswerBtn.classList.toggle("hidden", !(allHintsShown && !roundOver && !someoneGuessedThisRound));
       nextJobBtn.classList.toggle("hidden", !roundOver);
+
+      // Update dynamic points preview
+      const possible = Math.max(0, total - revealedHints);
+      showHintBtn.textContent = revealedHints < total ? `Show Next Hint` : 'Show Next Hint';
+      const subtitle = qs('#roundSubtitle');
+      subtitle.textContent = roundOver ? subtitle.textContent : `Correct now is worth +${possible} point${possible===1?'':'s'}`;
     }
 
     function startRound() {
       revealedHints = 0;
       roundOver = false;
       someoneGuessedThisRound = false;
+      // Build answer groups for this job: if a job has 'answers' as array of arrays, use it; otherwise wrap single array
+      const job = currentJob();
+      if (Array.isArray(job.answers[0])) {
+        answerGroups = job.answers.map(group => group.map(a => normalizeAnswer(a)));
+      } else {
+        // default: group 0 is the main set, and alternates will be displayed separately
+        answerGroups = [job.answers.map(a => normalizeAnswer(a))];
+      }
+      foundAnswers = new Array(answerGroups.length).fill(false);
+
       resetGuessesForJob();
       qs("#roundTitle").textContent = `Job ${currentJobIndex + 1}`;
-      qs("#roundSubtitle").textContent = `Reveal hints and let teams guess the job.`;
+      qs("#roundSubtitle").textContent = `Correct now is worth +5 points`;
+      const card = qs('#answerCard');
+      if(card){ card.classList.add('hidden'); qs('#multiAnswers').classList.add('hidden'); qs('#altAnswersList').innerHTML = ''; }
       clearStatus();
       renderHints();
       renderTeamButtons();
@@ -575,6 +618,48 @@
       roundOver = true;
       winningTeamId = winnerTeamId;
       revealAnswerText(revealedAnswerText);
+      // Show answer visual card with an emoji "photo" substitute
+      const card = qs('#answerCard');
+      const emoji = qs('#answerEmoji');
+      const title = qs('#answerTitle');
+      const note = qs('#answerNote');
+      const altWrap = qs('#multiAnswers');
+      const altList = qs('#altAnswersList');
+      title.textContent = `Answer: ${revealedAnswerText}`;
+      // Try to render an inline SVG "photo" or emoji as a safe visual.
+      const jobPhoto = jobSVGFor(revealedAnswerText);
+      if (jobPhoto) {
+        emoji.innerHTML = jobPhoto; // contains inline SVG markup
+      } else {
+        emoji.textContent = jobEmojiFor(revealedAnswerText);
+      }
+      note.textContent = winnerTeamId ? 'Guessed correctly!' : 'Revealed after hints.';
+
+      // If this job has multiple answer groups, show the rest as accepted answers
+      altList.innerHTML = '';
+      if (answerGroups.length > 1 || (Array.isArray(currentJob().answers[0]) && currentJob().answers[0].length > 1)) {
+        const groups = Array.isArray(currentJob().answers[0]) ? currentJob().answers : [currentJob().answers];
+        const canonical = revealedAnswerText.toLowerCase();
+        groups.forEach(group => {
+          const label = group[0];
+          const others = group.slice(1).filter(a => a.toLowerCase() !== canonical);
+          if (others.length) {
+            others.forEach(a => {
+              const li = document.createElement('li');
+              li.textContent = a;
+              altList.appendChild(li);
+            });
+          }
+        });
+        if (altList.children.length) {
+          altWrap.classList.remove('hidden');
+        }
+      } else {
+        altWrap.classList.add('hidden');
+      }
+
+      card.classList.remove('hidden');
+
       if (winnerTeamId) {
         celebrate();
       }
@@ -585,6 +670,82 @@
     function revealAnswerText(answerText) {
       const title = qs("#roundSubtitle");
       title.textContent = `Answer: ${answerText}`;
+    }
+
+    function jobEmojiFor(answer) {
+      const a = normalizeAnswer(answer);
+      // simple mapping to give a visual 'photo-like' cue
+      const map = [
+        [/teacher/, '📚'],
+        [/chef|cook|baker/, '👩‍🍳'],
+        [/fire ?fighter/, '🚒'],
+        [/doctor|physician/, '🩺'],
+        [/nurse/, '💉'],
+        [/police|cop/, '👮'],
+        [/mail|postal/, '📬'],
+        [/bus driver|driver/, '🚌'],
+        [/farmer/, '🚜'],
+        [/artist|painter/, '🎨'],
+        [/architect/, '📐'],
+        [/librarian/, '📖'],
+        [/plumber/, '🔧'],
+        [/electrician/, '💡'],
+        [/mechanic/, '🛠️'],
+        [/photographer/, '📷'],
+        [/veterinarian|vet/, '🐾'],
+        [/journalist|reporter/, '📰'],
+        [/pilot/, '✈️'],
+        [/epidemiologist|physician/, '🧪'],
+        [/cartographer|map/, '🗺️'],
+        [/cryptographer|cryptologist/, '🔐'],
+        [/actuary/, '📊'],
+        [/paleontologist/, '🦖'],
+        [/sommelier|wine/, '🍷'],
+        [/sound engineer|audio engineer/, '🎚️'],
+        [/ethologist|animal behaviorist/, '🐒'],
+        [/astrophysicist|astronom/, '🌌'],
+        [/linguist/, '💬'],
+      ];
+      for (const [re, e] of map) if (re.test(a)) return e;
+      return '🎯';
+    }
+
+    function jobSVGFor(answer){
+      const a = normalizeAnswer(answer);
+      const svg = (p,color) => `
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' width='64' height='64' role='img' aria-label='${p}'><rect x='2' y='2' width='60' height='60' rx='12' fill='${color}'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='28' font-family='sans-serif' fill='white'>${p}</text></svg>
+      `;
+      // Return a compact SVG "badge" with an initial to act like a photo token
+      if(/teacher/.test(a)) return svg('T','#8b5cf6');
+      if(/chef|cook/.test(a)) return svg('C','#ef4444');
+      if(/fire ?fighter/.test(a)) return svg('F','#f59e0b');
+      if(/doctor|physician/.test(a)) return svg('D','#10b981');
+      if(/nurse/.test(a)) return svg('N','#06b6d4');
+      if(/police|cop/.test(a)) return svg('P','#0ea5e9');
+      if(/mail|postal/.test(a)) return svg('M','#6366f1');
+      if(/bus driver|driver/.test(a)) return svg('B','#22c55e');
+      if(/farmer/.test(a)) return svg('F','#84cc16');
+      if(/artist|painter/.test(a)) return svg('A','#e879f9');
+      if(/architect/.test(a)) return svg('A','#06b6d4');
+      if(/librarian/.test(a)) return svg('L','#a78bfa');
+      if(/plumber/.test(a)) return svg('P','#f97316');
+      if(/electrician/.test(a)) return svg('E','#fbbf24');
+      if(/mechanic/.test(a)) return svg('M','#64748b');
+      if(/photographer/.test(a)) return svg('P','#ef4444');
+      if(/veterinarian|vet/.test(a)) return svg('V','#22c55e');
+      if(/journalist|reporter/.test(a)) return svg('J','#60a5fa');
+      if(/pilot/.test(a)) return svg('P','#0ea5e9');
+      if(/epidemiologist/.test(a)) return svg('E','#14b8a6');
+      if(/cartographer|map/.test(a)) return svg('C','#10b981');
+      if(/cryptographer|cryptologist/.test(a)) return svg('C','#64748b');
+      if(/actuary/.test(a)) return svg('A','#94a3b8');
+      if(/paleontologist/.test(a)) return svg('P','#a3e635');
+      if(/sommelier|wine/.test(a)) return svg('S','#ef4444');
+      if(/sound engineer|audio engineer/.test(a)) return svg('S','#22c55e');
+      if(/ethologist|animal behaviorist/.test(a)) return svg('E','#84cc16');
+      if(/astrophysicist|astronom/.test(a)) return svg('A','#0ea5e9');
+      if(/linguist/.test(a)) return svg('L','#f59e0b');
+      return '';
     }
 
     function nextJob() {
@@ -664,8 +825,11 @@
     // -------------------------
     function checkGuess(text) {
       const typed = normalizeAnswer(text);
-      const acceptable = currentJob().answers.map(a => normalizeAnswer(a));
-      return acceptable.includes(typed);
+      // If multiple answer groups exist, return the index of the matched group; else return boolean
+      for (let i = 0; i < answerGroups.length; i++) {
+        if (answerGroups[i].includes(typed)) return i; // matched group index
+      }
+      return -1; // no match
     }
 
     // -------------------------
@@ -679,7 +843,15 @@
         renderHints();
         clearStatus();
         if (revealedHints === total && !someoneGuessedThisRound) {
-          setStatus("All hints revealed. You can reveal the answer or keep guessing until guesses run out.", "warn");
+          // Auto reveal if all teams out of guesses OR after a brief pause
+          const allZero = teams.every(tm => guessesLeft[tm.id] <= 0);
+          if (allZero) {
+            const canonical = currentJob().answers[0];
+            endRound(canonical);
+            setStatus(`No correct guesses. Answer: ${canonical}.`, 'info');
+          } else {
+            setStatus("All hints revealed. Keep guessing until guesses run out, or reveal the answer.", "warn");
+          }
         }
       }
       updateControls();
@@ -812,18 +984,24 @@
           return;
         }
 
-        const correct = checkGuess(input);
+        const matchIndex = checkGuess(input);
         guessesLeft[activeGuessTeamId] = Math.max(0, (guessesLeft[activeGuessTeamId] || 0) - 1);
         renderTeamButtons();
 
         const t = teams.find(x => x.id === activeGuessTeamId);
 
-        if (correct) {
-          t.score += 1;
+        if (matchIndex !== -1) {
+          // Points depend on remaining hidden hints: 5 hints per job.
+          const total = currentJob().hints.length;
+          const points = Math.max(0, total - revealedHints);
+          t.score += points;
           someoneGuessedThisRound = true;
           renderScoreboard();
-          endRound(currentJob().answers[0], activeGuessTeamId);
-          setStatus(`Correct! ${t.name} earns +1 point.`, "success");
+          // Mark matched group as found, so we can still show other accepted answers later
+          foundAnswers[matchIndex] = true;
+          const canonical = (Array.isArray(currentJob().answers[0]) ? currentJob().answers[matchIndex][0] : currentJob().answers[0]);
+          endRound(canonical, activeGuessTeamId);
+          setStatus(`Correct! ${t.name} earns +${points} point${points===1?'':'s'}.`, "success");
           SOUND.play('correct');
           closeGuessModal();
           return;
@@ -881,5 +1059,5 @@
       });
     });
   </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'982019c3512f04f3',t:'MTc1ODM1ODQ5My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98202de944086e45',t:'MTc1ODM1OTMxOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
