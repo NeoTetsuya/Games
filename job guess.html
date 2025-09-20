@@ -140,8 +140,14 @@
 
           <!-- Answer Visual Card -->
           <div id="answerCard" class="mt-4 hidden">
-            <div class="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div id="answerEmoji" class="text-5xl">🎯</div>
+            <div class="flex items-start gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="shrink-0">
+                <div class="w-28 h-28 rounded-xl bg-white border border-slate-200 shadow-inner overflow-hidden flex items-center justify-center relative">
+                  <img id="answerPhoto" alt="Job photo" class="absolute inset-0 w-full h-full object-cover hidden" onerror="this.src=''; this.alt='Image failed to load'; this.style.display='none';">
+                  <div id="answerEmoji" class="text-6xl relative z-10">🎯</div>
+                </div>
+                <p class="mt-2 text-center text-xs text-slate-500">Job photo</p>
+              </div>
               <div class="min-w-0 flex-1">
                 <div id="answerTitle" class="text-xl font-extrabold text-slate-900">Answer</div>
                 <div id="answerNote" class="text-slate-600 text-sm">Revealed after guessing or showing all hints.</div>
@@ -292,6 +298,41 @@
           "I work in a studio or outdoors.",
           "I show my work in galleries.",
           "I make art people enjoy."
+        ]},
+        { answers: ["cashier"], hints: [
+          "I work at a checkout counter.",
+          "I scan items and take payments.",
+          "I greet people as they shop.",
+          "I give receipts and change.",
+          "I help lines move quickly."
+        ]},
+        { answers: ["gardener"], hints: [
+          "I work with plants and soil.",
+          "I water, trim, and plant.",
+          "I use tools like trowels and gloves.",
+          "I help parks and yards look nice.",
+          "I help things grow."
+        ]},
+        { answers: ["waiter", "server"], hints: [
+          "I work in a restaurant.",
+          "I take orders and bring food.",
+          "I refill drinks and check on guests.",
+          "I know the menu well.",
+          "I help people enjoy their meals."
+        ]},
+        { answers: ["barber", "hairdresser"], hints: [
+          "I work with hair.",
+          "I cut and style.",
+          "I use scissors and clippers.",
+          "I talk with clients about their look.",
+          "I help people feel fresh."
+        ]},
+        { answers: ["lifeguard"], hints: [
+          "I watch over swimmers.",
+          "I sit in a tall chair by the water.",
+          "I blow a whistle to give instructions.",
+          "I know first aid and rescue skills.",
+          "I keep people safe at pools or beaches."
         ]}
       ],
       medium: [
@@ -364,6 +405,41 @@
           "I follow weather and air traffic control.",
           "I check instruments and safety.",
           "I fly airplanes."
+        ]},
+        { answers: ["carpenter"], hints: [
+          "I build things with wood.",
+          "I measure and cut carefully.",
+          "I use saws, hammers, and levels.",
+          "I read plans to assemble structures.",
+          "I make furniture and frames."
+        ]},
+        { answers: ["pharmacist"], hints: [
+          "I prepare and provide medicines.",
+          "I check prescriptions for safety.",
+          "I advise people on how to take drugs.",
+          "I work in pharmacies or hospitals.",
+          "I help patients use medicines properly."
+        ]},
+        { answers: ["graphic designer", "designer"], hints: [
+          "I create visuals for brands and products.",
+          "I work with color, typography, and layout.",
+          "I use design software often.",
+          "I make posters, logos, and social images.",
+          "I help ideas look clear and appealing."
+        ]},
+        { answers: ["tour guide"], hints: [
+          "I show visitors around places.",
+          "I share facts and stories.",
+          "I answer questions kindly.",
+          "I help groups stay together.",
+          "I make trips more interesting."
+        ]},
+        { answers: ["tailor", "seamstress"], hints: [
+          "I work with fabric and clothes.",
+          "I measure, cut, and sew.",
+          "I adjust sizes to fit.",
+          "I use needles, thread, and machines.",
+          "I make outfits look just right."
         ]}
       ],
       hard: [
@@ -436,6 +512,41 @@
           "I compare languages and dialects.",
           "I study how people learn to speak.",
           "I build theories about communication."
+        ]},
+        { answers: ["oceanographer"], hints: [
+          "I study the oceans and seas.",
+          "I measure currents, temperatures, and life.",
+          "I may work on research ships.",
+          "I use instruments to sample water.",
+          "I help explain how oceans affect Earth."
+        ]},
+        { answers: ["seismologist"], hints: [
+          "I study movements inside Earth.",
+          "I analyze vibrations and waves.",
+          "I place sensors along faults.",
+          "I research earthquakes and tremors.",
+          "I help improve safety and planning."
+        ]},
+        { answers: ["urban planner", "city planner"], hints: [
+          "I plan how cities grow.",
+          "I balance housing, transport, and parks.",
+          "I meet with communities and officials.",
+          "I draw maps and future layouts.",
+          "I help make places livable."
+        ]},
+        { answers: ["bioinformatician", "computational biologist"], hints: [
+          "I combine biology with computing.",
+          "I analyze DNA and protein data.",
+          "I build tools for scientists.",
+          "I look for patterns in big datasets.",
+          "I help make discoveries in health."
+        ]},
+        { answers: ["forensic anthropologist"], hints: [
+          "I study human bones for clues.",
+          "I help identify who someone was.",
+          "I work with investigators.",
+          "I analyze age, injuries, and history.",
+          "I help solve mysteries."
         ]}
       ]
     };
@@ -626,12 +737,25 @@
       const altWrap = qs('#multiAnswers');
       const altList = qs('#altAnswersList');
       title.textContent = `Answer: ${revealedAnswerText}`;
-      // Try to render an inline SVG "photo" or emoji as a safe visual.
-      const jobPhoto = jobSVGFor(revealedAnswerText);
-      if (jobPhoto) {
-        emoji.innerHTML = jobPhoto; // contains inline SVG markup
-      } else {
-        emoji.textContent = jobEmojiFor(revealedAnswerText);
+      // Try to show a real photo first (if available), else fall back to SVG/emoji.
+      const photoEl = document.getElementById('answerPhoto');
+      const photoUrl = jobPhotoUrlFor(revealedAnswerText);
+      if (photoEl) {
+        if (photoUrl) {
+          photoEl.src = photoUrl;
+          photoEl.classList.remove('hidden');
+          emoji.style.display = 'none';
+        } else {
+          photoEl.classList.add('hidden');
+          // fallback
+          const jobPhoto = jobSVGFor(revealedAnswerText);
+          if (jobPhoto) {
+            emoji.innerHTML = jobPhoto;
+          } else {
+            emoji.textContent = jobEmojiFor(revealedAnswerText);
+          }
+          emoji.style.display = '';
+        }
       }
       note.textContent = winnerTeamId ? 'Guessed correctly!' : 'Revealed after hints.';
 
@@ -708,6 +832,45 @@
       ];
       for (const [re, e] of map) if (re.test(a)) return e;
       return '🎯';
+    }
+
+    function jobPhotoUrlFor(answer){
+      const a = normalizeAnswer(answer);
+      // Public domain/commons-like images selected for demo use. They open reliably via HTTPS.
+      // These are simple representative icons/illustrations; if any fail, the code falls back automatically.
+      const map = [
+        [/teacher/, 'https://images.unsplash.com/photo-1558021212-51b6ecfa0db9?q=80&w=800&auto=format&fit=crop'],
+        [/chef|cook|baker/, 'https://images.unsplash.com/photo-1526318472351-c75fcf070305?q=80&w=800&auto=format&fit=crop'],
+        [/fire ?fighter/, 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=800&auto=format&fit=crop'],
+        [/doctor|physician/, 'https://images.unsplash.com/photo-1584467735871-2a84d3aee9f9?q=80&w=800&auto=format&fit=crop'],
+        [/nurse/, 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=800&auto=format&fit=crop'],
+        [/police|cop/, 'https://images.unsplash.com/photo-1604608686410-82b7a58febb1?q=80&w=800&auto=format&fit=crop'],
+        [/mail|postal/, 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=800&auto=format&fit=crop'],
+        [/bus driver|driver/, 'https://images.unsplash.com/photo-1517805686688-47dd930554b2?q=80&w=800&auto=format&fit=crop'],
+        [/farmer/, 'https://images.unsplash.com/photo-1444858345149-8ff40887589b?q=80&w=800&auto=format&fit=crop'],
+        [/artist|painter/, 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=800&auto=format&fit=crop'],
+        [/architect/, 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop'],
+        [/librarian/, 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop'],
+        [/plumber/, 'https://images.unsplash.com/photo-1567427013953-8b7e6cf4a5cd?q=80&w=800&auto=format&fit=crop'],
+        [/electrician/, 'https://images.unsplash.com/photo-1557284511-7a3c7aeacd7c?q=80&w=800&auto=format&fit=crop'],
+        [/mechanic/, 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=800&auto=format&fit=crop'],
+        [/photographer/, 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?q=80&w=800&auto=format&fit=crop'],
+        [/veterinarian|vet/, 'https://images.unsplash.com/photo-1573883431205-98b5f10aaed2?q=80&w=800&auto=format&fit=crop'],
+        [/journalist|reporter/, 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800&auto=format&fit=crop'],
+        [/pilot/, 'https://images.unsplash.com/photo-1523961131990-5ea7c61b2107?q=80&w=800&auto=format&fit=crop'],
+        [/epidemiologist|physician/, 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800&auto=format&fit=crop'],
+        [/cartographer|map/, 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop'],
+        [/cryptographer|cryptologist/, 'https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=800&auto=format&fit=crop'],
+        [/actuary/, 'https://images.unsplash.com/photo-1554224155-3a589877462f?q=80&w=800&auto=format&fit=crop'],
+        [/paleontologist/, 'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?q=80&w=800&auto=format&fit=crop'],
+        [/sommelier|wine/, 'https://images.unsplash.com/photo-1514361892635-d06e39c8b0cf?q=80&w=800&auto=format&fit=crop'],
+        [/sound engineer|audio engineer/, 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=800&auto=format&fit=crop'],
+        [/ethologist|animal behaviorist/, 'https://images.unsplash.com/photo-1501706362039-c06b2d715385?q=80&w=800&auto=format&fit=crop'],
+        [/astrophysicist|astronom/, 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=800&auto=format&fit=crop'],
+        [/linguist/, 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=800&auto=format&fit=crop']
+      ];
+      for(const [re, url] of map){ if(re.test(a)) return url; }
+      return '';
     }
 
     function jobSVGFor(answer){
@@ -1059,5 +1222,5 @@
       });
     });
   </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98202de944086e45',t:'MTc1ODM1OTMxOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9820467523f8dd57',t:'MTc1ODM2MDMyMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
