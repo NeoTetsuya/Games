@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Guess the Job — Classroom Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    body { font-family: 'Nunito', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif; }
+    /* Smooth fade for hint reveal */
+    .fade-in { animation: fade-in 300ms ease-out both; }
+    @keyframes fade-in { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+    /* Flip-in for newly revealed hints */
+    .flip-in { animation: flip-in 420ms ease-out both; transform-origin: left; }
+    @keyframes flip-in { 0% { transform: rotateX(-90deg); opacity: 0; } 60% { transform: rotateX(12deg); opacity: 1; } 100% { transform: rotateX(0deg); } }
+    /* Subtle button press ripple */
+    .ripple { position: relative; overflow: hidden; }
+    .ripple::after { content: ""; position: absolute; inset: 0; transform: scale(0); background: rgba(255,255,255,.35); border-radius: inherit; opacity: 0; }
+    .ripple:active::after { animation: ripple .4s ease-out; }
+    @keyframes ripple { from { transform: scale(0); opacity: .6; } to { transform: scale(1); opacity: 0; } }
+    /* Card hover tilt for interactivity */
+    .tilt { transition: transform .2s ease; }
+    .tilt:hover { transform: translateY(-2px); }
+    /* Shake for wrong guess feedback */
+    .shake { animation: shake .35s linear; }
+    @keyframes shake { 0%,100% { transform: translateX(0);} 20% { transform: translateX(-4px);} 40% { transform: translateX(4px);} 60% { transform: translateX(-3px);} 80% { transform: translateX(3px);} }
+    /* Confetti bits */
+    .confetti { position: absolute; font-size: 18px; will-change: transform, opacity; }
+    @keyframes confetti-fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0.9; } }
+    /* Nice focus ring for accessibility */
+    .focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.5); }
+    /* Prevent text selection on large buttons for easier classroom tapping */
+    .no-select { user-select: none; -webkit-user-select: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-500 text-slate-800">
+  <!-- Sticky Scoreboard -->
+  <header id="scoreboard" class="sticky top-0 z-30 backdrop-blur-md bg-white/70 border-b border-white/40">
+    <div class="max-w-6xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-white bg-slate-900/90 px-3 py-1 rounded-full text-sm font-bold tracking-wide">Guess the Job</span>
+          <div id="gameMeta" class="hidden sm:flex items-center gap-2 text-slate-700 text-sm font-semibold">
+            <span id="metaLevel" class="px-2 py-0.5 rounded bg-slate-800 text-white"></span>
+            <span class="opacity-60">•</span>
+            <span id="metaProgress"></span>
+          </div>
+        </div>
+        <div id="teamScores" class="flex flex-wrap gap-2 justify-end"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-4 py-6 md:py-10">
+    <!-- Start Screen -->
+    <section id="startScreen" class="bg-white/90 rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
+      <div class="grid md:grid-cols-2">
+        <div class="p-6 md:p-8 bg-gradient-to-br from-white via-white to-white/60">
+          <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">“Guess the Job”</h1>
+          <p class="mt-2 text-slate-600">Pick a level, add up to 5 teams, and start revealing hints. Big buttons, bold colors, and a live scoreboard make it perfect for the classroom.</p>
+
+          <div class="mt-6">
+            <h2 class="text-lg font-bold text-slate-900 mb-2">1) Choose Level</h2>
+            <div id="levelButtons" class="grid grid-cols-3 gap-2">
+              <button data-level="easy" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.99] transition">Easy</button>
+              <button data-level="medium" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-amber-500 hover:bg-amber-600 active:scale-[.99] transition">Medium</button>
+              <button data-level="hard" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-rose-500 hover:bg-rose-600 active:scale-[.99] transition">Hard</button>
+            </div>
+            <p id="levelHelp" class="mt-2 text-sm text-slate-500">Selected: <span class="font-semibold" id="selectedLevelLabel">Easy</span></p>
+          </div>
+
+          <div class="mt-6">
+            <h2 class="text-lg font-bold text-slate-900 mb-2">2) Add Team Names</h2>
+            <form id="teamForm" class="space-y-3" onsubmit="event.preventDefault();">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input type="text" placeholder="Team 1" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
+                <input type="text" placeholder="Team 2" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
+                <input type="text" placeholder="Team 3 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
+                <input type="text" placeholder="Team 4 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
+                <input type="text" placeholder="Team 5 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
+              </div>
+              <p class="text-sm text-slate-500">Leave blank to skip. You can have 1–5 teams.</p>
+            </form>
+          </div>
+
+          <div class="mt-6 flex items-center gap-3">
+            <button id="startBtn" class="focus-ring no-select rounded-2xl px-6 py-3 font-extrabold text-white bg-slate-900 hover:bg-slate-800 active:scale-[.99] transition">Start Game</button>
+            <span id="startError" class="text-sm text-rose-600 font-semibold"></span>
+          </div>
+        </div>
+        <div class="p-6 md:p-8 bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-rose-500 text-white">
+          <h3 class="text-xl font-extrabold">How it works</h3>
+          <ul class="mt-3 space-y-2 text-white/90">
+            <li>• Reveal up to 5 hints one by one.</li>
+            <li>• Teams take turns guessing the job.</li>
+            <li>• Each team gets 2 guesses per job.</li>
+            <li>• Correct guess: +1 point.</li>
+            <li>• If no one gets it, the answer is revealed after the last hint.</li>
+            <li>• The highest score at the end wins!</li>
+          </ul>
+          <div class="mt-6 rounded-xl bg-white/10 p-4">
+            <p class="font-bold">Tip</p>
+            <p class="text-white/90">Use on a projector. Buttons are large and easy to tap.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Game Screen -->
+    <section id="gameScreen" class="hidden space-y-6">
+      <!-- Stage Card -->
+      <div class="bg-white/95 rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
+        <div class="p-5 md:p-7">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 id="roundTitle" class="text-2xl md:text-3xl font-extrabold text-slate-900">Job 1</h2>
+              <p id="roundSubtitle" class="text-slate-500">Reveal hints and let teams guess!</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="showHintBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-indigo-600 text-white font-extrabold hover:bg-indigo-700 active:scale-[.99] transition text-lg">Show Next Hint</button>
+              <button id="revealAnswerBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-amber-500 text-white font-extrabold hover:bg-amber-600 active:scale-[.99] transition text-lg hidden">Reveal Answer</button>
+              <button id="nextJobBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 active:scale-[.99] transition text-lg hidden">Next Job</button>
+            </div>
+          </div>
+          <div class="mt-4 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div id="hintProgress" class="h-full bg-indigo-500" style="width:0%"></div>
+          </div>
+
+          <!-- Hints List -->
+          <ol id="hintList" class="mt-5 md:mt-6 grid gap-2 md:gap-3"></ol>
+
+          <!-- Status/Feedback -->
+          <div id="statusBox" class="mt-4 hidden rounded-xl p-4"></div>
+        </div>
+      </div>
+
+      <!-- Team Guess Area -->
+      <div class="bg-white/95 rounded-2xl shadow-xl ring-1 ring-black/5 p-5 md:p-7">
+        <h3 class="text-xl font-extrabold text-slate-900">Teams — Tap to Guess</h3>
+        <p class="text-slate-500 text-sm">Each team has 2 guesses per job. The badge shows guesses left.</p>
+        <div id="teamButtons" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 tilt"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Guess Modal -->
+  <div id="guessModal" class="hidden fixed inset-0 z-40 items-center justify-center">
+    <div class="absolute inset-0 bg-slate-900/60"></div>
+    <div class="relative z-10 w-[92vw] max-w-xl bg-white rounded-2xl shadow-2xl p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h4 id="guessModalTitle" class="text-2xl font-extrabold text-slate-900">Your Guess</h4>
+          <p id="guessModalTeam" class="text-slate-500">Team</p>
+        </div>
+        <button id="guessClose" class="focus-ring rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-label="Close">✕</button>
+      </div>
+      <form id="guessForm" class="mt-4" autocomplete="off">
+        <label class="block text-sm font-bold text-slate-700 mb-2">Type the job name</label>
+        <input id="guessInput" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" placeholder="e.g., Teacher" required />
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button type="button" id="guessCancel" class="focus-ring rounded-xl px-4 py-2 bg-slate-100 text-slate-800 font-bold hover:bg-slate-200">Cancel</button>
+          <button type="submit" class="focus-ring rounded-xl px-5 py-2.5 bg-indigo-600 text-white font-extrabold hover:bg-indigo-700">Submit Guess</button>
+        </div>
+      </form>
+      <p id="guessError" class="mt-2 text-sm font-semibold text-rose-600"></p>
+    </div>
+  </div>
+
+  <!-- End Modal -->
+  <div id="endModal" class="hidden fixed inset-0 z-40 items-center justify-center">
+    <div class="absolute inset-0 bg-slate-900/60"></div>
+    <div class="relative z-10 w-[92vw] max-w-2xl bg-white rounded-2xl shadow-2xl p-6">
+      <h4 class="text-3xl font-extrabold text-slate-900">Game Over</h4>
+      <p id="endSummary" class="mt-2 text-slate-600"></p>
+      <div id="endWinners" class="mt-4 grid sm:grid-cols-2 gap-3"></div>
+      <div class="mt-6 flex items-center justify-end gap-2">
+        <button id="restartBtn" class="focus-ring rounded-xl px-5 py-2.5 bg-slate-900 text-white font-extrabold hover:bg-slate-800">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------
+    // Sound placeholders (muted visual cues only due to platform limits)
+    // -------------------------
+    const SOUND = {
+      play(type){
+        // Audio is not supported in this environment, so we provide quick visual cues.
+        // We'll briefly flash the scoreboard or buttons for feedback.
+        const bar = document.getElementById('scoreboard');
+        if(!bar) return;
+        bar.animate([
+          { filter: 'brightness(1)' },
+          { filter: 'brightness(1.15)' },
+          { filter: 'brightness(1)' }
+        ], { duration: 260, easing: 'ease-out' });
+      }
+    };
+
+    // -------------------------
+    // Data: Jobs per Level
+    // -------------------------
+    const JOBS = {
+      easy: [
+        { answers: ["teacher", "schoolteacher", "school teacher"], hints: [
+          "I work in a classroom.",
+          "I give homework and tests.",
+          "I help students learn new things.",
+          "You might call me Mr., Ms., or Mrs.",
+          "I write on a whiteboard or smartboard."
+        ]},
+        { answers: ["chef", "cook"], hints: [
+          "I work in a kitchen.",
+          "I use knives, pans, and ovens.",
+          "I follow and create recipes.",
+          "I wear an apron and sometimes a tall hat.",
+          "I prepare delicious meals for others."
+        ]},
+        { answers: ["firefighter", "fire fighter"], hints: [
+          "I wear protective gear and a helmet.",
+          "I ride in a big red truck.",
+          "I use hoses and ladders.",
+          "I rescue people and animals.",
+          "I put out fires and keep people safe."
+        ]},
+        { answers: ["doctor", "physician"], hints: [
+          "I help people feel better when they are sick.",
+          "I may work in a clinic or hospital.",
+          "I check symptoms and make diagnoses.",
+          "I prescribe medicine or treatments.",
+          "People make appointments to see me."
+        ]},
+        { answers: ["nurse"], hints: [
+          "I care for patients and check vital signs.",
+          "I often wear scrubs.",
+          "I give medicines and help with recovery.",
+          "I work closely with doctors.",
+          "I keep patients comfortable and safe."
+        ]},
+        { answers: ["police officer", "policeman", "policewoman", "cop"], hints: [
+          "I help keep communities safe.",
+          "I enforce laws.",
+          "I wear a uniform and a badge.",
+          "I respond to emergencies.",
+          "I patrol neighborhoods and help people."
+        ]},
+        { answers: ["mail carrier", "postman", "postal worker"], hints: [
+          "I deliver letters and packages.",
+          "I follow a daily route.",
+          "I use a bag or a small truck.",
+          "I wear a uniform.",
+          "I help mail reach your home."
+        ]},
+        { answers: ["bus driver"], hints: [
+          "I follow a route around town or to school.",
+          "I sit in a large vehicle.",
+          "I stop to pick up passengers.",
+          "I keep everyone safe on the road.",
+          "I drive a bus."
+        ]},
+        { answers: ["farmer"], hints: [
+          "I work on fields or with animals.",
+          "I plant, grow, and harvest food.",
+          "I wake up early and work outdoors.",
+          "I may drive tractors.",
+          "I help feed communities."
+        ]},
+        { answers: ["artist", "painter"], hints: [
+          "I create images or sculptures.",
+          "I use tools like brushes, pencils, or clay.",
+          "I work in a studio or outdoors.",
+          "I show my work in galleries.",
+          "I make art people enjoy."
+        ]}
+      ],
+      medium: [
+        { answers: ["architect"], hints: [
+          "I plan buildings before they are built.",
+          "I draw detailed designs and blueprints.",
+          "I work closely with engineers and builders.",
+          "I think about safety, function, and style.",
+          "I help turn ideas into structures."
+        ]},
+        { answers: ["librarian"], hints: [
+          "I work with books and digital media.",
+          "I help people find information.",
+          "I organize materials using systems like Dewey Decimal.",
+          "I keep places quiet and welcoming for study.",
+          "I lead reading programs and research help."
+        ]},
+        { answers: ["plumber"], hints: [
+          "I fix leaks and clogs.",
+          "I install pipes and faucets.",
+          "I work with water, drainage, and heating systems.",
+          "I use wrenches and pipes of different sizes.",
+          "I make sure water flows correctly in buildings."
+        ]},
+        { answers: ["electrician"], hints: [
+          "I install and repair wiring.",
+          "I make sure power is safe.",
+          "I read diagrams to connect circuits.",
+          "I often use a multimeter.",
+          "I bring light to dark rooms."
+        ]},
+        { answers: ["mechanic", "auto mechanic"], hints: [
+          "I fix engines and vehicles.",
+          "I use tools like wrenches and lifts.",
+          "I change oil and replace parts.",
+          "I listen for strange sounds.",
+          "I make cars run smoothly."
+        ]},
+        { answers: ["photographer"], hints: [
+          "I capture moments with a lens.",
+          "I think about light and composition.",
+          "I edit my work to improve it.",
+          "I take portraits, events, or nature shots.",
+          "I tell stories with pictures."
+        ]},
+        { answers: ["veterinarian", "vet"], hints: [
+          "I care for sick animals.",
+          "I give vaccines and do checkups.",
+          "I sometimes do surgery.",
+          "I talk with pet owners.",
+          "I help pets live healthy lives."
+        ]},
+        { answers: ["journalist", "reporter"], hints: [
+          "I investigate and share news.",
+          "I interview people and verify facts.",
+          "I write or speak for the public.",
+          "I work with tight deadlines.",
+          "I tell true stories about our world."
+        ]},
+        { answers: ["baker"], hints: [
+          "I make bread, cookies, and cakes.",
+          "I measure, mix, and knead.",
+          "I wake up early to preheat ovens.",
+          "I decorate treats with icing.",
+          "I make sweet smells fill a shop."
+        ]},
+        { answers: ["pilot", "airline pilot"], hints: [
+          "I guide travelers through the sky.",
+          "I work in a cockpit.",
+          "I follow weather and air traffic control.",
+          "I check instruments and safety.",
+          "I fly airplanes."
+        ]}
+      ],
+      hard: [
+        { answers: ["epidemiologist"], hints: [
+          "I study patterns of health and disease.",
+          "I analyze data to track outbreaks.",
+          "I help design ways to prevent illness.",
+          "I often work with public health agencies.",
+          "I advise on responses to epidemics and pandemics."
+        ]},
+        { answers: ["cartographer"], hints: [
+          "I work with geography and spatial data.",
+          "I design visual representations of places.",
+          "I use coordinates, scales, and legends.",
+          "I combine science and art.",
+          "I create maps."
+        ]},
+        { answers: ["cryptographer", "cryptologist"], hints: [
+          "I protect information using math.",
+          "I design and analyze codes and ciphers.",
+          "I work to keep data secure.",
+          "I may study how to break secret messages.",
+          "I help make secure communication possible."
+        ]},
+        { answers: ["actuary"], hints: [
+          "I assess risk using mathematics.",
+          "I build models to predict outcomes.",
+          "I often work with insurance companies.",
+          "I analyze data and probabilities.",
+          "I help set fair prices for risk."
+        ]},
+        { answers: ["paleontologist"], hints: [
+          "I study fossils and ancient life.",
+          "I may dig at excavation sites.",
+          "I analyze bones and impressions.",
+          "I reconstruct what past creatures were like.",
+          "I help us learn Earth's history."
+        ]},
+        { answers: ["sommelier"], hints: [
+          "I specialize in a specific beverage.",
+          "I advise on pairings with meals.",
+          "I train my senses of smell and taste.",
+          "I curate cellars and menus.",
+          "I recommend wines."
+        ]},
+        { answers: ["sound engineer", "audio engineer"], hints: [
+          "I shape how performances and recordings feel.",
+          "I balance levels and remove noise.",
+          "I work in studios, concerts, or film sets.",
+          "I place microphones and manage equipment.",
+          "I mix audio for clarity and impact."
+        ]},
+        { answers: ["ethologist", "animal behaviorist"], hints: [
+          "I study how animals behave.",
+          "I design careful observations and experiments.",
+          "I record patterns like migration or play.",
+          "I compare behavior across species.",
+          "I help explain why animals do what they do."
+        ]},
+        { answers: ["astrophysicist"], hints: [
+          "I study the physics of the universe.",
+          "I analyze light from distant objects.",
+          "I test theories with data from telescopes.",
+          "I model stars, galaxies, or black holes.",
+          "I try to understand how the cosmos works."
+        ]},
+        { answers: ["linguist"], hints: [
+          "I analyze language structure and use.",
+          "I look at sounds, words, and meaning.",
+          "I compare languages and dialects.",
+          "I study how people learn to speak.",
+          "I build theories about communication."
+        ]}
+      ]
+    };
+
+    // Bright team colors
+    const TEAM_COLORS = [
+      {bg: "bg-rose-500 hover:bg-rose-600", ring: "ring-rose-500/30", text: "text-white", chip: "bg-rose-100 text-rose-800"},
+      {bg: "bg-emerald-500 hover:bg-emerald-600", ring: "ring-emerald-500/30", text: "text-white", chip: "bg-emerald-100 text-emerald-800"},
+      {bg: "bg-sky-500 hover:bg-sky-600", ring: "ring-sky-500/30", text: "text-white", chip: "bg-sky-100 text-sky-800"},
+      {bg: "bg-amber-500 hover:bg-amber-600", ring: "ring-amber-500/30", text: "text-white", chip: "bg-amber-100 text-amber-900"},
+      {bg: "bg-fuchsia-500 hover:bg-fuchsia-600", ring: "ring-fuchsia-500/30", text: "text-white", chip: "bg-fuchsia-100 text-fuchsia-900"}
+    ];
+
+    // -------------------------
+    // State
+    // -------------------------
+    let level = "easy";
+    let jobs = [];
+    let currentJobIndex = 0;
+    let revealedHints = 0;
+    let roundOver = false;
+    let teams = []; // [{ id, name, score, colorIndex }]
+    let guessesLeft = {}; // teamId -> remaining (2 per job)
+    let winningTeamId = null;
+    let someoneGuessedThisRound = false;
+
+    // -------------------------
+    // Helpers
+    // -------------------------
+    const qs  = (sel, el=document) => el.querySelector(sel);
+    const qsa = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+
+    function normalizeAnswer(s) {
+      return (s || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z\s]/g, "")
+        .replace(/\s+/g, " ")
+        .replace(/(s|es)$/,''); // light plural trimming
+    }
+
+    function currentJob() { return jobs[currentJobIndex]; }
+
+    function resetGuessesForJob() {
+      guessesLeft = {};
+      teams.forEach(t => guessesLeft[t.id] = 2);
+    }
+
+    function updateMeta() {
+      const metaLevel = qs("#metaLevel");
+      const metaProgress = qs("#metaProgress");
+      metaLevel.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+      metaProgress.textContent = `Job ${currentJobIndex + 1} of ${jobs.length}`;
+    }
+
+    function renderScoreboard() {
+      const wrap = qs("#teamScores");
+      wrap.innerHTML = "";
+      teams.forEach((t, idx) => {
+        const color = TEAM_COLORS[t.colorIndex];
+        const box = document.createElement("div");
+        box.className = `flex items-center gap-2 px-3 py-2 rounded-xl ring-1 ${color.ring} bg-white`;
+        box.innerHTML = `
+          <span class="inline-flex items-center justify-center w-2.5 h-2.5 rounded-full ${color.bg.replace(' hover:bg-',' ')}"></span>
+          <span class="font-extrabold text-slate-900">${t.name}</span>
+          <span class="ml-1 text-sm px-2 py-0.5 rounded ${color.chip} font-bold">${t.score}</span>
+        `;
+        wrap.appendChild(box);
+      });
+    }
+
+    function renderTeamButtons() {
+      const wrap = qs("#teamButtons");
+      wrap.innerHTML = "";
+      teams.forEach(t => {
+        const color = TEAM_COLORS[t.colorIndex];
+        const disabled = roundOver || guessesLeft[t.id] <= 0;
+        const btn = document.createElement("button");
+        btn.className = `ripple tilt no-select w-full text-left rounded-2xl px-4 py-4 ${color.bg} ${color.text} font-extrabold shadow ring-1 ${color.ring} transition active:scale-[.99] disabled:opacity-50 disabled:cursor-not-allowed`;
+        btn.disabled = disabled;
+        btn.dataset.teamId = t.id;
+        btn.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div class="truncate">${t.name}</div>
+            <span class="text-xs font-black uppercase tracking-wider bg-white/20 rounded-full px-2 py-1">Guesses left: ${guessesLeft[t.id]}</span>
+          </div>
+        `;
+        btn.addEventListener("click", () => openGuessModal(t.id));
+        wrap.appendChild(btn);
+      });
+    }
+
+    function renderHints() {
+      const list = qs("#hintList");
+      list.innerHTML = "";
+      const hints = currentJob().hints;
+      hints.forEach((h, i) => {
+        const shown = i < revealedHints;
+        const li = document.createElement("li");
+        li.className = `rounded-xl px-4 py-3 border ${shown ? "bg-indigo-50 border-indigo-200 text-slate-900 flip-in" : "bg-slate-50 border-slate-200 text-slate-400 italic"}`;
+        li.textContent = shown ? `Hint ${i+1}: ${h}` : `Hint ${i+1}: (hidden)`;
+        list.appendChild(li);
+      });
+    }
+
+    function setStatus(message, type="info") {
+      const box = qs("#statusBox");
+      const styles = {
+        info: "bg-sky-50 text-sky-900 border-sky-200",
+        success: "bg-emerald-50 text-emerald-900 border-emerald-200",
+        warn: "bg-amber-50 text-amber-900 border-amber-200",
+        error: "bg-rose-50 text-rose-900 border-rose-200"
+      };
+      box.className = `mt-4 rounded-xl p-4 border ${styles[type]}`;
+      box.textContent = message;
+      box.classList.remove("hidden");
+    }
+
+    function clearStatus() {
+      const box = qs("#statusBox");
+      box.classList.add("hidden");
+      box.textContent = "";
+    }
+
+    function updateControls() {
+      const showHintBtn = qs("#showHintBtn");
+      const revealAnswerBtn = qs("#revealAnswerBtn");
+      const nextJobBtn = qs("#nextJobBtn");
+
+      const allHintsShown = revealedHints >= currentJob().hints.length;
+
+      showHintBtn.disabled = roundOver || allHintsShown;
+      revealAnswerBtn.classList.toggle("hidden", !(allHintsShown && !roundOver && !someoneGuessedThisRound));
+      nextJobBtn.classList.toggle("hidden", !roundOver);
+    }
+
+    function startRound() {
+      revealedHints = 0;
+      roundOver = false;
+      someoneGuessedThisRound = false;
+      resetGuessesForJob();
+      qs("#roundTitle").textContent = `Job ${currentJobIndex + 1}`;
+      qs("#roundSubtitle").textContent = `Reveal hints and let teams guess the job.`;
+      clearStatus();
+      renderHints();
+      renderTeamButtons();
+      updateMeta();
+      updateControls();
+    }
+
+    function endRound(revealedAnswerText, winnerTeamId = null) {
+      roundOver = true;
+      winningTeamId = winnerTeamId;
+      revealAnswerText(revealedAnswerText);
+      if (winnerTeamId) {
+        celebrate();
+      }
+      renderTeamButtons();
+      updateControls();
+    }
+
+    function revealAnswerText(answerText) {
+      const title = qs("#roundSubtitle");
+      title.textContent = `Answer: ${answerText}`;
+    }
+
+    function nextJob() {
+      currentJobIndex++;
+      if (currentJobIndex >= jobs.length) {
+        endGame();
+        return;
+      }
+      startRound();
+    }
+
+    function endGame() {
+      // Determine winners
+      const max = Math.max(...teams.map(t => t.score));
+      const winners = teams.filter(t => t.score === max);
+      const endSummary = qs("#endSummary");
+      const endWinners = qs("#endWinners");
+      endWinners.innerHTML = "";
+
+      if (winners.length === 1) {
+        endSummary.textContent = `Winner: ${winners[0].name} with ${winners[0].score} point${winners[0].score===1?'':'s'}!`;
+      } else {
+        const names = winners.map(w => w.name).join(", ");
+        endSummary.textContent = `It's a tie! Winners: ${names} with ${winners[0].score} points each.`;
+      }
+
+      winners.forEach(w => {
+        const color = TEAM_COLORS[w.colorIndex];
+        const card = document.createElement("div");
+        card.className = `rounded-xl border ${color.ring} p-4 bg-white`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="font-extrabold text-slate-900">${w.name}</div>
+            <div class="text-sm px-2 py-1 rounded ${color.chip} font-bold">Score: ${w.score}</div>
+          </div>
+        `;
+        endWinners.appendChild(card);
+      });
+
+      // Show modal
+      const modal = qs("#endModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    // -------------------------
+    // Modal: Guess
+    // -------------------------
+    let activeGuessTeamId = null;
+
+    function openGuessModal(teamId) {
+      if (roundOver) return;
+      if (guessesLeft[teamId] <= 0) return;
+
+      activeGuessTeamId = teamId;
+      const t = teams.find(x => x.id === teamId);
+      qs("#guessModalTitle").textContent = "Guess the Job";
+      qs("#guessModalTeam").textContent = `Team: ${t.name} — Guesses left: ${guessesLeft[teamId]}`;
+      qs("#guessInput").value = "";
+      qs("#guessError").textContent = "";
+
+      const modal = qs("#guessModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      setTimeout(() => qs("#guessInput").focus(), 10);
+    }
+
+    function closeGuessModal() {
+      const modal = qs("#guessModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      activeGuessTeamId = null;
+    }
+
+    // -------------------------
+    // Check Guess
+    // -------------------------
+    function checkGuess(text) {
+      const typed = normalizeAnswer(text);
+      const acceptable = currentJob().answers.map(a => normalizeAnswer(a));
+      return acceptable.includes(typed);
+    }
+
+    // -------------------------
+    // Reveal Next Hint
+    // -------------------------
+    function onShowNextHint() {
+      if (roundOver) return;
+      const total = currentJob().hints.length;
+      if (revealedHints < total) {
+        revealedHints++;
+        renderHints();
+        clearStatus();
+        if (revealedHints === total && !someoneGuessedThisRound) {
+          setStatus("All hints revealed. You can reveal the answer or keep guessing until guesses run out.", "warn");
+        }
+      }
+      updateControls();
+    }
+
+    // -------------------------
+    // Start Game Flow
+    // -------------------------
+    function initStartScreen() {
+      // Default active level
+      highlightLevelButton(level);
+      qs("#selectedLevelLabel").textContent = "Easy";
+
+      qsa(".level-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          level = btn.dataset.level;
+          highlightLevelButton(level);
+          qs("#selectedLevelLabel").textContent = level.charAt(0).toUpperCase() + level.slice(1);
+          qs("#startError").textContent = "";
+        });
+      });
+
+      qs("#startBtn").addEventListener("click", () => {
+        const inputs = qsa(".team-input");
+        const names = inputs.map(i => i.value.trim()).filter(Boolean);
+        if (names.length < 1) {
+          qs("#startError").textContent = "Please enter at least one team name.";
+          return;
+        }
+        if (names.length > 5) {
+          qs("#startError").textContent = "Up to 5 teams only.";
+          return;
+        }
+        // Build team objects
+        teams = names.map((name, idx) => ({
+          id: `t${idx+1}`,
+          name,
+          score: 0,
+          colorIndex: idx % TEAM_COLORS.length
+        }));
+
+        jobs = shuffle([...JOBS[level]]); // slight shuffle for freshness
+        currentJobIndex = 0;
+
+        // Switch screens
+        qs("#startScreen").classList.add("hidden");
+        qs("#gameScreen").classList.remove("hidden");
+
+        // Show meta
+        qs("#gameMeta").classList.remove("hidden");
+
+        renderScoreboard();
+        startRound();
+      });
+    }
+
+    function highlightLevelButton(activeLevel) {
+      qsa(".level-btn").forEach(b => {
+        b.classList.remove("ring-4","ring-white","scale-[1.01]");
+        if (b.dataset.level === activeLevel) {
+          b.classList.add("ring-4","ring-white","scale-[1.01]");
+        }
+      });
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function celebrate() {
+      const container = document.body;
+      for (let i = 0; i < 24; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti';
+        piece.textContent = ['🎉','✨','⭐','🎊','💥'][Math.floor(Math.random()*5)];
+        piece.style.left = Math.random()*100 + 'vw';
+        piece.style.top = '-10vh';
+        piece.style.animation = `confetti-fall ${600 + Math.random()*900}ms ease-out forwards`;
+        container.appendChild(piece);
+        setTimeout(()=> piece.remove(), 1600);
+      }
+      SOUND.play('win');
+    }
+
+    // -------------------------
+    // Event Listeners
+    // -------------------------
+    window.addEventListener("DOMContentLoaded", () => {
+      initStartScreen();
+
+      // Show Hint
+      qs("#showHintBtn").addEventListener("click", onShowNextHint);
+
+      // Reveal Answer button
+      qs("#revealAnswerBtn").addEventListener("click", () => {
+        if (roundOver) return;
+        const canonical = currentJob().answers[0];
+        endRound(canonical);
+        setStatus(`Answer revealed: ${canonical}. No points awarded.`, "info");
+        SOUND.play('reveal');
+      });
+
+      // Next Job
+      qs("#nextJobBtn").addEventListener("click", () => {
+        nextJob();
+        renderScoreboard();
+      });
+
+      // Guess Modal actions
+      qs("#guessClose").addEventListener("click", closeGuessModal);
+      qs("#guessCancel").addEventListener("click", closeGuessModal);
+
+      qs("#guessForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = qs("#guessInput").value.trim();
+        const err = qs("#guessError");
+        err.textContent = "";
+
+        if (!activeGuessTeamId) return;
+        if (!input) {
+          err.textContent = "Please type a job.";
+          return;
+        }
+        if (roundOver) {
+          closeGuessModal();
+          return;
+        }
+
+        const correct = checkGuess(input);
+        guessesLeft[activeGuessTeamId] = Math.max(0, (guessesLeft[activeGuessTeamId] || 0) - 1);
+        renderTeamButtons();
+
+        const t = teams.find(x => x.id === activeGuessTeamId);
+
+        if (correct) {
+          t.score += 1;
+          someoneGuessedThisRound = true;
+          renderScoreboard();
+          endRound(currentJob().answers[0], activeGuessTeamId);
+          setStatus(`Correct! ${t.name} earns +1 point.`, "success");
+          SOUND.play('correct');
+          closeGuessModal();
+          return;
+        } else {
+          // Incorrect guess
+          const left = guessesLeft[activeGuessTeamId];
+          if (left > 0) {
+            setStatus(`${t.name} guessed incorrectly. They have ${left} guess${left===1?'':'es'} left for this job.`, "error");
+          } else {
+            setStatus(`${t.name} used both guesses.`, "warn");
+          }
+          // Shake the status box for wrong guess
+          const box = document.getElementById('statusBox');
+          box.classList.remove('shake');
+          void box.offsetWidth; // restart animation
+          box.classList.add('shake');
+          SOUND.play('wrong');
+
+          // If all teams have zero guesses and round not solved, and hints are all shown -> reveal button stays or auto reveal?
+          const allZero = teams.every(tm => guessesLeft[tm.id] <= 0);
+          if (allZero && !someoneGuessedThisRound) {
+            // If all hints already shown, end the round with reveal
+            if (revealedHints >= currentJob().hints.length) {
+              const canonical = currentJob().answers[0];
+              endRound(canonical);
+              setStatus(`No more guesses left. Answer: ${canonical}.`, "info");
+            } else {
+              setStatus(`No more guesses left for any team. You can still reveal remaining hints, then reveal the answer.`, "warn");
+            }
+          }
+          closeGuessModal();
+          updateControls();
+        }
+      });
+
+      // Restart
+      qs("#restartBtn").addEventListener("click", () => {
+        // Reset UI to start
+        qs("#endModal").classList.add("hidden");
+        qs("#endModal").classList.remove("flex");
+        qs("#gameScreen").classList.add("hidden");
+        qs("#startScreen").classList.remove("hidden");
+        qs("#gameMeta").classList.add("hidden");
+        // Clear team inputs scores etc
+        qsa(".team-input").forEach((inp, i) => inp.value = i < 2 ? `Team ${i+1}` : "");
+        // Reset meta display
+        qs("#teamScores").innerHTML = "";
+        qs("#statusBox").classList.add("hidden");
+        highlightLevelButton("easy");
+        level = "easy";
+        qs("#selectedLevelLabel").textContent = "Easy";
+        qs("#startError").textContent = "";
+        // Smooth scroll to top
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'982019c3512f04f3',t:'MTc1ODM1ODQ5My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
