@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IELTS Vocabulary Quest — Cambridge 13 Test 2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* Subtle animated gradient background */
+    body {
+      background: radial-gradient(1200px 800px at 10% 10%, #0ea5e9 0%, rgba(14,165,233,0) 70%),
+                  radial-gradient(1200px 800px at 90% 20%, #8b5cf6 0%, rgba(139,92,246,0) 70%),
+                  radial-gradient(1400px 900px at 50% 100%, #22c55e 0%, rgba(34,197,94,0) 70%),
+                  #0b1220;
+      min-height: 100vh;
+    }
+    .card {
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .chip {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn {
+      transition: transform 0.08s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .btn:active { transform: translateY(1px) scale(0.99); }
+    .option {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+    }
+    .option:hover { background: rgba(255,255,255,0.12); }
+    .option.correct { border-color: #22c55e; background: rgba(34,197,94,0.15); }
+    .option.incorrect { border-color: #ef4444; background: rgba(239,68,68,0.15); }
+    .pulse {
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    .hidden-vis {
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity .2s ease, transform .2s ease, visibility .2s;
+    }
+    .shown-vis {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .draggable {
+      user-select: none;
+      cursor: grab;
+    }
+    .droppable {
+      min-height: 56px;
+    }
+    .progress-outer {
+      background: rgba(255,255,255,0.15);
+    }
+    .progress-inner {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+    .timer-outer {
+      background: rgba(255,255,255,0.15);
+    }
+    .timer-inner {
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+    }
+  </style>
+</head>
+<body class="text-white font-sans">
+  <div class="max-w-5xl mx-auto px-4 py-8 md:py-12">
+    <!-- Header -->
+    <header class="mb-6 md:mb-8">
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">IELTS Vocabulary Quest — Cambridge 13 Test 2</h1>
+        <div class="flex items-center gap-2">
+          <span class="chip text-xs md:text-sm px-3 py-1 rounded-full">Level: B2–C1</span>
+          <span class="chip text-xs md:text-sm px-3 py-1 rounded-full">20 items • 4 rounds</span>
+        </div>
+      </div>
+      <p class="opacity-80 mt-2">Master 20 challenging words with varied, fast-paced practice. Pass at 70%.</p>
+    </header>
+
+    <!-- Top HUD -->
+    <section class="card rounded-2xl p-4 md:p-5 mb-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="w-full md:w-2/5">
+          <div class="flex items-center justify-between text-sm mb-1">
+            <span id="progressLabel">Progress: 0 / 20</span>
+            <span id="roundLabel">Round 1 of 4</span>
+          </div>
+          <div class="progress-outer h-2 rounded-full overflow-hidden">
+            <div id="progressBar" class="progress-inner h-2 w-0"></div>
+          </div>
+        </div>
+        <div class="w-full md:w-1/5">
+          <div class="text-sm mb-1 flex items-center justify-between"><span>Timer</span><span id="timerNumber">20s</span></div>
+          <div class="timer-outer h-2 rounded-full overflow-hidden">
+            <div id="timerBar" class="timer-inner h-2 w-full"></div>
+          </div>
+        </div>
+        <div class="w-full md:w-2/5 flex items-center justify-between gap-2">
+          <div class="chip px-3 py-2 rounded-xl w-1/2">
+            <div class="text-xs opacity-80">Score</div>
+            <div id="scoreLabel" class="text-lg font-bold">0</div>
+          </div>
+          <div class="chip px-3 py-2 rounded-xl w-1/2">
+            <div class="text-xs opacity-80">Accuracy</div>
+            <div id="accuracyLabel" class="text-lg font-bold">0%</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Game Card -->
+    <main id="gameCard" class="card rounded-2xl p-5 md:p-7">
+      <!-- Dynamic content injected here -->
+      <div id="questionArea" class="min-h-[320px] md:min-h-[360px] flex flex-col gap-4"></div>
+
+      <!-- Controls -->
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <button id="hintBtn" class="btn px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">Hint</button>
+        <button id="explainBtn" class="btn px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-300" disabled>Explain</button>
+        <button id="nextBtn" class="btn px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300" disabled>Next</button>
+      </div>
+    </main>
+
+    <!-- End Screen -->
+    <section id="endScreen" class="card rounded-2xl p-6 md:p-8 mt-6 hidden">
+      <h2 class="text-2xl md:text-3xl font-extrabold mb-2">Your Results</h2>
+      <p id="passNote" class="mb-4"></p>
+      <div class="grid md:grid-cols-3 gap-4 mb-6">
+        <div class="chip rounded-2xl p-4">
+          <div class="text-sm opacity-80">Score</div>
+          <div id="finalScore" class="text-2xl font-extrabold">0 / 20</div>
+        </div>
+        <div class="chip rounded-2xl p-4">
+          <div class="text-sm opacity-80">Accuracy</div>
+          <div id="finalAccuracy" class="text-2xl font-extrabold">0%</div>
+        </div>
+        <div class="chip rounded-2xl p-4">
+          <div class="text-sm opacity-80">Time-outs</div>
+          <div id="timeouts" class="text-2xl font-extrabold">0</div>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-xl font-bold mb-2">Breakdown by Passage</h3>
+        <div id="passageBreakdown" class="grid md:grid-cols-3 gap-3"></div>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-xl font-bold mb-2">Missed Words (Review)</h3>
+        <div id="missedList" class="grid sm:grid-cols-2 gap-3"></div>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <button id="playAgainBtn" class="btn px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300">Play Again</button>
+        <a href="#" id="howToUse" target="_blank" rel="noopener noreferrer" class="btn px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">Use in a design</a>
+      </div>
+      <p class="opacity-70 text-sm mt-3">Tip: After using in a design, publish as a website from the Canva editor.</p>
+    </section>
+  </div>
+
+  <script>
+    // Utility helpers
+    const $ = (sel) => document.querySelector(sel);
+    const el = (tag, cls, txt) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (txt !== undefined) e.textContent = txt;
+      return e;
+    };
+    const shuffle = (arr) => arr.slice().sort(() => Math.random() - 0.5);
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const highlightWord = (word, text) => {
+      if (!text || !word) return text || '';
+      const re = new RegExp(`(\b)(${escapeRegExp(word)})(\b)`, 'gi');
+      return text.replace(re, '$1<strong><em>$2</em></strong>$3');
+    };
+
+    // Data: 20 items across 3 passages
+    const VOCAB_LIST = [
+      { word: "fragrant", part_of_speech: "adjective", CEFR: "B2", passage: "Passage A",
+        definition: "having a pleasant, noticeable smell",
+        example_sentence: "The garden was fragrant with blooming jasmine at dusk.",
+        hint: "The kitchen was ___ with spices.",
+        distractors: ["odorous", "toxic", "pungent"],
+        synonym: "aromatic" },
+      { word: "anointing", part_of_speech: "noun", CEFR: "C1", passage: "Passage A",
+        definition: "ceremonially applying oil to someone",
+        example_sentence: "The priest performed the anointing during the rite.",
+        hint: "The ___ of the new monarch took hours.",
+        distractors: ["appointing", "appoint", "ointment"],
+        synonym: "consecration" },
+      { word: "condiment", part_of_speech: "noun", CEFR: "B2", passage: "Passage A",
+        definition: "a substance added to food for flavor",
+        example_sentence: "Mustard is my favorite condiment for sandwiches.",
+        hint: "Ketchup is a common ___.",
+        distractors: ["ingredient", "additive", "seasoning"],
+        synonym: "relish" },
+      { word: "exotic", part_of_speech: "adjective", CEFR: "B2", passage: "Passage A",
+        definition: "unusual and interesting because of foreign origin",
+        example_sentence: "The market sold exotic fruits from tropical islands.",
+        hint: "They imported ___ spices.",
+        distractors: ["erotic", "esoteric", "domestic"],
+        synonym: "unfamiliar" },
+      { word: "monopoly", part_of_speech: "noun", CEFR: "C1", passage: "Passage A",
+        definition: "complete control over selling a product",
+        example_sentence: "The firm held a monopoly on local utilities.",
+        hint: "They had a ___ over salt trade.",
+        distractors: ["duopoly", "oligarchy", "cartel"],
+        synonym: "dominance" },
+
+      { word: "exorbitant", part_of_speech: "adjective", CEFR: "C1", passage: "Passage B",
+        definition: "unreasonably high in price or cost",
+        example_sentence: "Ticket prices became exorbitant before the finals.",
+        hint: "An ___ fee shocked customers.",
+        distractors: ["affordable", "extortionate", "exuberant"],
+        synonym: "outrageous" },
+      { word: "cultivation", part_of_speech: "noun", CEFR: "B2", passage: "Passage B",
+        definition: "the act of growing crops or improving land",
+        example_sentence: "Rice cultivation requires ample water supply.",
+        hint: "Soil ___ improved the harvest.",
+        distractors: ["culture", "harvest", "irrigation"],
+        synonym: "farming" },
+      { word: "tribute", part_of_speech: "noun", CEFR: "B2", passage: "Passage B",
+        definition: "payment or praise to show respect",
+        example_sentence: "The festival was a tribute to local heroes.",
+        hint: "They paid ___ to the ancient king.",
+        distractors: ["tax", "contribution", "accolade"],
+        synonym: "homage" },
+      { word: "lucrative", part_of_speech: "adjective", CEFR: "C1", passage: "Passage B",
+        definition: "producing a lot of profit",
+        example_sentence: "Consultancy proved a lucrative career path.",
+        hint: "It’s a very ___ contract.",
+        distractors: ["illiquid", "illusive", "profitable"],
+        synonym: "profitable" },
+      { word: "superseded", part_of_speech: "verb", CEFR: "C1", passage: "Passage B",
+        definition: "replaced by something newer or better",
+        example_sentence: "Old methods were superseded by automation.",
+        hint: "Email has ___ letters for speed.",
+        distractors: ["preceded", "surpassed", "supplanted"],
+        synonym: "replaced" },
+
+      { word: "pituitary gland", part_of_speech: "noun", CEFR: "C1", passage: "Passage C",
+        definition: "small brain gland controlling hormones",
+        example_sentence: "The pituitary gland regulates growth and metabolism.",
+        hint: "The ___ controls many hormones.",
+        distractors: ["thyroid gland", "adrenal gland", "pineal gland"],
+        synonym: "hypophysis" },
+      { word: "empathetic", part_of_speech: "adjective", CEFR: "B2", passage: "Passage C",
+        definition: "showing understanding of others’ feelings",
+        example_sentence: "An empathetic response eased the patient’s worry.",
+        hint: "She gave an ___ reply.",
+        distractors: ["emphatic", "apathetic", "sympathetic"],
+        synonym: "compassionate" },
+      { word: "cooperative", part_of_speech: "adjective", CEFR: "B2", passage: "Passage C",
+        definition: "willing to work together helpfully",
+        example_sentence: "The group was cooperative during the project.",
+        hint: "A ___ team shares tasks.",
+        distractors: ["corporate", "collaborative", "competitive"],
+        synonym: "collaborative" },
+      { word: "placebo", part_of_speech: "noun", CEFR: "C1", passage: "Passage C",
+        definition: "inactive treatment used as control",
+        example_sentence: "Half the volunteers received a placebo pill.",
+        hint: "They compared the drug to a ___.",
+        distractors: ["plaque", "plasma", "nocebo"],
+        synonym: "dummy treatment" },
+      { word: "disposition", part_of_speech: "noun", CEFR: "C1", passage: "Passage C",
+        definition: "a person’s usual mood or temperament",
+        example_sentence: "He had a cheerful disposition despite stress.",
+        hint: "Her sunny ___ brightened meetings.",
+        distractors: ["position", "posture", "attitude"],
+        synonym: "temperament" },
+
+      { word: "biases", part_of_speech: "noun", CEFR: "C1", passage: "Passage A",
+        definition: "unfair preferences affecting judgment",
+        example_sentence: "Training helps staff recognize hidden biases.",
+        hint: "We must confront our ___.",
+        distractors: ["bases", "bias", "prejudices"],
+        synonym: "prejudices" },
+      { word: "nuanced", part_of_speech: "adjective", CEFR: "C1", passage: "Passage B",
+        definition: "showing subtle distinctions or variations",
+        example_sentence: "Her nuanced critique considered culture and history.",
+        hint: "A ___ view avoids extremes.",
+        distractors: ["announced", "subtle", "blunt"],
+        synonym: "subtle" },
+      { word: "amygdala", part_of_speech: "noun", CEFR: "C1", passage: "Passage C",
+        definition: "brain area involved in emotions",
+        example_sentence: "The amygdala activates during threats.",
+        hint: "Fear circuits include the ___.",
+        distractors: ["hippocampus", "cerebellum", "medulla"],
+        synonym: "emotion center" },
+      { word: "aspirations", part_of_speech: "noun", CEFR: "B2", passage: "Passage B",
+        definition: "strong hopes or ambitions",
+        example_sentence: "Her aspirations included leading a research team.",
+        hint: "Career ___ can change.",
+        distractors: ["respirations", "inspirations", "ambitions"],
+        synonym: "ambitions" },
+      { word: "peripheral", part_of_speech: "adjective", CEFR: "C1", passage: "Passage A",
+        definition: "at the outer edge or not central",
+        example_sentence: "He noticed movement in his peripheral vision.",
+        hint: "A ___ issue can wait.",
+        distractors: ["periphery", "central", "marginal"],
+        synonym: "marginal" },
+    ];
+
+    // Build additional fields for True/False usage automatically
+    const usageBank = {
+      "fragrant": { correct: "The bakery smelled fragrant in the morning.", incorrect: "The engine was fragrant after overheating." },
+      "anointing": { correct: "Anointing is part of many religious ceremonies.", incorrect: "Anointing describes drilling holes in wood." },
+      "condiment": { correct: "Chili sauce is a popular condiment.", incorrect: "A condiment is a type of refrigerator." },
+      "exotic": { correct: "They sampled exotic cuisine on holiday.", incorrect: "He felt exotic after a good sleep." },
+      "monopoly": { correct: "The company tried to keep its monopoly.", incorrect: "He wore a monopoly to the meeting." },
+      "exorbitant": { correct: "The fees were plainly exorbitant.", incorrect: "The desert was exorbitant with flowers." },
+      "cultivation": { correct: "Tea cultivation thrives in humid climates.", incorrect: "Cultivation is the same as precipitation." },
+      "tribute": { correct: "Artists performed a tribute concert.", incorrect: "They tribute the cake in the oven." },
+      "lucrative": { correct: "She moved into a lucrative niche.", incorrect: "The lake was lucrative and deep." },
+      "superseded": { correct: "Manual checks were superseded by software.", incorrect: "The toddler superseded carefully on the stairs." },
+      "pituitary gland": { correct: "The pituitary gland influences growth.", incorrect: "The pituitary gland is a shoulder muscle." },
+      "empathetic": { correct: "His empathetic tone calmed the class.", incorrect: "She was empathetic for the rock’s pain." },
+      "cooperative": { correct: "A cooperative approach sped up tasks.", incorrect: "The statue was cooperative during the test." },
+      "placebo": { correct: "The placebo looked identical to the drug.", incorrect: "A placebo is the active ingredient." },
+      "disposition": { correct: "Her calm disposition impressed clients.", incorrect: "Disposition is a kind of dishwasher." },
+      "biases": { correct: "We must correct our biases.", incorrect: "Biases are safety helmets for cyclists." },
+      "nuanced": { correct: "He offered a nuanced explanation.", incorrect: "The stone was nuanced with butter." },
+      "amygdala": { correct: "Stress can activate the amygdala.", incorrect: "The amygdala is the kneecap." },
+      "aspirations": { correct: "Her aspirations motivated daily practice.", incorrect: "Aspirations are breathing devices for fish." },
+      "peripheral": { correct: "These are peripheral concerns for now.", incorrect: "Peripheral means exactly central." },
+    };
+
+    // Game settings
+    const ITEMS_TOTAL = 20;
+    const ROUNDS_TOTAL = 4;
+    const ITEMS_PER_ROUND = 5; // last round is Match-Up using 5 words at once
+    const PASSING_THRESHOLD = 0.70;
+    const TIMER_PER_ITEM = 20; // seconds
+
+    // State
+    let pool = []; // shuffled words
+    let round = 1;
+    let indexWithinRound = 0; // 0..4
+    let score = 0;
+    let attempts = 0;
+    let timeouts = 0;
+    let answered = false;
+    let timerId = null;
+    let timeLeft = TIMER_PER_ITEM;
+    let currentItem = null; // current question data
+    let usedWords = new Set();
+    let missed = [];
+    let history = []; // to build breakdown
+    let qTypesCycle = ["MCQ_DEF", "TRUE_FALSE", "GAP_THREE", "SYN_ANT"]; // single-word types
+    let qTypeIdx = 0;
+
+    // DOM refs
+    const questionArea = $("#questionArea");
+    const progressLabel = $("#progressLabel");
+    const roundLabel = $("#roundLabel");
+    const progressBar = $("#progressBar");
+    const timerBar = $("#timerBar");
+    const timerNumber = $("#timerNumber");
+    const scoreLabel = $("#scoreLabel");
+    const accuracyLabel = $("#accuracyLabel");
+    const hintBtn = $("#hintBtn");
+    const explainBtn = $("#explainBtn");
+    const nextBtn = $("#nextBtn");
+    const endScreen = $("#endScreen");
+    const passNote = $("#passNote");
+    const finalScore = $("#finalScore");
+    const finalAccuracy = $("#finalAccuracy");
+    const timeoutsEl = $("#timeouts");
+    const passageBreakdown = $("#passageBreakdown");
+    const missedList = $("#missedList");
+    const playAgainBtn = $("#playAgainBtn");
+
+    function resetGame() {
+      // Shuffle pool and reset state
+      pool = shuffle(VOCAB_LIST);
+      round = 1;
+      indexWithinRound = 0;
+      score = 0;
+      attempts = 0;
+      timeouts = 0;
+      timeLeft = TIMER_PER_ITEM;
+      answered = false;
+      currentItem = null;
+      usedWords = new Set();
+      missed = [];
+      history = [];
+      qTypeIdx = 0;
+
+      endScreen.classList.add("hidden");
+      $("#gameCard").classList.remove("hidden");
+      updateHUD();
+      loadNext();
+    }
+
+    function updateHUD() {
+      const done = attempts; // attempts counts items scored (match-up counts 5)
+      progressLabel.textContent = `Progress: ${done} / ${ITEMS_TOTAL}`;
+      roundLabel.textContent = `Round ${round} of ${ROUNDS_TOTAL}`;
+      const pct = Math.min(100, Math.round((done / ITEMS_TOTAL) * 100));
+      progressBar.style.width = pct + "%";
+      scoreLabel.textContent = String(score);
+      const acc = attempts ? Math.round((score / attempts) * 100) : 0;
+      accuracyLabel.textContent = `${acc}%`;
+    }
+
+    function startTimer(totalSeconds) {
+      clearInterval(timerId);
+      timeLeft = totalSeconds;
+      updateTimerBar(totalSeconds);
+      timerId = setInterval(() => {
+        timeLeft--;
+        updateTimerBar(totalSeconds);
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          onTimeout();
+        }
+      }, 1000);
+    }
+
+    function updateTimerBar(totalSeconds) {
+      const ratio = Math.max(0, Math.min(1, timeLeft / totalSeconds));
+      timerNumber.textContent = `${timeLeft}s`;
+      timerBar.style.width = (ratio * 100) + "%";
+    }
+
+    // Choose next question or finish
+    function loadNext() {
+      // If last round is 4 and indexWithinRound==0, do Match-Up using 5 remaining words
+      const itemsDone = attempts;
+      if (itemsDone >= ITEMS_TOTAL) {
+        showEnd();
+        return;
+      }
+
+      questionArea.innerHTML = "";
+      hintBtn.disabled = false;
+      explainBtn.disabled = true;
+      nextBtn.disabled = true;
+      answered = false;
+
+      // Round transitions
+      if (indexWithinRound >= ITEMS_PER_ROUND) {
+        round++;
+        indexWithinRound = 0;
+      }
+
+      if (round < ROUNDS_TOTAL) {
+        // Single-word item
+        const wordObj = drawNextWord();
+        // Rotate question types
+        const type = qTypesCycle[qTypeIdx % qTypesCycle.length];
+        qTypeIdx++;
+        currentItem = buildQuestion(wordObj, type);
+        renderQuestion(currentItem);
+        startTimer(TIMER_PER_ITEM);
+      } else {
+        // Round 4: Match-Up using 5 remaining words not used yet
+        const remaining = pool.filter(w => !usedWords.has(w.word)).slice(0, 5);
+        // If pool exhausted (e.g., replay), refill
+        while (remaining.length < 5) {
+          const needed = 5 - remaining.length;
+          const add = shuffle(VOCAB_LIST).filter(w => !remaining.find(r => r.word === w.word)).slice(0, needed);
+          remaining.push(...add);
+        }
+        currentItem = buildMatchUp(remaining);
+        renderMatchUp(currentItem);
+        // 5 items worth of time
+        startTimer(TIMER_PER_ITEM * 5);
+      }
+    }
+
+    function drawNextWord() {
+      let next = pool.find(w => !usedWords.has(w.word));
+      if (!next) {
+        // refill if needed (replay scenario)
+        usedWords.clear();
+        pool = shuffle(VOCAB_LIST);
+        next = pool[0];
+      }
+      usedWords.add(next.word);
+      return next;
+    }
+
+    // Build single-word question based on type
+    function buildQuestion(wordObj, type) {
+      const base = {
+        type,
+        word: wordObj.word,
+        passage: wordObj.passage,
+        prompt: "",
+        options: [],
+        correctIndex: 0,
+        meta: { def: wordObj.definition, ex: wordObj.example_sentence, hint: wordObj.hint, syn: wordObj.synonym, distractors: wordObj.distractors }
+      };
+
+      if (type === "MCQ_DEF") {
+        base.prompt = `What does “${wordObj.word}” mean in this context?<span class="block text-base opacity-80 mt-1">Context: “${highlightWord(wordObj.word, wordObj.example_sentence)}”</span>`;
+        const distracts = shuffle(wordObj.distractors).slice(0, 3);
+        const opts = [wordObj.definition, ...distracts];
+        base.options = shuffle(opts);
+        base.correctIndex = base.options.indexOf(wordObj.definition);
+      } else if (type === "TRUE_FALSE") {
+        const use = usageBank[wordObj.word] || { correct: wordObj.example_sentence, incorrect: wordObj.hint.replace("___", wordObj.word) };
+        // Highlight target word in true/false prompt if present
+        if (use.correct) use.correct = highlightWord(wordObj.word, use.correct);
+        if (use.incorrect) use.incorrect = highlightWord(wordObj.word, use.incorrect);
+        const isTrue = Math.random() < 0.5;
+        base.prompt = `${isTrue ? use.correct : use.incorrect} (True/False)`;
+        base.options = ["True", "False"];
+        base.correctIndex = isTrue ? 0 : 1;
+      } else if (type === "GAP_THREE") {
+        const blanked = wordObj.example_sentence.replace(new RegExp(wordObj.word, "gi"), "<strong><em>_____</em></strong>");
+        base.prompt = `${blanked}`;
+        const opts = [wordObj.word, ...shuffle(wordObj.distractors).slice(0, 2)];
+        base.options = shuffle(opts);
+        base.correctIndex = base.options.indexOf(wordObj.word);
+      } else if (type === "SYN_ANT") {
+        // Flip randomly between synonym and antonym; if no antonym, fall back to synonym
+        const wantSyn = Math.random() < 0.7; // prefer synonym
+        if (wantSyn && wordObj.synonym) {
+          base.prompt = `Choose the synonym for “${wordObj.word}”.`;
+          const opts = [wordObj.synonym, ...shuffle(wordObj.distractors).slice(0, 3)];
+          base.options = shuffle(opts).slice(0,3); // 1 correct + 2 distractors
+          if (base.options.length < 3) base.options = shuffle([wordObj.synonym, ...wordObj.distractors]).slice(0,3);
+          base.correctIndex = base.options.indexOf(wordObj.synonym);
+        } else {
+          // Antonym: attempt a simple antonym set; fallback to opposite-like distractor
+          const antonymMap = {
+            "exotic": "familiar",
+            "monopoly": "competition",
+            "exorbitant": "reasonable",
+            "lucrative": "unprofitable",
+            "cooperative": "uncooperative",
+            "empathetic": "insensitive",
+            "peripheral": "central",
+            "fragrant": "odorless",
+            "nuanced": "simplistic",
+          };
+          const ant = antonymMap[wordObj.word] || "not " + wordObj.word;
+          base.prompt = `Choose the antonym for “${wordObj.word}”.`;
+          const opts = [ant, ...shuffle(wordObj.distractors).slice(0, 3)];
+          base.options = shuffle(opts).slice(0,3);
+          base.correctIndex = base.options.indexOf(ant);
+        }
+      }
+      return base;
+    }
+
+    // Build Match-Up item (5 words → 5 definitions)
+    function buildMatchUp(words) {
+      const defs = shuffle(words.map(w => ({ word: w.word, def: w.definition, passage: w.passage, meta: w })));
+      return {
+        type: "MATCH_UP",
+        words: words.map(w => w.word),
+        defs,
+        passageMap: Object.fromEntries(words.map(w => [w.word, w.passage])),
+        metaMap: Object.fromEntries(words.map(w => [w.word, w])),
+        prompt: "Match each word to the correct definition (drag and drop).",
+      };
+    }
+
+    // Renderers
+    function renderQuestion(q) {
+      const head = el("div", "flex items-start justify-between gap-2");
+      const title = el("div");
+      title.innerHTML = `
+        <div class="text-sm opacity-80 mb-1">${q.type.replace("_", " ")} • ${q.word}</div>
+        <h2 class="text-xl md:text-2xl font-bold leading-snug">${q.prompt}</h2>
+      `;
+      const badge = el("div", "chip px-3 py-1 rounded-full text-xs self-start");
+      badge.textContent = findWord(q.word).part_of_speech.toUpperCase();
+      head.appendChild(title);
+      head.appendChild(badge);
+
+      const optionsWrap = el("div", "mt-4 grid gap-3");
+      q.options.forEach((opt, i) => {
+        const btn = el("button", "option rounded-xl px-4 py-3 text-left btn");
+        btn.innerHTML = `<span class="font-semibold">${String.fromCharCode(65+i)}.</span> <span class="ml-2">${opt}</span>`;
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (answered) return;
+          evaluateAnswer(q, i, btn, optionsWrap);
+        });
+        optionsWrap.appendChild(btn);
+      });
+
+      const hintArea = el("div", "mt-3 text-sm opacity-90 hidden-vis", "");
+      hintArea.id = "hintArea";
+
+      const explainArea = el("div", "mt-3 text-sm hidden-vis", "");
+      explainArea.id = "explainArea";
+
+      questionArea.appendChild(head);
+      questionArea.appendChild(optionsWrap);
+      questionArea.appendChild(hintArea);
+      questionArea.appendChild(explainArea);
+
+      // Hook buttons
+      hintBtn.onclick = (e) => {
+        e.preventDefault();
+        const text = q.meta.hint || "Think of context clues.";
+        hintArea.textContent = "Hint: " + text;
+        hintArea.classList.remove("hidden-vis");
+        hintArea.classList.add("shown-vis");
+        hintBtn.disabled = true;
+      };
+      explainBtn.onclick = (e) => {
+        e.preventDefault();
+        showExplanation(q, explainArea);
+      };
+      nextBtn.onclick = (e) => {
+        e.preventDefault();
+        nextItemProgress();
+      };
+
+      // Timer start handled by caller
+    }
+
+    function renderMatchUp(m) {
+      const head = el("div", "flex items-start justify-between gap-2");
+      const title = el("div");
+      title.innerHTML = `
+        <div class="text-sm opacity-80 mb-1">MATCH UP • 5 words</div>
+        <h2 class="text-xl md:text-2xl font-bold leading-snug">${m.prompt}</h2>
+      `;
+      const badge = el("div", "chip px-3 py-1 rounded-full text-xs self-start");
+      badge.textContent = "Round 4";
+      head.appendChild(title);
+      head.appendChild(badge);
+
+      const grid = el("div", "mt-5 grid md:grid-cols-2 gap-5");
+
+      // Left: words to drag
+      const left = el("div", "card rounded-xl p-4");
+      left.innerHTML = `<h3 class="font-semibold mb-3">Words</h3>`;
+      const wordsCol = el("div", "flex flex-col gap-2");
+      m.words.forEach(w => {
+        const item = el("div", "chip draggable px-3 py-2 rounded-xl", w);
+        item.draggable = true;
+        item.dataset.word = w;
+        item.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", w);
+        });
+        wordsCol.appendChild(item);
+      });
+      left.appendChild(wordsCol);
+
+      // Right: definition slots
+      const right = el("div", "card rounded-xl p-4");
+      right.innerHTML = `<h3 class="font-semibold mb-3">Definitions</h3>`;
+      const defsCol = el("div", "flex flex-col gap-3");
+      m.defs.forEach((d, idx) => {
+        const slot = el("div", "chip px-3 py-3 rounded-xl droppable");
+        slot.dataset.target = d.word;
+        slot.innerHTML = `
+          <div class="text-sm opacity-80 mb-1">Definition ${idx+1}</div>
+          <div class="font-medium">${d.def}</div>
+          <div class="mt-2">
+            <span class="text-xs opacity-75">Drop the matching word here</span>
+          </div>
+        `;
+        slot.addEventListener("dragover", (e) => e.preventDefault());
+        slot.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const dragged = e.dataTransfer.getData("text/plain");
+          // If already placed, move previous back
+          const existing = slot.querySelector(".placed");
+          if (existing) {
+            // move back to words column
+            wordsCol.appendChild(existing);
+            existing.classList.remove("placed");
+            existing.classList.add("draggable");
+          }
+          const draggedEl = [...wordsCol.children].find(c => c.dataset.word === dragged);
+          if (draggedEl) {
+            draggedEl.classList.add("placed");
+            draggedEl.classList.remove("draggable");
+            slot.appendChild(draggedEl);
+          }
+        });
+        defsCol.appendChild(slot);
+      });
+      right.appendChild(defsCol);
+
+      // Footer actions area
+      const footer = el("div", "mt-4");
+      const submitBtn = el("button", "btn px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600", "Check Matches");
+      footer.appendChild(submitBtn);
+
+      submitBtn.onclick = (e) => {
+        e.preventDefault();
+        if (answered) return;
+        // Evaluate 5 pairs
+        let correctPairs = 0;
+        defsCol.querySelectorAll(".droppable").forEach(slot => {
+          const placed = slot.querySelector("[data-word]");
+          const targetWord = slot.dataset.target;
+          if (placed && placed.dataset.word === targetWord) {
+            correctPairs++;
+            slot.classList.add("border", "border-green-500");
+          } else {
+            slot.classList.add("border", "border-red-500");
+          }
+        });
+
+        // Score + attempts reflect 5 items at once
+        const gained = correctPairs;
+        score += gained;
+        attempts += 5;
+        updateHUD();
+        answered = true;
+        clearInterval(timerId);
+        // record each result for history
+        defsCol.querySelectorAll(".droppable").forEach(slot => {
+          const placed = slot.querySelector("[data-word]");
+          const word = slot.dataset.target;
+          const wasCorrect = placed && placed.dataset.word === word;
+          history.push({ word, correct: wasCorrect, type: "MATCH_UP", passage: m.passageMap[word] });
+          if (!wasCorrect) missed.push(word);
+        });
+
+        explainBtn.disabled = false;
+        nextBtn.disabled = false;
+        hintBtn.disabled = true;
+
+        // Show quick summary
+        const sum = el("div", "mt-4 text-sm");
+        sum.innerHTML = `<span class="font-semibold">${correctPairs}/5</span> matched correctly. Use “Explain” to review definitions.`;
+        questionArea.appendChild(sum);
+      };
+
+      questionArea.appendChild(head);
+      grid.appendChild(left);
+      grid.appendChild(right);
+      questionArea.appendChild(grid);
+      questionArea.appendChild(footer);
+
+      hintBtn.onclick = (e) => {
+        e.preventDefault();
+        const hints = m.words.map(w => `• <strong><em>${w}</em></strong>: ${(m.metaMap[w].hint || "").replace("___", "<strong><em>_____</em></strong>")}`).join("<br>");
+        const hintArea = el("div", "mt-3 text-sm shown-vis");
+        hintArea.innerHTML = `<div class="font-semibold mb-1">Hints</div>${hints}`;
+        questionArea.appendChild(hintArea);
+        hintBtn.disabled = true;
+      };
+      explainBtn.onclick = (e) => {
+        e.preventDefault();
+        // Show table-like review
+        const box = el("div", "mt-4 text-sm shown-vis");
+        const rows = m.words.map(w => {
+          const meta = m.metaMap[w];
+          return `<div class="mb-2">
+            <div class="font-semibold">${w}</div>
+            <div>Definition: ${meta.definition}</div>
+            <div>Example: ${meta.example_sentence}</div>
+            <div>Synonym: ${meta.synonym || "—"}</div>
+            <div>Distractor: ${meta.distractors[0] || "—"}</div>
+          </div>`;
+        }).join("");
+        box.innerHTML = `<div class="font-semibold mb-1">Explanation</div>${rows}`;
+        questionArea.appendChild(box);
+      };
+      nextBtn.onclick = (e) => {
+        e.preventDefault();
+        nextItemProgress(true); // advance round
+      };
+    }
+
+    function evaluateAnswer(q, chosenIndex, chosenBtn, container) {
+      answered = true;
+      clearInterval(timerId);
+      const correct = chosenIndex === q.correctIndex;
+      // Visual feedback
+      [...container.children].forEach((btn, i) => {
+        btn.classList.remove("pulse");
+        if (i === q.correctIndex) btn.classList.add("correct");
+        if (i === chosenIndex && !correct) btn.classList.add("incorrect");
+        btn.disabled = true;
+      });
+
+      // Score
+      attempts += 1;
+      if (correct) score += 1;
+      updateHUD();
+
+      // Record history
+      history.push({ word: q.word, correct, type: q.type, passage: q.passage });
+      if (!correct) missed.push(q.word);
+
+      explainBtn.disabled = false;
+      nextBtn.disabled = false;
+      hintBtn.disabled = true;
+
+      // Gentle nudge message
+      const msg = el("div", "mt-2 text-sm", correct ? "Correct! Tap Explain for a quick review." : "Not quite. Tap Explain to learn why.");
+      questionArea.appendChild(msg);
+    }
+
+    function showExplanation(q, explainArea) {
+      const wordObj = findWord(q.word);
+      const def = q.meta.def;
+      const ex = q.meta.ex;
+      const syn = q.meta.syn || "—";
+      const distractor = (q.meta.distractors && q.meta.distractors[0]) ? q.meta.distractors[0] : "—";
+      const wasCorrect = history[history.length - 1]?.correct;
+
+      const header = wasCorrect ? "Correct" : "Incorrect";
+      const add = wasCorrect
+        ? `<div class="mt-1">Definition: ${def}</div><div>Example: ${highlightWord(wordObj.word, ex)}</div>`
+        : `<div class="mt-1">Definition: ${def}</div><div>Example: ${highlightWord(wordObj.word, ex)}</div><div>Synonym: ${syn}</div><div>Common distractor: ${distractor}</div>`;
+
+      explainArea.innerHTML = `<div class="font-semibold mb-1">${header} — “${wordObj.word}”</div>${add}`;
+      explainArea.classList.remove("hidden-vis");
+      explainArea.classList.add("shown-vis");
+    }
+
+    function onTimeout() {
+      // If already answered (e.g., submitted match-up), ignore
+      if (answered) return;
+
+      const isMatchUp = currentItem.type === "MATCH_UP";
+      if (isMatchUp) {
+        // Treat all unmatched as incorrect
+        attempts += 5;
+        timeouts += 5;
+        updateHUD();
+        currentItem.defs.forEach(d => {
+          history.push({ word: d.word, correct: false, type: "MATCH_UP", passage: currentItem.passageMap[d.word] });
+          missed.push(d.word);
+        });
+      } else {
+        attempts += 1;
+        timeouts += 1;
+        updateHUD();
+        history.push({ word: currentItem.word, correct: false, type: currentItem.type, passage: currentItem.passage });
+        missed.push(currentItem.word);
+      }
+
+      hintBtn.disabled = true;
+      explainBtn.disabled = false;
+      nextBtn.disabled = false;
+      answered = true;
+
+      // Visual note
+      const note = el("div", "mt-2 text-sm");
+      note.textContent = "Time’s up! Tap Explain to review, then Next to continue.";
+      questionArea.appendChild(note);
+
+      // Reveal correct option if MCQ-like
+      const container = questionArea.querySelectorAll(".option");
+      if (container.length && !isMatchUp) {
+        container[currentItem.correctIndex]?.classList.add("correct");
+        container.forEach(b => b.disabled = true);
+      }
+    }
+
+    function nextItemProgress(forceRoundAdvance = false) {
+      // Advance within round or into next
+      if (round < ROUNDS_TOTAL) {
+        indexWithinRound++;
+      } else {
+        // Match-Up: treat as completing the round
+        indexWithinRound = ITEMS_PER_ROUND; // force new round if replay
+      }
+      updateHUD();
+      loadNext();
+    }
+
+    function findWord(w) {
+      return VOCAB_LIST.find(v => v.word === w);
+    }
+
+    function showEnd() {
+      clearInterval(timerId);
+      $("#gameCard").classList.add("hidden");
+      endScreen.classList.remove("hidden");
+
+      finalScore.textContent = `${score} / ${ITEMS_TOTAL}`;
+      const acc = attempts ? Math.round((score / attempts) * 100) : 0;
+      finalAccuracy.textContent = `${acc}%`;
+      timeoutsEl.textContent = String(timeouts);
+
+      if (acc >= Math.round(PASSING_THRESHOLD * 100)) {
+        passNote.textContent = "Great job! You passed the threshold. Keep the momentum going.";
+        passNote.className = "text-emerald-300";
+      } else {
+        passNote.textContent = "You’re close! Review your missed words and try again.";
+        passNote.className = "text-amber-300";
+      }
+
+      // Passage breakdown
+      const byPassage = {};
+      history.forEach(h => {
+        if (!byPassage[h.passage]) byPassage[h.passage] = { correct: 0, total: 0 };
+        byPassage[h.passage].total++;
+        if (h.correct) byPassage[h.passage].correct++;
+      });
+      passageBreakdown.innerHTML = "";
+      ["Passage A","Passage B","Passage C"].forEach(p => {
+        const item = byPassage[p] || { correct: 0, total: 0 };
+        const pct = item.total ? Math.round((item.correct / item.total) * 100) : 0;
+        const card = el("div", "chip rounded-xl p-4");
+        card.innerHTML = `<div class="font-semibold">${p}</div><div>${item.correct} / ${item.total} correct</div><div class="opacity-80">${pct}%</div>`;
+        passageBreakdown.appendChild(card);
+      });
+
+      // Missed list
+      const uniqueMissed = [...new Set(missed)];
+      missedList.innerHTML = "";
+      if (!uniqueMissed.length) {
+        const none = el("div", "chip rounded-xl p-4 opacity-90");
+        none.textContent = "No missed words — excellent!";
+        missedList.appendChild(none);
+      } else {
+        uniqueMissed.slice(0, 10).forEach(w => {
+          const meta = findWord(w);
+          const card = el("div", "chip rounded-xl p-4");
+          card.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="font-semibold">${meta.word} <span class="text-xs opacity-70 ml-2">${meta.part_of_speech.toUpperCase()}</span></div>
+              <span class="text-xs opacity-70">${meta.passage}</span>
+            </div>
+            <div class="mt-1 text-sm">Definition: ${meta.definition}</div>
+            <div class="mt-1 text-sm opacity-90">Example: ${highlightWord(meta.word, meta.example_sentence)}</div>
+          `;
+          missedList.appendChild(card);
+        });
+      }
+    }
+
+    // Button handlers
+    playAgainBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      resetGame();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Initialize
+    resetGame();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'983132a4c64aaf12',t:'MTc1ODUzNzc3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
