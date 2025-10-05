@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ĐỒNG HỒ ĐẾM NGƯỢC (Countdown Clock)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Font for Cute Title */
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        
+        /* Cute Background Pattern */
+        .cute-bg {
+            background-color: #fce4ec; /* Light Pink */
+            /* Creates a faint grid pattern matching the image's feel */
+            background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .4) 25%, rgba(255, 255, 255, .4) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .4) 75%, rgba(255, 255, 255, .4) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .4) 25%, rgba(255, 255, 255, .4) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .4) 75%, rgba(255, 255, 255, .4) 76%, transparent 77%, transparent);
+            background-size: 30px 30px;
+            background-position: 0 0, 20px 20px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Cute Title Style (ĐỒNG HỒ ĐẾM NGƯỢC) */
+        .cute-title {
+            font-family: 'Varela Round', sans-serif;
+            color: #ff5757; /* Bright Red/Orange */
+            text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(0, 0, 0, 0.1);
+            letter-spacing: 2px;
+        }
+        
+        /* Progress Bar styles */
+        .progress-container {
+            border: 4px solid #333; /* Darker outline */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Progress Fill Style - Pink with Heart Pattern */
+        #progress-fill {
+            background-color: #f48fb1; /* Main pink color */
+            /* Add a faint heart pattern to the fill */
+            background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.5) 10%, transparent 12%), radial-gradient(circle at center, rgba(255, 255, 255, 0.5) 10%, transparent 12%);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+        }
+
+        /* Input and Button styles */
+        .input-group input[type="number"] {
+            -moz-appearance: textfield;
+            text-align: center;
+        }
+        .input-group input[type="number"]::-webkit-outer-spin-button,
+        .input-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="cute-bg">
+
+    <div id="timer-app" class="w-full max-w-xl bg-white p-6 md:p-10 rounded-3xl shadow-2xl border-4 border-white">
+        
+        <!-- Title matching the image -->
+        <h1 class="cute-title text-5xl font-extrabold text-center mb-8">
+            ĐỒNG HỒ ĐẾM NGƯỢC
+        </h1>
+        
+        <!-- 1. Main Timer Progress Bar -->
+        <!-- Increased margin-bottom (mb-10) after removing the second bar -->
+        <div id="progress-bar-container" class="relative h-16 w-full rounded-full progress-container bg-white mb-10 overflow-hidden">
+            <div id="progress-fill" class="h-full rounded-full transition-all duration-1000 ease-linear" style="width: 100%;">
+            </div>
+            
+            <!-- Icon is now the specific GIF provided by the user -->
+            <img id="capybara-icon" 
+                 src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMXFvNWJ2enpzcmFrdnF1eGZwMWNrN3BmcXpvY3B0MjlpNWlmZHB3NCZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Q66dCIgxnb4uzEYDqS/giphy.gif" 
+                 alt="Moving Cat Sticker" 
+                 class="absolute h-16 w-16 top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-1000 ease-linear z-10" 
+                 style="left: 100%;"
+                 onerror="this.onerror=null; this.src='https://placehold.co/80x80/ff5757/ffffff?text=Cat+Error';"
+            >
+
+            <!-- Digital Timer Label Overlay -->
+            <div id="timer-display" class="absolute inset-0 flex items-center justify-center text-3xl font-mono font-bold text-gray-800 z-0">
+                25:00
+            </div>
+        </div>
+
+
+        <!-- 2. Time Input and Control Buttons -->
+        <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
+            <!-- Time Input Group -->
+            <div class="input-group flex items-center space-x-2">
+                <input type="number" id="minutes-input" value="25" min="1" class="w-20 p-3 border-4 border-pink-300 rounded-xl text-xl font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 transition duration-150">
+                <span class="text-xl text-gray-600 font-semibold">Minutes</span>
+                <button id="set-time-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-lg transition duration-150 shadow-md">
+                    Set
+                </button>
+            </div>
+            
+            <!-- Control Buttons -->
+            <div class="flex space-x-3">
+                <button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-xl text-xl transition duration-150 shadow-lg">
+                    Start
+                </button>
+                <button id="pause-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-6 rounded-xl text-xl transition duration-150 shadow-lg hidden">
+                    Pause
+                </button>
+                <button id="reset-btn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl text-xl transition duration-150 shadow-lg">
+                    Reset
+                </button>
+            </div>
+        </div>
+        
+        <!-- 3. Status Message Box -->
+        <div id="status-box" class="mt-4 p-4 text-center rounded-xl bg-pink-100 text-pink-700 font-medium hidden border border-pink-300">
+            Đã tạm dừng. Nghỉ ngơi một chút nhé!
+        </div>
+
+    </div>
+
+    <script>
+        // Global state variables
+        let totalSeconds = 1500; // Default to 25 minutes (1500 seconds)
+        let timeRemaining = totalSeconds;
+        let isRunning = false;
+        let timerInterval = null;
+
+        // DOM elements
+        const timerDisplay = document.getElementById('timer-display');
+        const minutesInput = document.getElementById('minutes-input');
+        const setTimeBtn = document.getElementById('set-time-btn');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const progressBarFill = document.getElementById('progress-fill');
+        const capybaraIcon = document.getElementById('capybara-icon');
+        const statusBox = document.getElementById('status-box');
+
+        // --- Core Functions ---
+
+        /**
+         * Updates the timer display and the progress bar.
+         */
+        function updateVisuals() {
+            // 1. Update Digital Display (MM:SS)
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const minutesStr = String(minutes).padStart(2, '0');
+            const secondsStr = String(seconds).padStart(2, '0');
+            timerDisplay.textContent = `${minutesStr}:${secondsStr}`;
+            
+            // 2. Update Progress Bar and Icon Position
+            const percentage = (timeRemaining / totalSeconds) * 100;
+            
+            // The progress bar shrinks from 100% down to 0%
+            progressBarFill.style.width = `${percentage}%`;
+            
+            // Position the icon at the end of the filled bar. 
+            // The icon's position is relative to the percentage of the bar remaining.
+            capybaraIcon.style.left = `${percentage}%`;
+
+            // Adjust icon visibility when time is 0 to avoid it being off-screen
+            if (timeRemaining <= 0) {
+                 capybaraIcon.classList.add('opacity-0');
+            } else {
+                 capybaraIcon.classList.remove('opacity-0');
+            }
+        }
+
+        /**
+         * Plays a simple beep sound on completion.
+         */
+        function playCompletionSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5 note
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 1);
+            } catch (error) {
+                console.error("Audio playback failed:", error);
+            }
+        }
+
+        /**
+         * Sets the timer value from the input field.
+         */
+        function setTimerValue() {
+            if (isRunning) return; // Prevent changing time while running
+            
+            const minutes = parseInt(minutesInput.value, 10);
+            
+            if (isNaN(minutes) || minutes <= 0) {
+                minutesInput.value = 1;
+                totalSeconds = 60;
+            } else if (minutes > 300) { // Limit to 5 hours (300 min)
+                minutesInput.value = 300;
+                totalSeconds = 300 * 60;
+            } else {
+                totalSeconds = minutes * 60;
+            }
+            
+            timeRemaining = totalSeconds;
+            updateVisuals();
+            statusBox.classList.add('hidden');
+        }
+
+        /**
+         * Starts the countdown timer.
+         */
+        function startTimer() {
+            if (isRunning || timeRemaining <= 0) {
+                if (timeRemaining <= 0) setTimerValue(); // Reset if finished and trying to start
+                if (isRunning) return;
+            }
+
+            isRunning = true;
+            statusBox.classList.add('hidden');
+            
+            startBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+
+            // Clear any existing interval just in case
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateVisuals();
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    timeRemaining = 0; // Ensure it stays at 0
+                    updateVisuals();
+                    playCompletionSound();
+                    
+                    statusBox.textContent = "THỜI GIAN HẾT! (TIME'S UP!) Hoàn thành xuất sắc!";
+                    statusBox.classList.remove('hidden', 'bg-pink-100', 'text-pink-700');
+                    statusBox.classList.add('bg-green-100', 'text-green-700');
+                    
+                    startBtn.classList.remove('hidden');
+                    pauseBtn.classList.add('hidden');
+                }
+            }, 1000);
+        }
+
+        /**
+         * Pauses the countdown timer.
+         */
+        function pauseTimer() {
+            if (!isRunning) return;
+
+            clearInterval(timerInterval);
+            isRunning = false;
+
+            statusBox.textContent = "Đã tạm dừng. Nghỉ ngơi một chút nhé!";
+            statusBox.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+            statusBox.classList.add('bg-pink-100', 'text-pink-700');
+            
+            startBtn.classList.remove('hidden');
+            pauseBtn.classList.add('hidden');
+        }
+
+        /**
+         * Resets the timer to the currently set value.
+         */
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            timeRemaining = totalSeconds;
+            updateVisuals();
+
+            statusBox.classList.add('hidden');
+            
+            startBtn.classList.remove('hidden');
+            pauseBtn.classList.add('hidden');
+        }
+
+        // --- Event Listeners ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimerValue(); // Initial setup
+        });
+
+        setTimeBtn.addEventListener('click', setTimerValue);
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+
+        // Allow 'Enter' key in the input to set the time
+        minutesInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                setTimerValue();
+            }
+        });
+        
+    </script>
+
+</body>
+</html>
