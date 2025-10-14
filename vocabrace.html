@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary Race</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100%;
+            color: #333;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .setup-screen {
+            text-align: center;
+        }
+
+        .team-input {
+            margin: 15px 0;
+        }
+
+        .team-input input {
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            width: 250px;
+            text-align: center;
+        }
+
+        .team-input input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .team-score {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin: 5px;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .team-score.active {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        .team-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .team-points {
+            font-size: 1.5rem;
+        }
+
+        .question-area {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .challenge-type {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .question {
+            font-size: 1.3rem;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            padding: 15px 20px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .option:hover {
+            border-color: #4ecdc4;
+            transform: translateY(-2px);
+        }
+
+        .option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .option.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .feedback {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.1rem;
+            display: none;
+        }
+
+        .feedback.correct {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .feedback.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .next-btn {
+            display: none;
+            margin: 20px auto;
+        }
+
+        .game-controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .team-input input {
+                width: 200px;
+            }
+            
+            .options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🏁 Vocabulary Race</h1>
+            <p class="subtitle">B1 Level English Learning Game</p>
+        </div>
+
+        <div id="setupScreen" class="setup-screen">
+            <h2>Set Up Your Teams</h2>
+            <p>Enter team names (minimum 2 teams required)</p>
+            
+            <div id="teamInputs">
+                <div class="team-input">
+                    <input type="text" placeholder="Team 1 Name" id="team1">
+                </div>
+                <div class="team-input">
+                    <input type="text" placeholder="Team 2 Name" id="team2">
+                </div>
+            </div>
+            
+            <button class="btn btn-secondary" onclick="addTeam()">+ Add Team</button>
+            <button class="btn btn-primary" onclick="startGame()">Start Game</button>
+        </div>
+
+        <div id="gameScreen" class="game-screen">
+            <div class="scoreboard" id="scoreboard"></div>
+            
+            <div class="question-area">
+                <div class="challenge-type" id="challengeType"></div>
+                <div class="question" id="question"></div>
+                <div class="options" id="options"></div>
+                <div class="feedback" id="feedback"></div>
+                <button class="btn btn-primary next-btn" id="nextBtn" onclick="nextQuestion()">Next Question</button>
+            </div>
+            
+            <div class="game-controls">
+                <button class="btn btn-secondary" onclick="newGame()">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let teams = [];
+        let currentTeam = 0;
+        let gameData = {
+            adjectives: [
+                // Basic opposites
+                { question: "Match the opposite of 'awful':", correct: "cheerful", options: ["cheerful", "serious", "mean", "ordinary"] },
+                { question: "Match the opposite of 'funny':", correct: "serious", options: ["serious", "cheerful", "relaxed", "proud"] },
+                { question: "Match the opposite of 'generous':", correct: "mean", options: ["mean", "cheerful", "spectacular", "relaxed"] },
+                { question: "Match the opposite of 'miserable':", correct: "cheerful", options: ["cheerful", "proud", "ordinary", "serious"] },
+                { question: "Match the opposite of 'ashamed':", correct: "proud", options: ["proud", "relaxed", "cheerful", "spectacular"] },
+                { question: "Match the opposite of 'nervous':", correct: "relaxed", options: ["relaxed", "proud", "ordinary", "cheerful"] },
+                { question: "Match the opposite of 'dull':", correct: "spectacular", options: ["spectacular", "ordinary", "cheerful", "proud"] },
+                { question: "Match the opposite of 'strange':", correct: "ordinary", options: ["ordinary", "spectacular", "relaxed", "serious"] },
+                
+                // Reverse direction challenges
+                { question: "What is the opposite of 'cheerful'?", correct: "awful", options: ["awful", "funny", "generous", "strange"] },
+                { question: "What is the opposite of 'serious'?", correct: "funny", options: ["funny", "awful", "dull", "ashamed"] },
+                { question: "What is the opposite of 'mean'?", correct: "generous", options: ["generous", "miserable", "nervous", "strange"] },
+                { question: "What is the opposite of 'proud'?", correct: "ashamed", options: ["ashamed", "awful", "dull", "funny"] },
+                { question: "What is the opposite of 'relaxed'?", correct: "nervous", options: ["nervous", "mean", "serious", "ordinary"] },
+                { question: "What is the opposite of 'spectacular'?", correct: "dull", options: ["dull", "ashamed", "miserable", "generous"] },
+                { question: "What is the opposite of 'ordinary'?", correct: "strange", options: ["strange", "cheerful", "proud", "relaxed"] },
+                
+                // Context-based challenges
+                { question: "The movie was so ___ that I fell asleep. (opposite of spectacular)", correct: "dull", options: ["dull", "awful", "serious", "mean"] },
+                { question: "She felt ___ after winning the competition. (opposite of ashamed)", correct: "proud", options: ["proud", "cheerful", "relaxed", "spectacular"] },
+                { question: "His ___ behavior made everyone uncomfortable. (opposite of ordinary)", correct: "strange", options: ["strange", "awful", "dull", "nervous"] }
+            ],
+            compounds: [
+                // Basic definitions
+                { question: "A bag that you carry on your back:", correct: "backpack", options: ["backpack", "suitcase", "guidebook", "signpost"] },
+                { question: "A book that gives information about a place:", correct: "guidebook", options: ["guidebook", "backpack", "campsite", "crossroads"] },
+                { question: "A bag with a handle for carrying clothes:", correct: "suitcase", options: ["suitcase", "backpack", "signpost", "overnight"] },
+                { question: "A place where two roads meet and cross:", correct: "crossroads", options: ["crossroads", "campsite", "guidebook", "sightseeing"] },
+                { question: "A sign by the road that gives info:", correct: "signpost", options: ["signpost", "crossroads", "backpack", "overnight"] },
+                { question: "During the night until morning:", correct: "overnight", options: ["overnight", "sightseeing", "campsite", "guidebook"] },
+                { question: "A place where people can stay overnight in tents:", correct: "campsite", options: ["campsite", "crossroads", "suitcase", "signpost"] },
+                { question: "Visiting interesting places:", correct: "sightseeing", options: ["sightseeing", "overnight", "backpack", "guidebook"] },
+                
+                // Context-based challenges
+                { question: "I packed my clothes in a ___ for the trip.", correct: "suitcase", options: ["suitcase", "backpack", "guidebook", "campsite"] },
+                { question: "We stayed at a ___ in the mountains and slept in tents.", correct: "campsite", options: ["campsite", "crossroads", "signpost", "overnight"] },
+                { question: "The ___ showed us the way to the nearest town.", correct: "signpost", options: ["signpost", "guidebook", "crossroads", "sightseeing"] },
+                { question: "We went ___ in Paris and visited the Eiffel Tower.", correct: "sightseeing", options: ["sightseeing", "overnight", "backpack", "campsite"] },
+                { question: "At the ___, we had to decide which road to take.", correct: "crossroads", options: ["crossroads", "signpost", "campsite", "guidebook"] },
+                { question: "I bought a ___ to learn about the local attractions.", correct: "guidebook", options: ["guidebook", "backpack", "suitcase", "overnight"] },
+                
+                // Challenging word formation
+                { question: "What do you call a trip that lasts from evening until morning?", correct: "overnight", options: ["overnight", "sightseeing", "backpack", "crossroads"] },
+                { question: "What do you call the activity of exploring tourist attractions?", correct: "sightseeing", options: ["sightseeing", "overnight", "campsite", "guidebook"] }
+            ],
+            phrasal: [
+                // Basic fill-in-the-blank
+                { question: "Hannah Alper was born in Canada and ___ by her parents.", correct: "brought up", options: ["brought up", "grew up", "set up", "took up"], explanation: "bring up = looked after" },
+                { question: "At age nine, she ___ blogging.", correct: "took up", options: ["took up", "set up", "grew up", "found out"], explanation: "take up = start a new activity" },
+                { question: "Amanda Steele ___ a YouTube Channel.", correct: "set up", options: ["set up", "took up", "made up", "ran out"], explanation: "set up = start something" },
+                { question: "I ___ in Athens with my parents.", correct: "grew up", options: ["grew up", "brought up", "got on", "ran out"], explanation: "grew up = become older" },
+                { question: "If I ___ my parents were reading my emails, I wouldn't get angry.", correct: "found out", options: ["found out", "made up", "ran out", "got on"], explanation: "find out = discover" },
+                { question: "When my phone ___ battery, I borrow friends' phones.", correct: "runs out of", options: ["runs out of", "gets on with", "makes up", "finds out"], explanation: "run out = doesn't have any more" },
+                { question: "I have a good relationship with my older sister. We ___ well.", correct: "get on", options: ["get on", "run out", "make up", "bring up"], explanation: "get on with = good relationship" },
+                { question: "I was ___ by my grandparents.", correct: "brought up", options: ["brought up", "made up", "set up", "took up"], explanation: "bring up = looked after" },
+                
+                // Definition matching challenges
+                { question: "Which phrasal verb means 'to discover'?", correct: "find out", options: ["find out", "make up", "run out", "set up"], explanation: "find out = discover" },
+                { question: "Which phrasal verb means 'to start a new activity'?", correct: "take up", options: ["take up", "grow up", "bring up", "get on"], explanation: "take up = start a new activity" },
+                { question: "Which phrasal verb means 'to have a good relationship'?", correct: "get on with", options: ["get on with", "run out of", "make up", "set up"], explanation: "get on with = good relationship" },
+                { question: "Which phrasal verb means 'to become older'?", correct: "grow up", options: ["grow up", "bring up", "take up", "find out"], explanation: "grow up = become older" },
+                { question: "Which phrasal verb means 'to look after a child'?", correct: "bring up", options: ["bring up", "grow up", "make up", "take up"], explanation: "bring up = looked after" },
+                { question: "Which phrasal verb means 'to start something new'?", correct: "set up", options: ["set up", "take up", "make up", "run out"], explanation: "set up = start something" },
+                
+                // Challenging context questions
+                { question: "The author ___ an interesting story about dragons.", correct: "made up", options: ["made up", "found out", "ran out", "got on"], explanation: "make up = invent or create" },
+                { question: "We ___ of milk, so I went to the store.", correct: "ran out", options: ["ran out", "made up", "set up", "took up"], explanation: "run out = doesn't have any more" },
+                { question: "My parents ___ me to be polite and respectful.", correct: "brought up", options: ["brought up", "grew up", "made up", "found out"], explanation: "bring up = looked after" },
+                { question: "She ___ playing piano when she was seven years old.", correct: "took up", options: ["took up", "set up", "grew up", "made up"], explanation: "take up = start a new activity" }
+            ],
+            prepositions: [
+                // Basic preposition questions
+                { question: "Is there anything in the news you feel sad ___?", correct: "about", options: ["about", "of", "with", "for"], explanation: "sad about (something)" },
+                { question: "Is there anyone you get angry ___?", correct: "with", options: ["with", "about", "of", "for"], explanation: "angry with (someone)" },
+                { question: "What do you sometimes get bored ___?", correct: "with", options: ["with", "about", "of", "for"], explanation: "bored with (something)" },
+                { question: "When you were small, what were you afraid ___?", correct: "of", options: ["of", "about", "with", "for"], explanation: "afraid of (something)" },
+                { question: "Is there anything you feel nervous ___?", correct: "about", options: ["about", "of", "with", "for"], explanation: "nervous about (something)" },
+                { question: "Are you satisfied ___ your English progress?", correct: "with", options: ["with", "about", "of", "for"], explanation: "satisfied with (something)" },
+                { question: "What are you most fond ___?", correct: "of", options: ["of", "about", "with", "for"], explanation: "fond of (something)" },
+                { question: "Are you ever jealous ___ other people?", correct: "of", options: ["of", "about", "with", "for"], explanation: "jealous of (someone)" },
+                
+                // Additional preposition patterns from your data
+                { question: "She was ashamed ___ her behavior.", correct: "of", options: ["of", "about", "with", "for"], explanation: "ashamed of (something)" },
+                { question: "I'm disappointed ___ the results.", correct: "with", options: ["with", "about", "of", "for"], explanation: "disappointed with (something)" },
+                { question: "He's pleased ___ his new job.", correct: "with", options: ["with", "about", "of", "for"], explanation: "pleased with (something)" },
+                { question: "Are you crazy ___ football?", correct: "about", options: ["about", "of", "with", "for"], explanation: "crazy about (something)" },
+                { question: "I'm sure ___ the answer.", correct: "about", options: ["about", "of", "with", "for"], explanation: "sure about (something)" },
+                { question: "She feels depressed ___ the situation.", correct: "about", options: ["about", "of", "with", "for"], explanation: "depressed about (something)" },
+                
+                // Challenging mixed prepositions
+                { question: "Complete: 'I'm angry ___ my brother ___ breaking my phone.'", correct: "with, for", options: ["with, for", "about, of", "of, with", "about, with"], explanation: "angry with (person) for (reason)" },
+                { question: "Which adjectives take 'of': afraid, angry, bored, fond?", correct: "afraid, fond", options: ["afraid, fond", "angry, bored", "afraid, angry", "bored, fond"], explanation: "afraid of, fond of (but angry with, bored with)" },
+                { question: "Which adjectives take 'about': nervous, jealous, satisfied, crazy?", correct: "nervous, crazy", options: ["nervous, crazy", "jealous, satisfied", "nervous, satisfied", "jealous, crazy"], explanation: "nervous about, crazy about (but jealous of, satisfied with)" }
+            ],
+            mixed: [
+                // Cross-category challenges
+                { question: "Choose the compound word: I need to pack my ___ for the hiking trip.", correct: "backpack", options: ["backpack", "brought up", "nervous", "about"], explanation: "backpack is a compound word" },
+                { question: "Choose the phrasal verb: She ___ a successful business.", correct: "set up", options: ["set up", "crossroads", "generous", "with"], explanation: "set up = start something" },
+                { question: "Choose the correct preposition: I'm fond ___ chocolate.", correct: "of", options: ["of", "spectacular", "made up", "guidebook"], explanation: "fond of (something)" },
+                { question: "Choose the opposite: The opposite of 'dull' is ___.", correct: "spectacular", options: ["spectacular", "ran out", "campsite", "about"], explanation: "dull ↔ spectacular" },
+                
+                // Story completion challenges
+                { question: "Complete the story: 'Last summer, I ___ camping and stayed at a beautiful ___ in the mountains.'", correct: "took up, campsite", options: ["took up, campsite", "set up, backpack", "grew up, suitcase", "found out, crossroads"], explanation: "took up = started; campsite = place for tents" },
+                { question: "Complete: 'I was ___ about the exam, but I felt ___ when I passed.'", correct: "nervous, proud", options: ["nervous, proud", "afraid, angry", "bored, sad", "ashamed, mean"], explanation: "nervous about (worried), proud (opposite of ashamed)" },
+                { question: "Complete: 'We ___ of food during our ___ trip.'", correct: "ran out, overnight", options: ["ran out, overnight", "made up, sightseeing", "found out, backpack", "got on, guidebook"], explanation: "ran out = finished; overnight = during the night" }
+            ]
+        };
+        
+        let challengeTypes = ['adjectives', 'compounds', 'phrasal', 'prepositions', 'mixed'];
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let teamCount = 2;
+
+        function addTeam() {
+            teamCount++;
+            const teamInputs = document.getElementById('teamInputs');
+            const newInput = document.createElement('div');
+            newInput.className = 'team-input';
+            newInput.innerHTML = `<input type="text" placeholder="Team ${teamCount} Name" id="team${teamCount}">`;
+            teamInputs.appendChild(newInput);
+        }
+
+        function startGame() {
+            teams = [];
+            for (let i = 1; i <= teamCount; i++) {
+                const teamName = document.getElementById(`team${i}`).value.trim();
+                if (teamName) {
+                    teams.push({ name: teamName, score: 0 });
+                }
+            }
+            
+            if (teams.length < 2) {
+                alert('Please enter at least 2 team names!');
+                return;
+            }
+            
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            generateQuestions();
+            updateScoreboard();
+            showQuestion();
+        }
+
+        function generateQuestions() {
+            currentQuestions = [];
+            
+            // Add all questions from each category
+            Object.keys(gameData).forEach(category => {
+                gameData[category].forEach(q => {
+                    currentQuestions.push({
+                        ...q,
+                        category: category,
+                        categoryName: getCategoryName(category)
+                    });
+                });
+            });
+            
+            // Shuffle questions
+            currentQuestions = shuffleArray(currentQuestions);
+            currentQuestionIndex = 0;
+        }
+
+        function getCategoryName(category) {
+            const names = {
+                'adjectives': 'Adjectives & Opposites',
+                'compounds': 'Compound Words',
+                'phrasal': 'Phrasal Verbs',
+                'prepositions': 'Prepositions after Adjectives',
+                'mixed': 'Mixed Challenge'
+            };
+            return names[category];
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function updateScoreboard() {
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '';
+            
+            teams.forEach((team, index) => {
+                const teamDiv = document.createElement('div');
+                teamDiv.className = `team-score ${index === currentTeam ? 'active' : ''}`;
+                teamDiv.innerHTML = `
+                    <div class="team-name">${team.name}</div>
+                    <div class="team-points">${team.score} points</div>
+                `;
+                scoreboard.appendChild(teamDiv);
+            });
+        }
+
+        function showQuestion() {
+            if (currentQuestionIndex >= currentQuestions.length) {
+                endGame();
+                return;
+            }
+            
+            const question = currentQuestions[currentQuestionIndex];
+            
+            document.getElementById('challengeType').textContent = question.categoryName;
+            document.getElementById('question').textContent = question.question;
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+            
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            
+            const shuffledOptions = shuffleArray(question.options);
+            
+            shuffledOptions.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectAnswer(option, question);
+                optionsDiv.appendChild(optionDiv);
+            });
+        }
+
+        function selectAnswer(selected, question) {
+            const options = document.querySelectorAll('.option');
+            const feedback = document.getElementById('feedback');
+            
+            options.forEach(option => {
+                option.onclick = null;
+                if (option.textContent === question.correct) {
+                    option.classList.add('correct');
+                } else if (option.textContent === selected) {
+                    option.classList.add('incorrect');
+                }
+            });
+            
+            if (selected === question.correct) {
+                teams[currentTeam].score += 10;
+                feedback.className = 'feedback correct';
+                feedback.innerHTML = `🎉 Correct! Well done ${teams[currentTeam].name}!`;
+            } else {
+                feedback.className = 'feedback incorrect';
+                let explanation = question.explanation ? `<br><strong>Tip:</strong> ${question.explanation}` : '';
+                feedback.innerHTML = `❌ Incorrect. The correct answer is: <strong>${question.correct}</strong>${explanation}`;
+            }
+            
+            feedback.style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'block';
+            updateScoreboard();
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            currentTeam = (currentTeam + 1) % teams.length;
+            showQuestion();
+        }
+
+        function endGame() {
+            const winner = teams.reduce((prev, current) => (prev.score > current.score) ? prev : current);
+            const questionArea = document.querySelector('.question-area');
+            
+            questionArea.innerHTML = `
+                <div style="text-align: center;">
+                    <h2>🏆 Game Over!</h2>
+                    <h3>Winner: ${winner.name} with ${winner.score} points!</h3>
+                    <div style="margin: 20px 0;">
+                        <h4>Final Scores:</h4>
+                        ${teams.map(team => `<p>${team.name}: ${team.score} points</p>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function newGame() {
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('setupScreen').style.display = 'block';
+            
+            // Reset team inputs
+            const teamInputs = document.getElementById('teamInputs');
+            teamInputs.innerHTML = `
+                <div class="team-input">
+                    <input type="text" placeholder="Team 1 Name" id="team1">
+                </div>
+                <div class="team-input">
+                    <input type="text" placeholder="Team 2 Name" id="team2">
+                </div>
+            `;
+            teamCount = 2;
+            teams = [];
+            currentTeam = 0;
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98e5a42c73f3109b',t:'MTc2MDQyOTg1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
