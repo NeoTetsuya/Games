@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grammar Jeopardy: Challenge Your English</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100%;
+            color: white;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.2); }
+            to { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 30px rgba(255,255,255,0.4); }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .team {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .team:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .team-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .team-score {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ffd700;
+        }
+
+        .game-board {
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-grow: 1;
+        }
+
+        .game-board.active {
+            display: grid;
+        }
+
+        .category {
+            background: linear-gradient(145deg, var(--category-color), var(--category-dark));
+            padding: 20px;
+            text-align: center;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .category.orange { --category-color: #ff6b35; --category-dark: #e55a2b; }
+        .category.red { --category-color: #e74c3c; --category-dark: #c0392b; }
+        .category.blue { --category-color: #3498db; --category-dark: #2980b9; }
+        .category.green { --category-color: #2ecc71; --category-dark: #27ae60; }
+        .category.purple { --category-color: #9b59b6; --category-dark: #8e44ad; }
+
+        .point-button {
+            background: linear-gradient(145deg, var(--category-color), var(--category-dark));
+            border: none;
+            padding: 25px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .point-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .point-button:active {
+            transform: translateY(-1px);
+        }
+
+        .point-button.used {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .question-slide {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .question-slide.active {
+            display: block;
+        }
+
+        .question-text {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .timer-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .timer-display {
+            background: linear-gradient(145deg, #ff6b35, #e55a2b);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(255,107,53,0.3);
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .timer-display.warning {
+            background: linear-gradient(145deg, #ffd700, #ffb700);
+            color: #333;
+            animation: pulse-warning 1s ease-in-out infinite;
+        }
+
+        .timer-display.danger {
+            background: linear-gradient(145deg, #dc3545, #bd2130);
+            color: white;
+            animation: pulse-danger 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes pulse-danger {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(220,53,69,0.3); }
+            50% { transform: scale(1.1); box-shadow: 0 6px 25px rgba(220,53,69,0.6); }
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .timer-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: #333;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .timer-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .option:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-2px);
+        }
+
+        .option.selected {
+            background: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        .option.correct {
+            background: #28a745;
+            color: white;
+            border-color: #1e7e34;
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        .option.incorrect {
+            background: #dc3545;
+            color: white;
+            border-color: #bd2130;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(145deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(145deg, #6c757d, #545b62);
+            box-shadow: 0 4px 15px rgba(108,117,125,0.3);
+        }
+
+        .btn.success {
+            background: linear-gradient(145deg, #28a745, #1e7e34);
+            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+        }
+
+        .answer-reveal {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+            display: none;
+        }
+
+        .answer-reveal.show {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .current-turn {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .setup-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80%;
+            text-align: center;
+        }
+
+        .setup-screen.hidden {
+            display: none;
+        }
+
+        .setup-content {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .setup-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        .setup-subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .team-count-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .team-count-btn {
+            background: linear-gradient(145deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+            min-width: 80px;
+        }
+
+        .team-count-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+        }
+
+        .team-count-btn.selected {
+            background: linear-gradient(145deg, #28a745, #1e7e34);
+            box-shadow: 0 4px 15px rgba(40,167,69,0.4);
+        }
+
+        .team-names-section {
+            margin-bottom: 30px;
+        }
+
+        .team-name-input {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+
+        .team-name-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .team-name-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 10px rgba(255,215,0,0.3);
+        }
+
+        .start-game-btn {
+            background: linear-gradient(145deg, #ffd700, #ffb700);
+            color: #333;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+        }
+
+        .start-game-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,215,0,0.4);
+        }
+
+        .game-content {
+            display: none;
+        }
+
+        .game-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .title { font-size: 2rem; }
+            .game-board { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .category { padding: 15px; font-size: 0.9rem; }
+            .point-button { padding: 20px; font-size: 1.2rem; }
+            .question-text { font-size: 1.4rem; }
+            .options { grid-template-columns: 1fr; }
+            .scoreboard { gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Grammar Jeopardy</h1>
+            <p class="subtitle">Challenge Your English Skills!</p>
+        </div>
+
+        <!-- Team Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <div class="setup-content">
+                <h2 class="setup-title">🎯 Game Setup</h2>
+                <p class="setup-subtitle">Choose the number of teams and enter their names</p>
+                
+                <div class="team-count-selector">
+                    <button class="team-count-btn selected" onclick="selectTeamCount(2)">2 Teams</button>
+                    <button class="team-count-btn" onclick="selectTeamCount(3)">3 Teams</button>
+                    <button class="team-count-btn" onclick="selectTeamCount(4)">4 Teams</button>
+                </div>
+
+                <div class="team-names-section" id="teamNamesSection">
+                    <input type="text" class="team-name-input" placeholder="Team 1 Name" id="team0Name" value="Team A">
+                    <input type="text" class="team-name-input" placeholder="Team 2 Name" id="team1Name" value="Team B">
+                </div>
+
+                <button class="start-game-btn" onclick="startGame()">🚀 Start Game</button>
+            </div>
+        </div>
+
+        <!-- Game Content -->
+        <div class="game-content" id="gameContent">
+            <div class="current-turn">
+                <span id="currentTurn">Team A's Turn</span>
+            </div>
+
+            <div class="scoreboard" id="scoreboard">
+                <div class="team">
+                    <div class="team-name">Team A</div>
+                    <div class="team-score" id="score0">0</div>
+                </div>
+                <div class="team">
+                    <div class="team-name">Team B</div>
+                    <div class="team-score" id="score1">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <!-- Categories -->
+            <div class="category orange">Near Future<br>(Will vs. Be Going To)</div>
+            <div class="category red">Present Perfect<br>vs. Past Simple</div>
+            <div class="category blue">Modals: Advice,<br>Obligation, Prohibition</div>
+            <div class="category green">Adjectives:<br>-ed and -ing</div>
+            <div class="category purple">Conditionals<br>(1st and 2nd)</div>
+
+            <!-- Point buttons -->
+            <button class="point-button orange" onclick="openQuestion(0, 0, 10)">10</button>
+            <button class="point-button red" onclick="openQuestion(1, 0, 10)">10</button>
+            <button class="point-button blue" onclick="openQuestion(2, 0, 10)">10</button>
+            <button class="point-button green" onclick="openQuestion(3, 0, 10)">10</button>
+            <button class="point-button purple" onclick="openQuestion(4, 0, 10)">10</button>
+
+            <button class="point-button orange" onclick="openQuestion(0, 1, 20)">20</button>
+            <button class="point-button red" onclick="openQuestion(1, 1, 20)">20</button>
+            <button class="point-button blue" onclick="openQuestion(2, 1, 20)">20</button>
+            <button class="point-button green" onclick="openQuestion(3, 1, 20)">20</button>
+            <button class="point-button purple" onclick="openQuestion(4, 1, 20)">20</button>
+
+            <button class="point-button orange" onclick="openQuestion(0, 2, 30)">30</button>
+            <button class="point-button red" onclick="openQuestion(1, 2, 30)">30</button>
+            <button class="point-button blue" onclick="openQuestion(2, 2, 30)">30</button>
+            <button class="point-button green" onclick="openQuestion(3, 2, 30)">30</button>
+            <button class="point-button purple" onclick="openQuestion(4, 2, 30)">30</button>
+
+            <button class="point-button orange" onclick="openQuestion(0, 3, 40)">40</button>
+            <button class="point-button red" onclick="openQuestion(1, 3, 40)">40</button>
+            <button class="point-button blue" onclick="openQuestion(2, 3, 40)">40</button>
+            <button class="point-button green" onclick="openQuestion(3, 3, 40)">40</button>
+            <button class="point-button purple" onclick="openQuestion(4, 3, 40)">40</button>
+
+            <button class="point-button orange" onclick="openQuestion(0, 4, 50)">50</button>
+            <button class="point-button red" onclick="openQuestion(1, 4, 50)">50</button>
+            <button class="point-button blue" onclick="openQuestion(2, 4, 50)">50</button>
+            <button class="point-button green" onclick="openQuestion(3, 4, 50)">50</button>
+            <button class="point-button purple" onclick="openQuestion(4, 4, 50)">50</button>
+        </div>
+
+        <div class="question-slide" id="questionSlide">
+            <div class="timer-container">
+                <div class="timer-display" id="timerDisplay">30</div>
+                <div class="timer-controls">
+                    <button class="timer-btn" onclick="pauseTimer()" id="pauseBtn">⏸️ Pause</button>
+                    <button class="timer-btn" onclick="resetTimer()" id="resetBtn">🔄 Reset</button>
+                </div>
+            </div>
+            <div class="question-text" id="questionText"></div>
+            <div class="options" id="optionsContainer"></div>
+            <div class="controls">
+                <button class="btn success" id="showAnswerBtn" onclick="showAnswer()">Show Answer</button>
+                <button class="btn" id="correctBtn" onclick="markCorrect()" style="display: none;">Correct (+Points)</button>
+                <button class="btn secondary" id="incorrectBtn" onclick="markIncorrect()" style="display: none;">Incorrect</button>
+                <button class="btn secondary" onclick="backToBoard()">Back to Board</button>
+            </div>
+            <div class="answer-reveal" id="answerReveal"></div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            // Near Future (Will vs. Be Going To) - 10, 20, 30, 40, 50 points
+            [
+                {
+                    question: "Look at those clouds! It ___ rain soon.",
+                    options: ["will", "is going to", "was going to", "will be"],
+                    correct: 1,
+                    explanation: "We use 'be going to' for predictions based on present evidence (the clouds)."
+                },
+                {
+                    question: "I promise I ___ call you tonight.",
+                    options: ["am going to", "will", "shall", "going to"],
+                    correct: 1,
+                    explanation: "We use 'will' for promises and spontaneous decisions."
+                },
+                {
+                    question: "Based on the weather forecast, it ___ be sunny tomorrow, but I think it ___ rain instead.",
+                    options: ["will / is going to", "is going to / will", "will / will", "is going to / is going to"],
+                    correct: 1,
+                    explanation: "First blank: 'be going to' for predictions based on evidence (forecast). Second blank: 'will' for personal opinion."
+                },
+                {
+                    question: "She's packed her bags and booked a taxi. She ___ leave for the airport in an hour, but the flight ___ probably be delayed due to the storm.",
+                    options: ["will / is going to", "is going to / will", "will / will", "is going to / is going to"],
+                    correct: 1,
+                    explanation: "First blank: 'be going to' for planned actions with preparation. Second blank: 'will' for predictions without evidence."
+                },
+                {
+                    question: "A: 'The phone is ringing.' B: 'I ___ get it.' A: 'Actually, don't worry. I think it ___ stop ringing soon - it's probably a spam call.'",
+                    options: ["am going to / will", "will / is going to", "will / will", "am going to / is going to"],
+                    correct: 2,
+                    explanation: "First blank: 'will' for spontaneous decision. Second blank: 'will' for prediction based on opinion/experience."
+                }
+            ],
+            // Present Perfect vs. Past Simple - 10, 20, 30, 40, 50 points
+            [
+                {
+                    question: "I ___ that movie yesterday.",
+                    options: ["have seen", "saw", "see", "was seeing"],
+                    correct: 1,
+                    explanation: "Past Simple for completed actions with specific time (yesterday)."
+                },
+                {
+                    question: "She ___ in three different countries, but she ___ to Asia yet.",
+                    options: ["lived / didn't go", "has lived / hasn't been", "lived / hasn't been", "has lived / didn't go"],
+                    correct: 1,
+                    explanation: "Present Perfect for life experience without specific time, and with 'yet' for unfinished actions."
+                },
+                {
+                    question: "This is the most interesting book I ___. I ___ reading it last week.",
+                    options: ["ever read / started", "have ever read / started", "ever read / have started", "have ever read / have started"],
+                    correct: 1,
+                    explanation: "Present Perfect with superlative and 'ever'. Past Simple for specific time (last week)."
+                },
+                {
+                    question: "By the time we arrived, they ___ the meeting, but they ___ us the main points since then.",
+                    options: ["finished / told", "had finished / have told", "have finished / told", "finished / have told"],
+                    correct: 1,
+                    explanation: "Past Perfect for action completed before another past action. Present Perfect with 'since then'."
+                },
+                {
+                    question: "I ___ John since he ___ his job last month. He ___ three interviews already, but he ___ any offers yet.",
+                    options: ["haven't seen / lost / had / didn't receive", "didn't see / has lost / has had / hasn't received", "haven't seen / lost / has had / hasn't received", "haven't seen / has lost / had / hasn't received"],
+                    correct: 2,
+                    explanation: "Present Perfect with 'since' for duration. Past Simple for specific past time. Present Perfect for recent actions and with 'yet'."
+                }
+            ],
+            // Modals: Advice, Obligation, Prohibition - 10, 20, 30, 40, 50 points
+            [
+                {
+                    question: "You ___ wear a seatbelt in the car.",
+                    options: ["should", "must", "can", "may"],
+                    correct: 1,
+                    explanation: "'Must' expresses legal obligation and strong necessity."
+                },
+                {
+                    question: "You ___ park here - it's a no-parking zone, but you ___ park across the street.",
+                    options: ["mustn't / can", "can't / should", "shouldn't / must", "don't have to / may"],
+                    correct: 0,
+                    explanation: "'Mustn't' for prohibition. 'Can' for permission/possibility."
+                },
+                {
+                    question: "Students ___ submit their essays by Friday, but they ___ include a bibliography if they want extra credit.",
+                    options: ["have to / should", "must / don't have to", "should / must", "have to / mustn't"],
+                    correct: 0,
+                    explanation: "'Have to' for external obligation. 'Should' for advice/recommendation."
+                },
+                {
+                    question: "You ___ have told me about the meeting earlier - I ___ have prepared better. Now I ___ rush to get ready.",
+                    options: ["should / could / have to", "must / should / must", "could / would / should", "would / might / can"],
+                    correct: 0,
+                    explanation: "'Should have' for past advice/regret. 'Could have' for past possibility. 'Have to' for present necessity."
+                },
+                {
+                    question: "In this company, employees ___ work overtime without extra pay, but they ___ have refused if the request was unreasonable. The new policy says workers ___ work more than 50 hours per week.",
+                    options: ["had to / should / mustn't", "must / could / don't have to", "had to / could have / mustn't", "should / must have / can't"],
+                    correct: 2,
+                    explanation: "'Had to' for past obligation. 'Could have' for past possibility. 'Mustn't' for prohibition."
+                }
+            ],
+            // Adjectives: -ed and -ing - 10, 20, 30, 40, 50 points
+            [
+                {
+                    question: "The movie was ___.",
+                    options: ["bored", "boring", "bore", "boredom"],
+                    correct: 1,
+                    explanation: "'-ing' adjectives describe what causes the feeling."
+                },
+                {
+                    question: "I felt ___ after the ___ presentation.",
+                    options: ["inspiring / inspired", "inspired / inspiring", "inspire / inspiration", "inspiration / inspire"],
+                    correct: 1,
+                    explanation: "'-ed' for how someone feels. '-ing' for what causes the feeling."
+                },
+                {
+                    question: "The ___ news left everyone ___. It was quite ___ to see such ___ reactions.",
+                    options: ["shocking / shocked / surprised / emotional", "shocked / shocking / surprising / emotionally", "shocking / shocked / surprising / emotional", "shocked / shocking / surprised / emotionally"],
+                    correct: 2,
+                    explanation: "News is 'shocking' (causes shock). People are 'shocked' (feel shock). 'Surprising' (causes surprise). 'Emotional' (adjective describing reactions)."
+                },
+                {
+                    question: "Despite being ___ by the ___ criticism, she remained ___ about her ___ project.",
+                    options: ["disappointed / discouraging / optimistic / challenged", "disappointing / discouraged / optimistically / challenging", "disappointed / discouraging / optimistically / challenged", "disappointing / discouraged / optimistic / challenging"],
+                    correct: 0,
+                    explanation: "She feels 'disappointed' (-ed). Criticism is 'discouraging' (-ing). She remained 'optimistic' (adjective). Project is 'challenged' (past participle as adjective)."
+                },
+                {
+                    question: "The ___ audience was ___ by the performer's ___ energy, though some found the music rather ___ and the lyrics quite ___.",
+                    options: ["fascinated / captivating / amazing / annoyed / confused", "fascinating / captivated / amazed / annoying / confusing", "fascinated / captivated / amazing / annoying / confusing", "fascinating / captivating / amazed / annoyed / confused"],
+                    correct: 2,
+                    explanation: "Audience feels 'fascinated' (-ed). Audience was 'captivated' (-ed). Energy is 'amazing' (-ing). Music is 'annoying' (-ing). Lyrics are 'confusing' (-ing)."
+                }
+            ],
+            // Conditionals (1st and 2nd) - 10, 20, 30, 40, 50 points
+            [
+                {
+                    question: "If it rains, we ___ stay inside.",
+                    options: ["will", "would", "are", "were"],
+                    correct: 0,
+                    explanation: "First conditional: If + present simple, will + infinitive."
+                },
+                {
+                    question: "If I ___ rich, I ___ travel around the world.",
+                    options: ["am / will", "were / would", "was / will", "am / would"],
+                    correct: 1,
+                    explanation: "Second conditional: If + past simple, would + infinitive. Use 'were' for all persons with 'be'."
+                },
+                {
+                    question: "If you ___ harder last year, you ___ the exam. Now, if you ___ to retake it, you ___ pass easily.",
+                    options: ["studied / would pass / decide / will", "had studied / would have passed / decide / will", "studied / would have passed / decided / would", "had studied / would pass / decide / would"],
+                    correct: 1,
+                    explanation: "Third conditional for past unreal situation. First conditional for future real possibility."
+                },
+                {
+                    question: "I wish I ___ more time. If I ___, I ___ help you with your project yesterday.",
+                    options: ["have / did / would help", "had / had / would have helped", "have / had / would have helped", "had / did / would help"],
+                    correct: 1,
+                    explanation: "'Wish' + past simple for present unreal situations. Third conditional for past unreal situations."
+                },
+                {
+                    question: "If she ___ the job offer last month, she ___ working there now. But if she ___ it, she ___ this opportunity to study abroad.",
+                    options: ["accepted / would be / hadn't accepted / wouldn't have", "had accepted / would be / hadn't accepted / wouldn't have", "accepted / would have been / didn't accept / wouldn't have", "had accepted / would have been / hadn't accepted / wouldn't have had"],
+                    correct: 1,
+                    explanation: "Mixed conditional: past condition (had accepted) with present result (would be). Third conditional for the alternative past scenario."
+                }
+            ]
+        ];
+
+        let currentTeam = 0;
+        let teamCount = 2;
+        let teamNames = ['Team A', 'Team B'];
+        let scores = {};
+        let currentQuestion = null;
+        let selectedOption = null;
+        let timer = null;
+        let timeLeft = 30;
+        let timerPaused = false;
+
+        function selectTeamCount(count) {
+            playSound('click');
+            teamCount = count;
+            
+            // Update button selection
+            document.querySelectorAll('.team-count-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+            
+            // Update team name inputs
+            const teamNamesSection = document.getElementById('teamNamesSection');
+            teamNamesSection.innerHTML = '';
+            
+            for (let i = 0; i < count; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'team-name-input';
+                input.placeholder = `Team ${i + 1} Name`;
+                input.id = `team${i}Name`;
+                input.value = `Team ${String.fromCharCode(65 + i)}`;
+                teamNamesSection.appendChild(input);
+            }
+        }
+
+        function startGame() {
+            playSound('click');
+            
+            // Get team names
+            teamNames = [];
+            scores = {};
+            
+            for (let i = 0; i < teamCount; i++) {
+                const nameInput = document.getElementById(`team${i}Name`);
+                const teamName = nameInput.value.trim() || `Team ${String.fromCharCode(65 + i)}`;
+                teamNames.push(teamName);
+                scores[i] = 0;
+            }
+            
+            // Hide setup screen and show game
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('gameContent').classList.add('active');
+            document.getElementById('gameBoard').classList.add('active');
+            
+            // Initialize scoreboard
+            initializeScoreboard();
+            
+            // Set first team
+            currentTeam = 0;
+            updateCurrentTurn();
+        }
+
+        function initializeScoreboard() {
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '';
+            
+            for (let i = 0; i < teamCount; i++) {
+                const teamDiv = document.createElement('div');
+                teamDiv.className = 'team';
+                teamDiv.innerHTML = `
+                    <div class="team-name">${teamNames[i]}</div>
+                    <div class="team-score" id="score${i}">0</div>
+                `;
+                scoreboard.appendChild(teamDiv);
+            }
+        }
+
+        function updateCurrentTurn() {
+            document.getElementById('currentTurn').textContent = `${teamNames[currentTeam]}'s Turn`;
+        }
+
+        function playSound(type) {
+            // Create audio context for sound effects
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            if (type === 'click') {
+                // Simple click sound
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } else if (type === 'correct') {
+                // Success sound
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } else if (type === 'timeup') {
+                // Time's up sound
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(150, audioContext.currentTime + 0.2);
+                oscillator.frequency.setValueAtTime(100, audioContext.currentTime + 0.4);
+                
+                gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.6);
+            } else if (type === 'tick') {
+                // Tick sound for last 10 seconds
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            }
+        }
+
+        function startTimer() {
+            timeLeft = 30;
+            timerPaused = false;
+            updateTimerDisplay();
+            
+            timer = setInterval(() => {
+                if (!timerPaused) {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    
+                    // Play tick sound in last 10 seconds
+                    if (timeLeft <= 10 && timeLeft > 0) {
+                        playSound('tick');
+                    }
+                    
+                    // Time's up
+                    if (timeLeft <= 0) {
+                        clearInterval(timer);
+                        playSound('timeup');
+                        timeUp();
+                    }
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            timerPaused = !timerPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            if (timerPaused) {
+                pauseBtn.textContent = '▶️ Resume';
+                pauseBtn.style.background = 'rgba(40,167,69,0.3)';
+            } else {
+                pauseBtn.textContent = '⏸️ Pause';
+                pauseBtn.style.background = 'rgba(255,255,255,0.2)';
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            timeLeft = 30;
+            timerPaused = false;
+            updateTimerDisplay();
+            
+            // Reset pause button
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.textContent = '⏸️ Pause';
+            pauseBtn.style.background = 'rgba(255,255,255,0.2)';
+            
+            startTimer();
+        }
+
+        function stopTimer() {
+            clearInterval(timer);
+            timerPaused = false;
+            
+            // Reset pause button
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.textContent = '⏸️ Pause';
+            pauseBtn.style.background = 'rgba(255,255,255,0.2)';
+        }
+
+        function updateTimerDisplay() {
+            const timerDisplay = document.getElementById('timerDisplay');
+            timerDisplay.textContent = timeLeft;
+            
+            // Remove all timer classes
+            timerDisplay.classList.remove('warning', 'danger');
+            
+            // Add appropriate class based on time left
+            if (timeLeft <= 5) {
+                timerDisplay.classList.add('danger');
+            } else if (timeLeft <= 10) {
+                timerDisplay.classList.add('warning');
+            }
+        }
+
+        function timeUp() {
+            // Automatically show the answer when time runs out
+            showAnswer();
+            
+            // Show a message that time is up
+            const timerDisplay = document.getElementById('timerDisplay');
+            timerDisplay.textContent = "TIME'S UP!";
+            timerDisplay.style.fontSize = '1rem';
+        }
+
+        function openQuestion(category, questionIndex, points) {
+            playSound('click');
+            
+            currentQuestion = {
+                category: category,
+                questionIndex: questionIndex,
+                points: points,
+                data: questions[category][questionIndex]
+            };
+
+            // Mark button as used
+            event.target.classList.add('used');
+            event.target.onclick = null;
+
+            // Show question slide
+            document.getElementById('gameBoard').classList.remove('active');
+            document.getElementById('questionSlide').classList.add('active');
+
+            // Populate question
+            document.getElementById('questionText').textContent = currentQuestion.data.question;
+            
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            currentQuestion.data.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.textContent = `${String.fromCharCode(65 + index)}) ${option}`;
+                optionDiv.onclick = () => selectOption(index, optionDiv);
+                optionsContainer.appendChild(optionDiv);
+            });
+
+            // Reset controls
+            document.getElementById('showAnswerBtn').style.display = 'inline-block';
+            document.getElementById('correctBtn').style.display = 'none';
+            document.getElementById('incorrectBtn').style.display = 'none';
+            document.getElementById('answerReveal').classList.remove('show');
+            selectedOption = null;
+
+            // Start the timer
+            startTimer();
+        }
+
+        function selectOption(index, element) {
+            playSound('click');
+            
+            // Remove previous selection
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            
+            // Mark new selection
+            element.classList.add('selected');
+            selectedOption = index;
+        }
+
+        function showAnswer() {
+            playSound('click');
+            
+            // Stop the timer
+            stopTimer();
+            
+            const correctIndex = currentQuestion.data.correct;
+            const options = document.querySelectorAll('.option');
+            
+            // Show correct answer
+            options[correctIndex].classList.add('correct');
+            
+            // Show incorrect if selected wrong
+            if (selectedOption !== null && selectedOption !== correctIndex) {
+                options[selectedOption].classList.add('incorrect');
+            }
+
+            // Show explanation
+            const answerReveal = document.getElementById('answerReveal');
+            answerReveal.innerHTML = `
+                <strong>Correct Answer:</strong> ${String.fromCharCode(65 + correctIndex)}) ${currentQuestion.data.options[correctIndex]}<br>
+                <strong>Explanation:</strong> ${currentQuestion.data.explanation}
+            `;
+            answerReveal.classList.add('show');
+
+            // Show scoring buttons
+            document.getElementById('showAnswerBtn').style.display = 'none';
+            document.getElementById('correctBtn').style.display = 'inline-block';
+            document.getElementById('incorrectBtn').style.display = 'inline-block';
+        }
+
+        function markCorrect() {
+            playSound('correct');
+            
+            scores[currentTeam] += currentQuestion.points;
+            document.getElementById(`score${currentTeam}`).textContent = scores[currentTeam];
+            
+            // Switch to next team
+            currentTeam = (currentTeam + 1) % teamCount;
+            updateCurrentTurn();
+            
+            backToBoard();
+        }
+
+        function markIncorrect() {
+            playSound('click');
+            
+            // Switch to next team
+            currentTeam = (currentTeam + 1) % teamCount;
+            updateCurrentTurn();
+            
+            backToBoard();
+        }
+
+        function backToBoard() {
+            // Stop the timer
+            stopTimer();
+            
+            document.getElementById('questionSlide').classList.remove('active');
+            document.getElementById('gameBoard').classList.add('active');
+            
+            // Reset question state
+            currentQuestion = null;
+            selectedOption = null;
+            
+            // Reset timer display
+            const timerDisplay = document.getElementById('timerDisplay');
+            timerDisplay.textContent = '30';
+            timerDisplay.style.fontSize = '1.5rem';
+            timerDisplay.classList.remove('warning', 'danger');
+        }
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game starts with setup screen visible
+            // Initialize default team names
+            selectTeamCount(2);
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98e5700b616b096c',t:'MTc2MDQyNzcyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
