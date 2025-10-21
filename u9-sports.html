@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess the Sport! Quiz Game</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes timerSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .bounce { animation: bounce 0.6s; }
+        .pulse { animation: pulse 0.3s; }
+        .timer-animation { animation: timerSpin 1s linear infinite; }
+        
+        .correct-flash {
+            background: linear-gradient(45deg, #10b981, #34d399) !important;
+            animation: pulse 0.5s;
+        }
+        
+        .wrong-flash {
+            background: linear-gradient(45deg, #ef4444, #f87171) !important;
+            animation: pulse 0.5s;
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="min-h-full bg-gradient-to-br from-blue-400 via-green-400 to-orange-400 font-sans">
+  <div id="app" class="min-h-full p-4"><!-- Team Setup Screen -->
+   <div id="teamSetup" class="max-w-4xl mx-auto text-center">
+    <div class="bg-white rounded-3xl shadow-2xl p-8 mb-6">
+     <h1 id="gameTitle" class="text-5xl font-bold text-gray-800 mb-4 bounce">🏆 Guess the Sport! 🏆</h1>
+     <p class="text-xl text-gray-600 mb-8">Interactive Quiz Game for Students</p>
+     <div class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-700 mb-4">Choose Number of Teams</h2>
+      <div class="flex justify-center gap-4 mb-6"><button onclick="setTeamCount(2)" class="team-count-btn bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-xl text-xl font-bold transition-all duration-200 transform hover:scale-105">2 Teams</button> <button onclick="setTeamCount(3)" class="team-count-btn bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-xl text-xl font-bold transition-all duration-200 transform hover:scale-105">3 Teams</button> <button onclick="setTeamCount(4)" class="team-count-btn bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl text-xl font-bold transition-all duration-200 transform hover:scale-105">4 Teams</button>
+      </div>
+     </div>
+     <div id="teamNames" class="hidden">
+      <h2 class="text-2xl font-bold text-gray-700 mb-4">Enter Team Names</h2>
+      <div id="teamInputs" class="grid gap-4 mb-6"></div><button onclick="startGame()" class="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-12 py-4 rounded-xl text-2xl font-bold transition-all duration-200 transform hover:scale-105">Start Game! 🚀</button>
+     </div>
+    </div>
+   </div><!-- Game Screen -->
+   <div id="gameScreen" class="hidden max-w-6xl mx-auto"><!-- Scoreboard -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800">Scoreboard</h2>
+      <div class="flex items-center gap-4">
+       <div id="timerDisplay" class="text-2xl font-bold text-orange-600">
+        ⏰ <span id="timeLeft">15</span>s
+       </div>
+       <div id="roundDisplay" class="text-xl font-semibold text-gray-600">
+        Round <span id="currentRound">1</span>
+       </div>
+      </div>
+     </div>
+     <div id="scoreboard" class="grid gap-4"></div>
+    </div><!-- Question Area -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 mb-6">
+     <div class="text-center mb-8">
+      <h3 class="text-3xl font-bold text-gray-800 mb-6">Question <span id="questionNumber">1</span></h3>
+      <div class="bg-blue-50 rounded-xl p-6 mb-6">
+       <p id="questionText" class="text-2xl text-gray-700 leading-relaxed"></p>
+      </div>
+     </div>
+     <div id="answerOptions" class="grid grid-cols-2 gap-4 mb-6"></div>
+     <div id="questionControls" class="text-center"><button id="nextQuestionBtn" onclick="nextQuestion()" class="hidden bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl text-xl font-bold transition-all duration-200">Next Question ➡️</button> <button id="nextRoundBtn" onclick="nextRound()" class="hidden bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 rounded-xl text-xl font-bold transition-all duration-200">Next Round 🎯</button> <button id="endGameBtn" onclick="endGame()" class="hidden bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-xl text-xl font-bold transition-all duration-200">View Final Results 🏆</button>
+     </div>
+    </div><!-- Current Team Display -->
+    <div id="teamSelection" class="bg-white rounded-2xl shadow-xl p-6">
+     <div id="selectedTeamDisplay" class="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl p-6 text-center">
+      <div class="text-3xl font-bold text-white mb-2">
+       🎯 NOW ANSWERING 🎯
+      </div>
+      <div id="selectedTeamName" class="text-4xl font-bold text-white drop-shadow-lg"></div>
+      <div class="text-lg text-white mt-2 opacity-90">
+       It's your turn!
+      </div>
+     </div>
+    </div>
+   </div><!-- Results Screen -->
+   <div id="resultsScreen" class="hidden max-w-4xl mx-auto text-center">
+    <div class="bg-white rounded-3xl shadow-2xl p-8">
+     <h1 class="text-5xl font-bold text-gray-800 mb-8 bounce">🏆 Final Results! 🏆</h1>
+     <div id="finalScoreboard" class="mb-8"></div><button onclick="resetGame()" class="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-12 py-4 rounded-xl text-2xl font-bold transition-all duration-200 transform hover:scale-105">Play Again! 🎮</button>
+    </div>
+   </div>
+  </div>
+  <script>
+        // Game configuration
+        const defaultConfig = {
+            game_title: "Guess the Sport!",
+            timer_duration: "15",
+            questions_per_round: "5"
+        };
+
+        // Sports vocabulary with B1 level definitions
+        const sportsData = [
+            {
+                sport: "Athletics",
+                definition: "This sport includes many different events like **fast running**, **long distance running**, **jumping high**, and **throwing objects**. It happens at the Olympics."
+            },
+            {
+                sport: "Baseball",
+                definition: "Players hit a small white ball with a wooden stick and run around four **corners** on the field. The person who throws the ball is very important."
+            },
+            {
+                sport: "Basketball",
+                definition: "Two teams try to throw a large orange ball through a high **circle** to get points. Players bounce the ball while they move around the court."
+            },
+            {
+                sport: "Climbing",
+                definition: "People go up very high places using special **safety equipment** and strong **thick strings**. They use their hands and feet to hold onto small pieces of rock."
+            },
+            {
+                sport: "Cycling",
+                definition: "Athletes ride on two-wheeled vehicles in races or for exercise. They wear **protective head covers** and can change **speed levels** to go faster or slower."
+            },
+            {
+                sport: "Football",
+                definition: "Players can only touch the round ball with their feet, except for one special player who can use hands. Games are divided into two **45-minute parts**."
+            },
+            {
+                sport: "Golf",
+                definition: "Players use different metal sticks to hit a very small white ball into **small holes** in the ground. The goal is to use the **fewest hits** possible."
+            },
+            {
+                sport: "Gymnastics",
+                definition: "Athletes do beautiful movements and **flips** on different equipment like **high thin beams** and **metal bars**. Judges give them points for their performance."
+            },
+            {
+                sport: "Ice Hockey",
+                definition: "Players wear special **ice shoes** and use long sticks to hit a flat black object into a goal. The game is played on **frozen water**."
+            },
+            {
+                sport: "Jogging",
+                definition: "This is **slow running** that people do to stay healthy and fit. It's faster than walking but slower than racing. People often do it in parks."
+            },
+            {
+                sport: "Rollerblading",
+                definition: "People wear special boots with **small round objects** in a line underneath. They move smoothly on flat surfaces like paths and **special smooth floors**."
+            },
+            {
+                sport: "Mountain Biking",
+                definition: "People ride two-wheeled vehicles on **difficult paths** in nature with rocks, hills, and obstacles. The vehicles have special parts to make the ride smoother."
+            },
+            {
+                sport: "Running",
+                definition: "People move very fast using their legs in competitions or for exercise. Races can be very **short and fast** or very **long distances**."
+            },
+            {
+                sport: "Skateboarding",
+                definition: "Athletes stand on a flat piece of wood with **four small round objects** underneath and do tricks. They often use **sloped surfaces** and rails."
+            },
+            {
+                sport: "Skiing",
+                definition: "People attach long flat objects to their feet and move down **white frozen water** on mountains. They use two sticks to help them balance and turn."
+            },
+            {
+                sport: "Surfing",
+                definition: "Athletes stand on a long flat object and ride on **moving water** that comes toward the beach. They need good balance and timing."
+            },
+            {
+                sport: "Swimming",
+                definition: "People move through water using different **arm and leg movements**. There are four main ways to move: on your front, on your back, and two other special styles."
+            },
+            {
+                sport: "Tennis",
+                definition: "Two players hit a small yellow ball over a **high barrier** using special tools with strings. They play on a **rectangular area** with lines."
+            },
+            {
+                sport: "Volleyball",
+                definition: "Two teams hit a large ball over a **high barrier** using only their hands. The ball cannot touch the ground on your side or the other team gets a point."
+            }
+        ];
+
+        // Game state
+        let gameState = {
+            teams: [],
+            currentRound: 1,
+            currentQuestion: 1,
+            questionsPerRound: 5,
+            totalRounds: 3,
+            usedQuestions: [],
+            currentQuestionData: null,
+            timer: null,
+            timeLeft: 15,
+            selectedTeam: null,
+            answered: false,
+            currentTeamIndex: 0
+        };
+
+        // Initialize SDK
+        async function initializeSDK() {
+            if (window.elementSdk) {
+                await window.elementSdk.init({
+                    defaultConfig,
+                    render: async (config) => {
+                        document.getElementById('gameTitle').textContent = `🏆 ${config.game_title || defaultConfig.game_title} 🏆`;
+                        gameState.timeLeft = parseInt(config.timer_duration || defaultConfig.timer_duration);
+                        gameState.questionsPerRound = parseInt(config.questions_per_round || defaultConfig.questions_per_round);
+                        
+                        if (document.getElementById('timeLeft')) {
+                            document.getElementById('timeLeft').textContent = gameState.timeLeft;
+                        }
+                    },
+                    mapToCapabilities: (config) => ({
+                        recolorables: [],
+                        borderables: [],
+                        fontEditable: undefined,
+                        fontSizeable: undefined
+                    }),
+                    mapToEditPanelValues: (config) => new Map([
+                        ["game_title", config.game_title || defaultConfig.game_title],
+                        ["timer_duration", config.timer_duration || defaultConfig.timer_duration],
+                        ["questions_per_round", config.questions_per_round || defaultConfig.questions_per_round]
+                    ])
+                });
+            }
+        }
+
+        function setTeamCount(count) {
+            // Update button styles
+            document.querySelectorAll('.team-count-btn').forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-yellow-400');
+            });
+            event.target.classList.add('ring-4', 'ring-yellow-400');
+            
+            // Show team name inputs
+            document.getElementById('teamNames').classList.remove('hidden');
+            
+            // Create team input fields
+            const teamInputs = document.getElementById('teamInputs');
+            teamInputs.innerHTML = '';
+            teamInputs.className = `grid grid-cols-${Math.min(count, 2)} gap-4 mb-6`;
+            
+            for (let i = 1; i <= count; i++) {
+                const colors = ['blue', 'green', 'orange', 'purple'];
+                const color = colors[i - 1];
+                
+                teamInputs.innerHTML += `
+                    <div class="bg-${color}-50 border-2 border-${color}-200 rounded-xl p-4">
+                        <label class="block text-${color}-700 font-bold mb-2">Team ${i} Name:</label>
+                        <input type="text" id="team${i}Name" placeholder="Enter team name..." 
+                               class="w-full px-4 py-2 border-2 border-${color}-300 rounded-lg focus:border-${color}-500 focus:outline-none text-lg">
+                    </div>
+                `;
+            }
+            
+            gameState.teams = Array(count).fill().map((_, i) => ({
+                id: i + 1,
+                name: '',
+                score: 0,
+                color: ['blue', 'green', 'orange', 'purple'][i]
+            }));
+        }
+
+        function startGame() {
+            // Get team names
+            gameState.teams.forEach((team, index) => {
+                const nameInput = document.getElementById(`team${index + 1}Name`);
+                team.name = nameInput.value.trim() || `Team ${index + 1}`;
+            });
+            
+            // Hide setup, show game
+            document.getElementById('teamSetup').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            // Initialize game
+            setupScoreboard();
+            setCurrentTeam();
+            loadQuestion();
+        }
+
+        function setupScoreboard() {
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.className = `grid grid-cols-${gameState.teams.length} gap-4`;
+            
+            scoreboard.innerHTML = gameState.teams.map(team => `
+                <div class="bg-${team.color}-100 border-2 border-${team.color}-300 rounded-xl p-4 text-center">
+                    <h3 class="font-bold text-${team.color}-800 text-lg mb-2">${team.name}</h3>
+                    <div class="text-3xl font-bold text-${team.color}-600" id="score-${team.id}">${team.score}</div>
+                </div>
+            `).join('');
+        }
+
+        function setCurrentTeam() {
+            const currentTeam = gameState.teams[gameState.currentTeamIndex];
+            gameState.selectedTeam = currentTeam.id;
+            
+            // Show current team prominently
+            const selectedTeamName = document.getElementById('selectedTeamName');
+            selectedTeamName.textContent = currentTeam.name;
+            selectedTeamName.className = `text-4xl font-bold text-white drop-shadow-lg`;
+            
+            // Add pulse animation
+            const selectedDisplay = document.getElementById('selectedTeamDisplay');
+            selectedDisplay.classList.add('pulse');
+            
+            // Remove pulse animation after it completes
+            setTimeout(() => {
+                selectedDisplay.classList.remove('pulse');
+            }, 300);
+        }
+
+        function nextTeam() {
+            gameState.currentTeamIndex = (gameState.currentTeamIndex + 1) % gameState.teams.length;
+        }
+
+        function loadQuestion() {
+            // Reset state
+            gameState.answered = false;
+            
+            // Update displays
+            document.getElementById('currentRound').textContent = gameState.currentRound;
+            document.getElementById('questionNumber').textContent = gameState.currentQuestion;
+            
+            // Set current team for this question
+            setCurrentTeam();
+            
+            // Get random question
+            let availableQuestions = sportsData.filter(q => !gameState.usedQuestions.includes(q.sport));
+            if (availableQuestions.length === 0) {
+                availableQuestions = sportsData;
+                gameState.usedQuestions = [];
+            }
+            
+            const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+            gameState.currentQuestionData = availableQuestions[randomIndex];
+            gameState.usedQuestions.push(gameState.currentQuestionData.sport);
+            
+            // Display question with bold formatting
+            const formattedDefinition = gameState.currentQuestionData.definition.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600 font-bold">$1</strong>');
+            document.getElementById('questionText').innerHTML = formattedDefinition;
+            
+            // Create answer options
+            createAnswerOptions();
+            
+            // Hide control buttons
+            document.getElementById('nextQuestionBtn').classList.add('hidden');
+            document.getElementById('nextRoundBtn').classList.add('hidden');
+            document.getElementById('endGameBtn').classList.add('hidden');
+            
+            // Start timer
+            startTimer();
+        }
+
+        function createAnswerOptions() {
+            const correctAnswer = gameState.currentQuestionData.sport;
+            const otherSports = sportsData.filter(s => s.sport !== correctAnswer);
+            const wrongAnswers = [];
+            
+            while (wrongAnswers.length < 3) {
+                const randomSport = otherSports[Math.floor(Math.random() * otherSports.length)];
+                if (!wrongAnswers.includes(randomSport.sport)) {
+                    wrongAnswers.push(randomSport.sport);
+                }
+            }
+            
+            const allOptions = [correctAnswer, ...wrongAnswers];
+            const shuffledOptions = allOptions.sort(() => Math.random() - 0.5);
+            
+            const answerOptions = document.getElementById('answerOptions');
+            const colors = ['blue', 'green', 'orange', 'red'];
+            const labels = ['A', 'B', 'C', 'D'];
+            
+            answerOptions.innerHTML = shuffledOptions.map((option, index) => `
+                <button onclick="selectAnswer('${option}')" 
+                        class="answer-btn bg-${colors[index]}-500 hover:bg-${colors[index]}-600 text-white p-6 rounded-xl text-xl font-bold transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">${labels[index]}</div>
+                    <div>${option}</div>
+                </button>
+            `).join('');
+        }
+
+        function selectAnswer(selectedSport) {
+            if (gameState.answered) {
+                return;
+            }
+            
+            gameState.answered = true;
+            clearInterval(gameState.timer);
+            
+            const isCorrect = selectedSport === gameState.currentQuestionData.sport;
+            const selectedTeam = gameState.teams.find(t => t.id === gameState.selectedTeam);
+            
+            // Update score
+            if (isCorrect) {
+                selectedTeam.score += 10;
+                document.getElementById(`score-${selectedTeam.id}`).textContent = selectedTeam.score;
+                showMessage(`Correct! ${selectedTeam.name} gets 10 points! 🎉`, "success");
+            } else {
+                showMessage(`Wrong! The correct answer was ${gameState.currentQuestionData.sport}. 😔`, "error");
+            }
+            
+            // Highlight correct answer
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                const btnText = btn.querySelector('div:last-child').textContent;
+                if (btnText === gameState.currentQuestionData.sport) {
+                    btn.classList.add('correct-flash');
+                } else if (btnText === selectedSport && !isCorrect) {
+                    btn.classList.add('wrong-flash');
+                }
+                btn.disabled = true;
+                btn.classList.add('opacity-75');
+            });
+            
+            // Show appropriate next button
+            if (gameState.currentQuestion < gameState.questionsPerRound) {
+                document.getElementById('nextQuestionBtn').classList.remove('hidden');
+            } else if (gameState.currentRound < gameState.totalRounds) {
+                document.getElementById('nextRoundBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('endGameBtn').classList.remove('hidden');
+            }
+        }
+
+        function startTimer() {
+            const config = window.elementSdk ? window.elementSdk.config : defaultConfig;
+            gameState.timeLeft = parseInt(config.timer_duration || defaultConfig.timer_duration);
+            document.getElementById('timeLeft').textContent = gameState.timeLeft;
+            
+            gameState.timer = setInterval(() => {
+                gameState.timeLeft--;
+                document.getElementById('timeLeft').textContent = gameState.timeLeft;
+                
+                if (gameState.timeLeft <= 5) {
+                    document.getElementById('timerDisplay').classList.add('timer-animation');
+                }
+                
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timer);
+                    if (!gameState.answered) {
+                        gameState.answered = true;
+                        showMessage(`Time's up! The correct answer was ${gameState.currentQuestionData.sport}. ⏰`, "warning");
+                        
+                        // Highlight correct answer
+                        document.querySelectorAll('.answer-btn').forEach(btn => {
+                            const btnText = btn.querySelector('div:last-child').textContent;
+                            if (btnText === gameState.currentQuestionData.sport) {
+                                btn.classList.add('correct-flash');
+                            }
+                            btn.disabled = true;
+                            btn.classList.add('opacity-75');
+                        });
+                        
+                        // Show appropriate next button
+                        if (gameState.currentQuestion < gameState.questionsPerRound) {
+                            document.getElementById('nextQuestionBtn').classList.remove('hidden');
+                        } else if (gameState.currentRound < gameState.totalRounds) {
+                            document.getElementById('nextRoundBtn').classList.remove('hidden');
+                        } else {
+                            document.getElementById('endGameBtn').classList.remove('hidden');
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        function nextQuestion() {
+            gameState.currentQuestion++;
+            nextTeam(); // Move to next team
+            document.getElementById('timerDisplay').classList.remove('timer-animation');
+            loadQuestion();
+        }
+
+        function nextRound() {
+            gameState.currentRound++;
+            gameState.currentQuestion = 1;
+            nextTeam(); // Move to next team
+            document.getElementById('timerDisplay').classList.remove('timer-animation');
+            loadQuestion();
+        }
+
+        function endGame() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+            
+            // Sort teams by score
+            const sortedTeams = [...gameState.teams].sort((a, b) => b.score - a.score);
+            
+            const finalScoreboard = document.getElementById('finalScoreboard');
+            finalScoreboard.innerHTML = sortedTeams.map((team, index) => {
+                const medals = ['🥇', '🥈', '🥉', '🏅'];
+                const medal = medals[index] || '🏅';
+                
+                return `
+                    <div class="bg-${team.color}-100 border-2 border-${team.color}-300 rounded-xl p-6 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <span class="text-4xl">${medal}</span>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-${team.color}-800">${team.name}</h3>
+                                    <p class="text-${team.color}-600">Position: ${index + 1}</p>
+                                </div>
+                            </div>
+                            <div class="text-4xl font-bold text-${team.color}-600">${team.score} pts</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function resetGame() {
+            // Reset game state
+            gameState = {
+                teams: [],
+                currentRound: 1,
+                currentQuestion: 1,
+                questionsPerRound: 5,
+                totalRounds: 3,
+                usedQuestions: [],
+                currentQuestionData: null,
+                timer: null,
+                timeLeft: 15,
+                selectedTeam: null,
+                answered: false,
+                currentTeamIndex: 0
+            };
+            
+            // Show setup screen
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('teamSetup').classList.remove('hidden');
+            document.getElementById('teamNames').classList.add('hidden');
+            
+            // Reset team count buttons
+            document.querySelectorAll('.team-count-btn').forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-yellow-400');
+            });
+        }
+
+        function showMessage(message, type) {
+            // Create toast message
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 p-4 rounded-xl text-white font-bold z-50 transform transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-orange-500'
+            }`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => toast.classList.add('translate-x-0'), 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Initialize the game
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSDK();
+        });
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'991f08a047a28514',t:'MTc2MTAzMTY1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
