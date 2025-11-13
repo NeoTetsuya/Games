@@ -1,12 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
+ <head>
+  <meta charset="UTF-8">
   <title>Guess the Job — Classroom Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- TailwindCSS CDN -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- TailwindCSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&amp;display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light;
@@ -37,175 +36,137 @@
     /* Prevent text selection on large buttons for easier classroom tapping */
     .no-select { user-select: none; -webkit-user-select: none; }
   </style>
-</head>
-<body class="min-h-screen bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-500 text-slate-800">
-  <!-- Sticky Scoreboard -->
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="min-h-screen bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-500 text-slate-800"><!-- Sticky Scoreboard -->
   <header id="scoreboard" class="sticky top-0 z-30 backdrop-blur-md bg-white/70 border-b border-white/40">
-    <div class="max-w-6xl mx-auto px-4 py-3">
-      <div class="flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <span class="text-white bg-slate-900/90 px-3 py-1 rounded-full text-sm font-bold tracking-wide">Guess the Job</span>
-          <div id="gameMeta" class="hidden sm:flex items-center gap-2 text-slate-700 text-sm font-semibold">
-            <span id="metaLevel" class="px-2 py-0.5 rounded bg-slate-800 text-white"></span>
-            <span class="opacity-60">•</span>
-            <span id="metaProgress"></span>
-          </div>
-        </div>
-        <div id="teamScores" class="flex flex-wrap gap-2 justify-end"></div>
+   <div class="max-w-6xl mx-auto px-4 py-3">
+    <div class="flex items-center justify-between gap-4">
+     <div class="flex items-center gap-3"><span class="text-white bg-slate-900/90 px-3 py-1 rounded-full text-sm font-bold tracking-wide">Guess the Job</span>
+      <div id="gameMeta" class="hidden sm:flex items-center gap-2 text-slate-700 text-sm font-semibold"><span id="metaLevel" class="px-2 py-0.5 rounded bg-slate-800 text-white"></span> <span class="opacity-60">•</span> <span id="metaProgress"></span>
       </div>
+     </div>
+     <div id="teamScores" class="flex flex-wrap gap-2 justify-end"></div>
     </div>
-  </header>
-
-  <!-- Main Container -->
-  <main class="max-w-6xl mx-auto px-4 py-6 md:py-10">
-    <!-- Start Screen -->
-    <section id="startScreen" class="bg-white/90 rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
-      <div class="grid md:grid-cols-2">
-        <div class="p-6 md:p-8 bg-gradient-to-br from-white via-white to-white/60">
-          <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">“Guess the Job”</h1>
-          <p class="mt-2 text-slate-600">Pick a level, add up to 5 teams, and start revealing hints. Big buttons, bold colors, and a live scoreboard make it perfect for the classroom.</p>
-
-          <div class="mt-6">
-            <h2 class="text-lg font-bold text-slate-900 mb-2">1) Choose Level</h2>
-            <div id="levelButtons" class="grid grid-cols-3 gap-2">
-              <button data-level="easy" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.99] transition">Easy</button>
-              <button data-level="medium" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-amber-500 hover:bg-amber-600 active:scale-[.99] transition">Medium</button>
-              <button data-level="hard" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-rose-500 hover:bg-rose-600 active:scale-[.99] transition">Hard</button>
-            </div>
-            <p id="levelHelp" class="mt-2 text-sm text-slate-500">Selected: <span class="font-semibold" id="selectedLevelLabel">Easy</span></p>
-          </div>
-
-          <div class="mt-6">
-            <h2 class="text-lg font-bold text-slate-900 mb-2">2) Add Team Names</h2>
-            <form id="teamForm" class="space-y-3" onsubmit="event.preventDefault();">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input type="text" placeholder="Team 1" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
-                <input type="text" placeholder="Team 2" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
-                <input type="text" placeholder="Team 3 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
-                <input type="text" placeholder="Team 4 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
-                <input type="text" placeholder="Team 5 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" />
-              </div>
-              <p class="text-sm text-slate-500">Leave blank to skip. You can have 1–5 teams.</p>
-            </form>
-          </div>
-
-          <div class="mt-6 flex items-center gap-3">
-            <button id="startBtn" class="focus-ring no-select rounded-2xl px-6 py-3 font-extrabold text-white bg-slate-900 hover:bg-slate-800 active:scale-[.99] transition">Start Game</button>
-            <span id="startError" class="text-sm text-rose-600 font-semibold"></span>
-          </div>
-        </div>
-        <div class="p-6 md:p-8 bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-rose-500 text-white">
-          <h3 class="text-xl font-extrabold">How it works</h3>
-          <ul class="mt-3 space-y-2 text-white/90">
-            <li>• Reveal up to 5 hints one by one.</li>
-            <li>• Teams take turns guessing the job.</li>
-            <li>• Each team gets 2 guesses per job.</li>
-            <li>• Correct guess: +1 point.</li>
-            <li>• If no one gets it, the answer is revealed after the last hint.</li>
-            <li>• The highest score at the end wins!</li>
-          </ul>
-          <div class="mt-6 rounded-xl bg-white/10 p-4">
-            <p class="font-bold">Tip</p>
-            <p class="text-white/90">Use on a projector. Buttons are large and easy to tap.</p>
-          </div>
-        </div>
+   </div>
+  </header><!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-4 py-6 md:py-10"><!-- Start Screen -->
+   <section id="startScreen" class="bg-white/90 rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
+    <div class="grid md:grid-cols-2">
+     <div class="p-6 md:p-8 bg-gradient-to-br from-white via-white to-white/60">
+      <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">“Guess the Job”</h1>
+      <p class="mt-2 text-slate-600">Pick a level, add up to 5 teams, and start revealing hints. Big buttons, bold colors, and a live scoreboard make it perfect for the classroom.</p>
+      <div class="mt-6">
+       <h2 class="text-lg font-bold text-slate-900 mb-2">1) Choose Level</h2>
+       <div id="levelButtons" class="grid grid-cols-2 gap-2"><button data-level="easy" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.99] transition">Easy</button> <button data-level="medium" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-amber-500 hover:bg-amber-600 active:scale-[.99] transition">Medium</button> <button data-level="hard" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-rose-500 hover:bg-rose-600 active:scale-[.99] transition">Hard</button> <button data-level="expert" class="level-btn ripple tilt focus-ring no-select w-full rounded-xl px-4 py-3 font-extrabold text-white bg-purple-600 hover:bg-purple-700 active:scale-[.99] transition">Expert</button>
+       </div>
+       <p id="levelHelp" class="mt-2 text-sm text-slate-500">Selected: <span class="font-semibold" id="selectedLevelLabel">Easy</span></p>
       </div>
-    </section>
-
-    <!-- Game Screen -->
-    <section id="gameScreen" class="hidden space-y-6">
-      <!-- Stage Card -->
-      <div class="bg-white/95 rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
-        <div class="p-5 md:p-7">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 id="roundTitle" class="text-2xl md:text-3xl font-extrabold text-slate-900">Job 1</h2>
-              <p id="roundSubtitle" class="text-slate-500">Reveal hints and let teams guess!</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <button id="showHintBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-indigo-600 text-white font-extrabold hover:bg-indigo-700 active:scale-[.99] transition text-lg">Show Next Hint</button>
-              <button id="revealAnswerBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-amber-500 text-white font-extrabold hover:bg-amber-600 active:scale-[.99] transition text-lg hidden">Reveal Answer</button>
-              <button id="nextJobBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 active:scale-[.99] transition text-lg hidden">Next Job</button>
-            </div>
-          </div>
-          <div class="mt-4 h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div id="hintProgress" class="h-full bg-indigo-500" style="width:0%"></div>
-          </div>
-
-          <!-- Hints List -->
-          <ol id="hintList" class="mt-5 md:mt-6 grid gap-2 md:gap-3"></ol>
-
-          <!-- Status/Feedback -->
-          <div id="statusBox" class="mt-4 hidden rounded-xl p-4"></div>
-
-          <!-- Answer Visual Card -->
-          <div id="answerCard" class="mt-4 hidden">
-            <div class="flex items-start gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div class="shrink-0">
-                <div class="w-28 h-28 rounded-xl bg-white border border-slate-200 shadow-inner overflow-hidden flex items-center justify-center relative">
-                  <img id="answerPhoto" alt="Job photo" class="absolute inset-0 w-full h-full object-cover hidden" onerror="this.src=''; this.alt='Image failed to load'; this.style.display='none';">
-                  <div id="answerEmoji" class="text-6xl relative z-10">🎯</div>
-                </div>
-                <p class="mt-2 text-center text-xs text-slate-500">Job photo</p>
-              </div>
-              <div class="min-w-0 flex-1">
-                <div id="answerTitle" class="text-xl font-extrabold text-slate-900">Answer</div>
-                <div id="answerNote" class="text-slate-600 text-sm">Revealed after guessing or showing all hints.</div>
-                <div id="multiAnswers" class="mt-2 hidden">
-                  <p class="text-slate-700 text-sm font-bold">Also accepted:</p>
-                  <ul id="altAnswersList" class="mt-1 list-disc list-inside text-slate-700 text-sm"></ul>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div class="mt-6">
+       <h2 class="text-lg font-bold text-slate-900 mb-2">2) Add Team Names</h2>
+       <form id="teamForm" class="space-y-3" onsubmit="event.preventDefault();">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><input type="text" placeholder="Team 1" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring"> <input type="text" placeholder="Team 2" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring"> <input type="text" placeholder="Team 3 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring"> <input type="text" placeholder="Team 4 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring"> <input type="text" placeholder="Team 5 (optional)" class="team-input w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring">
         </div>
+        <p class="text-sm text-slate-500">Leave blank to skip. You can have 1–5 teams.</p>
+       </form>
       </div>
-
-      <!-- Team Guess Area -->
-      <div class="bg-white/95 rounded-2xl shadow-xl ring-1 ring-black/5 p-5 md:p-7">
-        <h3 class="text-xl font-extrabold text-slate-900">Teams — Tap to Guess</h3>
-        <p class="text-slate-500 text-sm">Each team has 2 guesses per job. The badge shows guesses left.</p>
-        <div id="teamButtons" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 tilt"></div>
+      <div class="mt-6 flex items-center gap-3"><button id="startBtn" class="focus-ring no-select rounded-2xl px-6 py-3 font-extrabold text-white bg-slate-900 hover:bg-slate-800 active:scale-[.99] transition">Start Game</button> <span id="startError" class="text-sm text-rose-600 font-semibold"></span>
       </div>
-    </section>
-  </main>
-
-  <!-- Guess Modal -->
+     </div>
+     <div class="p-6 md:p-8 bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-rose-500 text-white">
+      <h3 class="text-xl font-extrabold">How it works</h3>
+      <ul class="mt-3 space-y-2 text-white/90">
+       <li>• Reveal up to 5 hints one by one.</li>
+       <li>• Teams take turns guessing the job.</li>
+       <li>• Each team gets 2 guesses per job.</li>
+       <li>• Correct guess: +1 point.</li>
+       <li>• If no one gets it, the answer is revealed after the last hint.</li>
+       <li>• The highest score at the end wins!</li>
+      </ul>
+      <div class="mt-6 rounded-xl bg-white/10 p-4">
+       <p class="font-bold">Tip</p>
+       <p class="text-white/90">Use on a projector. Buttons are large and easy to tap.</p>
+      </div>
+     </div>
+    </div>
+   </section><!-- Game Screen -->
+   <section id="gameScreen" class="hidden space-y-6"><!-- Stage Card -->
+    <div class="bg-white/95 rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
+     <div class="p-5 md:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+       <div>
+        <h2 id="roundTitle" class="text-2xl md:text-3xl font-extrabold text-slate-900">Job 1</h2>
+        <p id="roundSubtitle" class="text-slate-500">Reveal hints and let teams guess!</p>
+       </div>
+       <div class="flex items-center gap-2"><button id="showHintBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-indigo-600 text-white font-extrabold hover:bg-indigo-700 active:scale-[.99] transition text-lg">Show Next Hint</button> <button id="revealAnswerBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-amber-500 text-white font-extrabold hover:bg-amber-600 active:scale-[.99] transition text-lg hidden">Reveal Answer</button> <button id="nextJobBtn" class="ripple tilt focus-ring no-select rounded-xl px-5 py-3 bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 active:scale-[.99] transition text-lg hidden">Next Job</button>
+       </div>
+      </div>
+      <div class="mt-4 h-2 bg-slate-100 rounded-full overflow-hidden">
+       <div id="hintProgress" class="h-full bg-indigo-500" style="width:0%"></div>
+      </div><!-- Hints List -->
+      <ol id="hintList" class="mt-5 md:mt-6 grid gap-2 md:gap-3"></ol><!-- Status/Feedback -->
+      <div id="statusBox" class="mt-4 hidden rounded-xl p-4"></div><!-- Answer Visual Card -->
+      <div id="answerCard" class="mt-4 hidden">
+       <div class="flex items-start gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="shrink-0">
+         <div class="w-28 h-28 rounded-xl bg-white border border-slate-200 shadow-inner overflow-hidden flex items-center justify-center relative"><img id="answerPhoto" alt="Job photo" class="absolute inset-0 w-full h-full object-cover hidden" onerror="this.src=''; this.alt='Image failed to load'; this.style.display='none';">
+          <div id="answerEmoji" class="text-6xl relative z-10">
+           🎯
+          </div>
+         </div>
+         <p class="mt-2 text-center text-xs text-slate-500">Job photo</p>
+        </div>
+        <div class="min-w-0 flex-1">
+         <div id="answerTitle" class="text-xl font-extrabold text-slate-900">
+          Answer
+         </div>
+         <div id="answerNote" class="text-slate-600 text-sm">
+          Revealed after guessing or showing all hints.
+         </div>
+         <div id="multiAnswers" class="mt-2 hidden">
+          <p class="text-slate-700 text-sm font-bold">Also accepted:</p>
+          <ul id="altAnswersList" class="mt-1 list-disc list-inside text-slate-700 text-sm"></ul>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- Team Guess Area -->
+    <div class="bg-white/95 rounded-2xl shadow-xl ring-1 ring-black/5 p-5 md:p-7">
+     <h3 class="text-xl font-extrabold text-slate-900">Teams — Tap to Guess</h3>
+     <p class="text-slate-500 text-sm">Each team has 2 guesses per job. The badge shows guesses left.</p>
+     <div id="teamButtons" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 tilt"></div>
+    </div>
+   </section>
+  </main><!-- Guess Modal -->
   <div id="guessModal" class="hidden fixed inset-0 z-40 items-center justify-center">
-    <div class="absolute inset-0 bg-slate-900/60"></div>
-    <div class="relative z-10 w-[92vw] max-w-xl bg-white rounded-2xl shadow-2xl p-6">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h4 id="guessModalTitle" class="text-2xl font-extrabold text-slate-900">Your Guess</h4>
-          <p id="guessModalTeam" class="text-slate-500">Team</p>
-        </div>
-        <button id="guessClose" class="focus-ring rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-label="Close">✕</button>
-      </div>
-      <form id="guessForm" class="mt-4" autocomplete="off">
-        <label class="block text-sm font-bold text-slate-700 mb-2">Type the job name</label>
-        <input id="guessInput" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" placeholder="e.g., Teacher" required />
-        <div class="mt-4 flex items-center justify-end gap-2">
-          <button type="button" id="guessCancel" class="focus-ring rounded-xl px-4 py-2 bg-slate-100 text-slate-800 font-bold hover:bg-slate-200">Cancel</button>
-          <button type="submit" class="focus-ring rounded-xl px-5 py-2.5 bg-indigo-600 text-white font-extrabold hover:bg-indigo-700">Submit Guess</button>
-        </div>
-      </form>
-      <p id="guessError" class="mt-2 text-sm font-semibold text-rose-600"></p>
+   <div class="absolute inset-0 bg-slate-900/60"></div>
+   <div class="relative z-10 w-[92vw] max-w-xl bg-white rounded-2xl shadow-2xl p-6">
+    <div class="flex items-start justify-between gap-4">
+     <div>
+      <h4 id="guessModalTitle" class="text-2xl font-extrabold text-slate-900">Your Guess</h4>
+      <p id="guessModalTeam" class="text-slate-500">Team</p>
+     </div><button id="guessClose" class="focus-ring rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-label="Close">✕</button>
     </div>
-  </div>
-
-  <!-- End Modal -->
+    <form id="guessForm" class="mt-4" autocomplete="off"><label class="block text-sm font-bold text-slate-700 mb-2">Type the job name</label> <input id="guessInput" type="text" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus-ring" placeholder="e.g., Teacher" required>
+     <div class="mt-4 flex items-center justify-end gap-2"><button type="button" id="guessCancel" class="focus-ring rounded-xl px-4 py-2 bg-slate-100 text-slate-800 font-bold hover:bg-slate-200">Cancel</button> <button type="submit" class="focus-ring rounded-xl px-5 py-2.5 bg-indigo-600 text-white font-extrabold hover:bg-indigo-700">Submit Guess</button>
+     </div>
+    </form>
+    <p id="guessError" class="mt-2 text-sm font-semibold text-rose-600"></p>
+   </div>
+  </div><!-- End Modal -->
   <div id="endModal" class="hidden fixed inset-0 z-40 items-center justify-center">
-    <div class="absolute inset-0 bg-slate-900/60"></div>
-    <div class="relative z-10 w-[92vw] max-w-2xl bg-white rounded-2xl shadow-2xl p-6">
-      <h4 class="text-3xl font-extrabold text-slate-900">Game Over</h4>
-      <p id="endSummary" class="mt-2 text-slate-600"></p>
-      <div id="endWinners" class="mt-4 grid sm:grid-cols-2 gap-3"></div>
-      <div class="mt-6 flex items-center justify-end gap-2">
-        <button id="restartBtn" class="focus-ring rounded-xl px-5 py-2.5 bg-slate-900 text-white font-extrabold hover:bg-slate-800">Play Again</button>
-      </div>
+   <div class="absolute inset-0 bg-slate-900/60"></div>
+   <div class="relative z-10 w-[92vw] max-w-2xl bg-white rounded-2xl shadow-2xl p-6">
+    <h4 class="text-3xl font-extrabold text-slate-900">Game Over</h4>
+    <p id="endSummary" class="mt-2 text-slate-600"></p>
+    <div id="endWinners" class="mt-4 grid sm:grid-cols-2 gap-3"></div>
+    <div class="mt-6 flex items-center justify-end gap-2"><button id="restartBtn" class="focus-ring rounded-xl px-5 py-2.5 bg-slate-900 text-white font-extrabold hover:bg-slate-800">Play Again</button>
     </div>
+   </div>
   </div>
-
   <script>
     // -------------------------
     // Sound placeholders (muted visual cues only due to platform limits)
@@ -443,6 +404,113 @@
         ]}
       ],
       hard: [
+        { answers: ["radiologist"], hints: [
+          "I look at images inside the human body.",
+          "I use X-rays, MRIs, and CT scans.",
+          "I help doctors diagnose diseases.",
+          "I spot broken bones and tumors.",
+          "I read medical images all day."
+        ]},
+        { answers: ["physical therapist", "physiotherapist"], hints: [
+          "I help people recover from injuries.",
+          "I design exercise programs.",
+          "I work with muscles and joints.",
+          "I help patients regain movement.",
+          "I use stretches and strengthening exercises."
+        ]},
+        { answers: ["air traffic controller"], hints: [
+          "I guide planes safely through the sky.",
+          "I work in a control tower.",
+          "I use radar and radio communication.",
+          "I coordinate takeoffs and landings.",
+          "I prevent aircraft collisions."
+        ]},
+        { answers: ["marine biologist"], hints: [
+          "I study life in oceans and seas.",
+          "I might scuba dive for research.",
+          "I observe fish, coral, and sea creatures.",
+          "I work on boats or underwater.",
+          "I help protect marine ecosystems."
+        ]},
+        { answers: ["meteorologist", "weather forecaster"], hints: [
+          "I predict what the weather will be.",
+          "I study atmospheric conditions.",
+          "I use satellites and weather stations.",
+          "I warn people about storms.",
+          "I appear on TV or radio with forecasts."
+        ]},
+        { answers: ["optometrist"], hints: [
+          "I check people's vision and eye health.",
+          "I prescribe glasses and contact lenses.",
+          "I use special equipment to examine eyes.",
+          "I help people see more clearly.",
+          "I test for eye diseases."
+        ]},
+        { answers: ["speech therapist", "speech pathologist"], hints: [
+          "I help people with communication problems.",
+          "I work with speech and language disorders.",
+          "I help children learn to talk properly.",
+          "I assist people who stutter or have accents.",
+          "I teach people to swallow safely after injuries."
+        ]},
+        { answers: ["geologist"], hints: [
+          "I study rocks, minerals, and Earth's structure.",
+          "I might work in the field collecting samples.",
+          "I analyze soil and rock formations.",
+          "I help find oil, gas, or precious metals.",
+          "I study earthquakes and volcanoes."
+        ]},
+        { answers: ["nutritionist", "dietitian"], hints: [
+          "I help people eat healthier foods.",
+          "I create meal plans and diets.",
+          "I know about vitamins and nutrients.",
+          "I work with people who have food allergies.",
+          "I teach about proper nutrition."
+        ]},
+        { answers: ["social worker"], hints: [
+          "I help people solve personal problems.",
+          "I work with families and children.",
+          "I connect people to community resources.",
+          "I might work in hospitals or schools.",
+          "I advocate for people who need support."
+        ]},
+        { answers: ["paralegal"], hints: [
+          "I help lawyers prepare legal cases.",
+          "I research laws and legal precedents.",
+          "I organize documents and evidence.",
+          "I interview witnesses and clients.",
+          "I work in law firms or courts."
+        ]},
+        { answers: ["dental hygienist"], hints: [
+          "I clean people's teeth professionally.",
+          "I work alongside dentists.",
+          "I take X-rays of teeth and gums.",
+          "I teach people about oral health.",
+          "I use special tools to remove plaque."
+        ]},
+        { answers: ["occupational therapist"], hints: [
+          "I help people do daily activities.",
+          "I work with people who have disabilities.",
+          "I adapt tools and environments.",
+          "I help people return to work after injuries.",
+          "I teach new ways to accomplish tasks."
+        ]},
+        { answers: ["translator", "interpreter"], hints: [
+          "I convert languages for communication.",
+          "I work with spoken or written words.",
+          "I help people who speak different languages.",
+          "I might work at international meetings.",
+          "I need to be fluent in multiple languages."
+        ]},
+        { answers: ["real estate agent", "realtor"], hints: [
+          "I help people buy and sell homes.",
+          "I show properties to potential buyers.",
+          "I know about neighborhoods and prices.",
+          "I negotiate deals between buyers and sellers.",
+          "I help with paperwork for property sales."
+        ]}
+      ],
+      expert: [
         { answers: ["epidemiologist"], hints: [
           "I study patterns of health and disease.",
           "I analyze data to track outbreaks.",
@@ -1222,5 +1290,5 @@
       });
     });
   </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9820467523f8dd57',t:'MTc1ODM2MDMyMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99dbe3c1176e7be7',t:'MTc2MzAxMTk1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
