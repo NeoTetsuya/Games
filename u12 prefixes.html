@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prefix Dominoes: im-, in-, un-</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: radial-gradient(circle at center, #2d6a4f 0%, #1b4332 100%);
+            user-select: none;
+            overflow: hidden; 
+        }
+
+        /* --- Animations --- */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        @keyframes floatUpFade {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+        }
+
+        @keyframes bounce-slight {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -5px); }
+        }
+
+        .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        .animate-bounce-slight { animation: bounce-slight 2s infinite ease-in-out; }
+
+        /* --- UI Highlights --- */
+        .area-active {
+            opacity: 1;
+            border-top: 4px solid #facc15; /* Yellow Highlight Border */
+            background-color: rgba(17, 24, 39, 0.95);
+            box-shadow: 0 -10px 30px rgba(250, 204, 21, 0.15);
+        }
+
+        .area-inactive {
+            opacity: 0.6;
+            filter: grayscale(0.8);
+            border-top: 1px solid #374151;
+            pointer-events: none;
+            transform: scale(0.98);
+        }
+
+        /* --- Game Elements --- */
+        .domino {
+            width: 100px;
+            height: 54px;
+            background: #fdfbf7;
+            border-radius: 8px;
+            box-shadow: 0 4px 0 #bbb, 0 5px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,1);
+            display: flex;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s, margin 0.2s;
+            flex-shrink: 0;
+            overflow: hidden;
+            border: 1px solid #d1d5db;
+        }
+
+        .domino:active { transform: translateY(4px); box-shadow: 0 0 0 #bbb; }
+        .domino:hover { transform: translateY(-2px); }
+        .domino.selected {
+            border: 3px solid #facc15;
+            transform: translateY(-8px);
+            box-shadow: 0 12px 0 #d97706, 0 15px 20px rgba(0,0,0,0.4);
+            z-index: 10;
+        }
+
+        .domino-half {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #333;
+            font-size: 0.95rem;
+            text-align: center;
+            padding: 2px;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+        }
+
+        .domino-divider {
+            width: 2px;
+            background-color: #e5e7eb;
+            height: 70%;
+            align-self: center;
+            border-radius: 2px;
+            box-shadow: inset 1px 0 2px rgba(0,0,0,0.1);
+        }
+
+        .floating-word {
+            position: absolute; font-size: 2rem; font-weight: 800; color: #facc15;
+            text-shadow: 2px 2px 0 #000; pointer-events: none; z-index: 50;
+            animation: floatUpFade 1.5s forwards; white-space: nowrap;
+        }
+
+        .drop-zone {
+            width: 90px; height: 60px; border: 3px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            color: rgba(255, 255, 255, 0.5); margin: 0 12px; flex-shrink: 0;
+            transition: all 0.3s; opacity: 0; transform: scale(0.9); pointer-events: none;
+            font-size: 0.8rem; font-weight: 600;
+        }
+
+        .drop-zone.active {
+            opacity: 1; transform: scale(1); background-color: rgba(255, 255, 255, 0.15);
+            border-color: #fbbf24; color: #fbbf24; cursor: pointer; pointer-events: auto;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); animation: pulse 1.5s infinite;
+        }
+
+        ::-webkit-scrollbar { height: 12px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb { background: #4ade80; border-radius: 6px; border: 2px solid rgba(0,0,0,0.1); }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col text-white">
+
+    <div id="particles" class="fixed inset-0 pointer-events-none z-50"></div>
+
+    <!-- Header -->
+    <header class="bg-gray-900/80 backdrop-blur-md p-3 shadow-lg z-20 flex justify-between items-center border-b border-gray-700">
+        <div class="flex items-center gap-3">
+            <div class="bg-yellow-500 p-2 rounded-lg shadow-lg">
+                <span class="text-xl">🧩</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-wide drop-shadow-md">Prefix Dominoes</h1>
+                <p class="text-xs text-yellow-300 font-mono tracking-wider">im- | in- | un-</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="showSetup()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-500/50 transition transform hover:-translate-y-0.5">👥 Team Maker</button>
+            <button onclick="showRules()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition">📜 Rules</button>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="flex-grow flex flex-col relative overflow-hidden" id="game-main">
+        
+        <!-- Top Player Area -->
+        <div class="h-1/4 flex items-center justify-center bg-black/20 relative transition-all duration-500 border-b border-white/10" id="top-area">
+            <div class="absolute top-3 left-4 flex items-center gap-2 opacity-80">
+                <div class="w-8 h-8 rounded-full bg-green-700 border border-green-400 flex items-center justify-center shadow">🤖</div>
+                <div id="top-label" class="text-xs font-bold text-green-300 tracking-widest uppercase">OPPONENT</div>
+            </div>
+
+            <div id="top-hand" class="flex gap-2 overflow-hidden px-4 py-2">
+                <!-- Top tiles -->
+            </div>
+            <div id="game-message" class="absolute bottom-2 bg-black/60 px-4 py-1 rounded-full text-yellow-300 text-sm font-bold opacity-0 transition-all duration-300 transform scale-90 backdrop-blur-sm border border-yellow-500/30">Thinking...</div>
+        </div>
+
+        <!-- Board Area -->
+        <div class="h-2/4 bg-[#368f6e]/10 shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] relative flex items-center overflow-x-auto overflow-y-hidden" id="board-container">
+            <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;"></div>
+
+            <div id="board-content" class="flex items-center px-20 min-w-full justify-center py-8">
+                <div id="drop-left" class="drop-zone" onclick="placeTile('left')">
+                    <span class="text-2xl block mb-1">👈</span> Place
+                </div>
+                
+                <div id="chain" class="flex items-center gap-1 mx-2 transition-all duration-300">
+                    <!-- Tiles go here -->
+                </div>
+
+                <div id="drop-right" class="drop-zone" onclick="placeTile('right')">
+                    <span class="text-2xl block mb-1">👉</span> Place
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Player Area -->
+        <div class="h-1/4 flex flex-col items-center justify-center relative p-4 transition-all duration-500 z-10" id="bottom-area">
+            
+            <!-- BIG TURN BANNER -->
+            <div id="turn-banner" class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-gray-900 font-black px-8 py-2 rounded-full shadow-2xl border-4 border-gray-900 z-30 uppercase tracking-widest text-lg animate-bounce-slight whitespace-nowrap">
+                Player 1's Turn
+            </div>
+
+            <div class="w-full max-w-6xl flex justify-between items-center mb-3 px-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-700 to-blue-500 border-2 border-blue-300 shadow-lg flex items-center justify-center text-lg z-20 relative">
+                        👤
+                    </div>
+                    <div>
+                        <div id="bottom-label" class="text-lg font-bold text-blue-100 tracking-wide uppercase drop-shadow-md">YOUR HAND</div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button id="draw-btn" onclick="drawTile()" class="group relative bg-indigo-600 hover:bg-indigo-500 text-white pl-4 pr-10 py-2 rounded-lg text-sm font-bold shadow-lg transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Draw Tile
+                        <span id="deck-count" class="absolute right-1 top-1 bottom-1 w-8 bg-black/20 rounded flex items-center justify-center text-xs font-mono">0</span>
+                    </button>
+                    <button id="pass-btn" onclick="passTurn()" class="hidden bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg transition active:scale-95 border border-gray-500">
+                        Pass Turn
+                    </button>
+                </div>
+            </div>
+            
+            <div id="player-hand" class="flex gap-3 overflow-x-auto w-full justify-center pb-4 px-4 pt-4 min-h-[90px]">
+                <!-- Player tiles go here -->
+            </div>
+            
+            <div id="feedback" class="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-full font-bold shadow-xl opacity-0 transition-all duration-300 scale-90 border-2 border-white z-40">
+                Status Message
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Setup / Team Maker Modal -->
+    <div id="setup-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center backdrop-blur-md animate-pop">
+        <div class="bg-white text-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl border-4 border-indigo-100">
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-2">🏫</div>
+                <h2 class="text-3xl font-bold text-indigo-800">Classroom Setup</h2>
+                <p class="text-sm text-gray-500">Configure the game for your students</p>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Game Mode</label>
+                    <div class="flex bg-gray-100 rounded-xl p-1.5 shadow-inner">
+                        <button onclick="setMode('pvc')" id="btn-pvc" class="flex-1 py-3 rounded-lg text-sm font-bold transition bg-indigo-600 text-white shadow-md">1 Player (vs CPU)</button>
+                        <button onclick="setMode('pvp')" id="btn-pvp" class="flex-1 py-3 rounded-lg text-sm font-bold transition text-gray-600 hover:bg-white">2 Players</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Player 1 Name</label>
+                    <input type="text" id="p1-name" value="Student 1" class="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition font-bold text-gray-700">
+                </div>
+
+                <div id="p2-input-group" class="opacity-50 pointer-events-none transition-all duration-300">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Player 2 Name</label>
+                    <input type="text" id="p2-name" value="Student 2" class="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition font-bold text-gray-700">
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <button onclick="startGame()" class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:-translate-y-1 text-lg">🚀 Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interstitial Screen -->
+    <div id="interstitial-modal" class="fixed inset-0 bg-indigo-900 z-50 hidden flex flex-col items-center justify-center text-center p-4">
+        <div class="bg-white/10 p-12 rounded-3xl backdrop-blur-lg border border-white/20 shadow-2xl animate-pop">
+            <div class="text-8xl mb-6 animate-bounce">🙈</div>
+            <h2 class="text-4xl font-bold text-white mb-4">Pass the Device</h2>
+            <p class="text-indigo-200 mb-10 text-xl">Please hand the device to <br><span id="next-player-name" class="text-yellow-400 font-bold text-2xl">Player Name</span></p>
+            <button onclick="dismissInterstitial()" class="bg-yellow-500 hover:bg-yellow-400 text-indigo-900 font-bold py-4 px-12 rounded-full shadow-[0_10px_20px_rgba(234,179,8,0.4)] text-xl transition transform hover:scale-105">
+                I am <span id="ready-player-name">Player</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white text-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl transform transition-all scale-100 border-4 border-yellow-400 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-4 bg-yellow-400"></div>
+            <h2 id="modal-title" class="text-3xl font-extrabold mb-4 text-gray-800 mt-4">Message</h2>
+            <p id="modal-content" class="mb-8 text-gray-600 text-lg">Content.</p>
+            <div class="flex gap-3">
+                <button onclick="showSetup()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl shadow-md transition">Setup New</button>
+                <button onclick="resetGameLogic()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md transition">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PREFIXES = ['im', 'in', 'un'];
+        const DICTIONARY = {
+            'im': ['possible', 'polite', 'patient', 'mortal', 'perfect', 'balance', 'mature', 'probable', 'moral', 'movable'],
+            'in': ['correct', 'visible', 'active', 'complete', 'direct', 'formal', 'valid', 'capable', 'dependent', 'decent'],
+            'un': ['happy', 'able', 'real', 'usual', 'known', 'lucky', 'safe', 'fair', 'kind', 'true']
+        };
+        const ALL_ROOTS = [];
+        Object.values(DICTIONARY).forEach(arr => ALL_ROOTS.push(...arr));
+
+        let players = [
+            { name: "Player 1", type: "human", hand: [] },
+            { name: "Player 2", type: "computer", hand: [] }
+        ];
+        
+        let deck = [];
+        let board = []; 
+        let currentPlayerIndex = 0;
+        let selectedTileIndex = null;
+        let gameOver = false;
+        let gameMode = 'pvc';
+        let inputLocked = false;
+
+        class Tile {
+            constructor(left, right, id) {
+                this.left = left; this.right = right; this.id = id;
+            }
+            render(isFaceUp = true, onClickStr = "", index = -1, isSelected = false) {
+                if (!isFaceUp) {
+                    return `<div class="domino bg-gradient-to-br from-indigo-100 to-indigo-200 animate-pop"><div class="w-full h-full flex items-center justify-center"><div class="w-12 h-12 rounded-full bg-indigo-900/10 flex items-center justify-center"><span class="text-indigo-900/20 text-xl font-bold">?</span></div></div></div>`;
+                }
+                const selectedClass = isSelected ? 'selected' : '';
+                const getCol = (txt) => PREFIXES.includes(txt) ? 'text-red-600' : 'text-blue-700';
+                return `<div class="domino ${selectedClass} animate-pop" onclick="${onClickStr}" data-index="${index}"><div class="domino-half ${getCol(this.left)}">${this.left}</div><div class="domino-divider"></div><div class="domino-half ${getCol(this.right)}">${this.right}</div></div>`;
+            }
+        }
+
+        // --- Visual Effects ---
+        function spawnParticles(elementRect) {
+            const x = elementRect.left + elementRect.width / 2;
+            const y = elementRect.top + elementRect.height / 2;
+            confetti({ particleCount: 20, spread: 70, origin: { x: x / window.innerWidth, y: y / window.innerHeight }, colors: ['#facc15', '#4ade80', '#60a5fa'], startVelocity: 20, gravity: 2, scalar: 0.6 });
+        }
+        function showFloatingText(text, elementRect) {
+            const el = document.createElement('div'); el.className = 'floating-word'; el.innerText = text.toUpperCase();
+            el.style.left = (elementRect.left + elementRect.width / 2) + 'px'; el.style.top = (elementRect.top - 20) + 'px'; el.style.transform = 'translate(-50%, 0)';
+            document.body.appendChild(el); setTimeout(() => el.remove(), 1500);
+        }
+        function shakeScreen() { const main = document.getElementById('game-main'); main.classList.add('animate-shake'); setTimeout(() => main.classList.remove('animate-shake'), 500); }
+
+        // --- Setup ---
+        function showSetup() { document.getElementById('setup-modal').classList.remove('hidden'); document.getElementById('modal').classList.add('hidden'); }
+        function setMode(mode) {
+            gameMode = mode;
+            const pvcBtn = document.getElementById('btn-pvc'); const pvpBtn = document.getElementById('btn-pvp'); const p2Group = document.getElementById('p2-input-group');
+            if (mode === 'pvc') { pvcBtn.className = "flex-1 py-3 rounded-lg text-sm font-bold transition bg-indigo-600 text-white shadow-md transform scale-105"; pvpBtn.className = "flex-1 py-3 rounded-lg text-sm font-bold transition text-gray-600 hover:bg-white"; p2Group.classList.add('opacity-50', 'pointer-events-none'); }
+            else { pvpBtn.className = "flex-1 py-3 rounded-lg text-sm font-bold transition bg-indigo-600 text-white shadow-md transform scale-105"; pvcBtn.className = "flex-1 py-3 rounded-lg text-sm font-bold transition text-gray-600 hover:bg-white"; p2Group.classList.remove('opacity-50', 'pointer-events-none'); }
+        }
+        function startGame() {
+            const p1Name = document.getElementById('p1-name').value || "Student 1"; const p2Name = document.getElementById('p2-name').value || "Student 2";
+            players[0] = { name: p1Name, type: "human", hand: [] };
+            if (gameMode === 'pvc') players[1] = { name: "Computer", type: "computer", hand: [] }; else players[1] = { name: p2Name, type: "human", hand: [] };
+            document.getElementById('setup-modal').classList.add('hidden'); resetGameLogic();
+        }
+        function resetGameLogic() {
+            document.getElementById('modal').classList.add('hidden'); deck = []; players[0].hand = []; players[1].hand = []; board = [];
+            selectedTileIndex = null; currentPlayerIndex = 0; gameOver = false; inputLocked = false;
+            initDeck(); deal(); updateUIForTurn(); renderGame(); showFeedback(`${players[0].name}'s Start`, "bg-green-600");
+            document.getElementById('draw-btn').disabled = false; document.getElementById('pass-btn').classList.add('hidden');
+        }
+        function initDeck() {
+            deck = []; let idCounter = 0; const rootPool = [...ALL_ROOTS]; const prefixPool = []; for(let i=0; i<6; i++) prefixPool.push(...PREFIXES);
+            rootPool.sort(() => Math.random() - 0.5); prefixPool.sort(() => Math.random() - 0.5);
+            for (let i = 0; i < 28; i++) { let val1, val2; const p = prefixPool[i % prefixPool.length]; const r = rootPool[i % rootPool.length]; if (Math.random() > 0.5) { val1 = p; val2 = r; } else { val1 = r; val2 = p; } deck.push(new Tile(val1, val2, idCounter++)); }
+            deck.sort(() => Math.random() - 0.5);
+        }
+        function deal() { players[0].hand = deck.splice(0, 5); players[1].hand = deck.splice(0, 5); board = [deck.pop()]; }
+
+        // --- Turn Management ---
+        function updateUIForTurn() {
+            const current = players[currentPlayerIndex];
+            const opponent = players[1 - currentPlayerIndex];
+            const bottomArea = document.getElementById('bottom-area');
+            const topArea = document.getElementById('top-area');
+            const banner = document.getElementById('turn-banner');
+
+            // Set labels
+            document.getElementById('bottom-label').innerText = current.name;
+            document.getElementById('top-label').innerText = opponent.name;
+            banner.innerText = `${current.name.toUpperCase()}'S TURN`;
+
+            // Active State Visuals
+            // In PvP (Pass & Play): Bottom is always current player due to swap.
+            // In PvC: Bottom is P1, Top is Computer.
+            
+            if (gameMode === 'pvc') {
+                if (current.type === 'human') {
+                    // Human Turn
+                    bottomArea.classList.add('area-active'); bottomArea.classList.remove('area-inactive');
+                    topArea.classList.add('area-inactive'); topArea.classList.remove('area-active');
+                    banner.style.backgroundColor = '#facc15'; banner.style.color = '#111827';
+                } else {
+                    // Computer Turn
+                    bottomArea.classList.add('area-inactive'); bottomArea.classList.remove('area-active');
+                    topArea.classList.add('area-active'); topArea.classList.remove('area-inactive');
+                    // Change banner style for CPU
+                    banner.innerText = "COMPUTER'S TURN";
+                    banner.style.backgroundColor = '#4b5563'; banner.style.color = '#f3f4f6';
+                }
+            } else {
+                // PvP - Always highlight bottom as it's the active player's seat
+                bottomArea.classList.add('area-active'); bottomArea.classList.remove('area-inactive');
+                topArea.classList.add('area-inactive'); topArea.classList.remove('area-active');
+                banner.style.backgroundColor = '#facc15'; banner.style.color = '#111827';
+            }
+        }
+
+        function nextTurn() {
+            if (gameOver) return;
+            inputLocked = false; checkWinCondition(); if (gameOver) return;
+            
+            currentPlayerIndex = 1 - currentPlayerIndex;
+            const nextPlayer = players[currentPlayerIndex];
+
+            if (nextPlayer.type === 'computer') {
+                inputLocked = true; updateUIForTurn(); renderGame(); setTimeout(computerLogic, 1500);
+            } else {
+                if (gameMode === 'pvp') showInterstitial(nextPlayer.name);
+                else { updateUIForTurn(); renderGame(); }
+            }
+        }
+
+        function showInterstitial(name) {
+            document.getElementById('interstitial-modal').classList.remove('hidden');
+            document.getElementById('next-player-name').innerText = name;
+            document.getElementById('ready-player-name').innerText = name;
+        }
+        function dismissInterstitial() {
+            document.getElementById('interstitial-modal').classList.add('hidden');
+            updateUIForTurn(); renderGame();
+        }
+
+        // --- Render ---
+        function renderGame() {
+            const chainEl = document.getElementById('chain'); chainEl.innerHTML = board.map(t => t.render(true)).join('');
+            const currentP = players[currentPlayerIndex]; const waitingP = players[1 - currentPlayerIndex];
+            
+            let bottomHand = [], topHand = [];
+            if (gameMode === 'pvc') {
+                bottomHand = players[0].hand; topHand = players[1].hand;
+                document.getElementById('player-hand').innerHTML = bottomHand.map((t, i) => t.render(true, `selectTile(${i})`, i, i === selectedTileIndex && currentPlayerIndex === 0)).join('');
+                document.getElementById('top-hand').innerHTML = topHand.map(() => new Tile('','').render(false)).join('');
+            } else {
+                bottomHand = currentP.hand; topHand = waitingP.hand;
+                document.getElementById('player-hand').innerHTML = bottomHand.map((t, i) => t.render(true, `selectTile(${i})`, i, i === selectedTileIndex)).join('');
+                document.getElementById('top-hand').innerHTML = topHand.map(() => new Tile('','').render(false)).join('');
+            }
+            document.getElementById('deck-count').innerText = deck.length;
+        }
+
+        // --- Logic ---
+        function isValidConnection(endValue, tileValue) {
+            let prefix = null; let root = null;
+            if (PREFIXES.includes(endValue)) { prefix = endValue; if (!PREFIXES.includes(tileValue)) root = tileValue; }
+            else { root = endValue; if (PREFIXES.includes(tileValue)) prefix = tileValue; }
+            if (prefix && root && DICTIONARY[prefix] && DICTIONARY[prefix].includes(root)) return { valid: true, word: prefix + root };
+            return { valid: false };
+        }
+
+        function selectTile(index) {
+            if (players[currentPlayerIndex].type === 'computer' || gameOver || inputLocked) return;
+            if (!players[currentPlayerIndex].hand[index]) return;
+            if (selectedTileIndex === index) { selectedTileIndex = null; hideDropZones(); } else { selectedTileIndex = index; showDropZones(); }
+            renderGame();
+        }
+
+        function showDropZones() { document.getElementById('drop-left').classList.add('active'); document.getElementById('drop-right').classList.add('active'); }
+        function hideDropZones() { document.getElementById('drop-left').classList.remove('active'); document.getElementById('drop-right').classList.remove('active'); }
+
+        function placeTile(side) {
+            if (selectedTileIndex === null || inputLocked) return;
+            const player = players[currentPlayerIndex]; const tile = player.hand[selectedTileIndex];
+            let result = { valid: false }; let orient = 'normal';
+
+            if (side === 'left') {
+                const boardEnd = board[0].left;
+                let check = isValidConnection(boardEnd, tile.right);
+                if (check.valid) { result = check; orient = 'normal'; }
+                else { check = isValidConnection(boardEnd, tile.left); if (check.valid) { result = check; orient = 'flipped'; } }
+            } else {
+                const boardEnd = board[board.length - 1].right;
+                let check = isValidConnection(boardEnd, tile.left);
+                if (check.valid) { result = check; orient = 'normal'; }
+                else { check = isValidConnection(boardEnd, tile.right); if (check.valid) { result = check; orient = 'flipped'; } }
+            }
+
+            if (result.valid) {
+                const zoneId = `drop-${side}`; const zoneRect = document.getElementById(zoneId).getBoundingClientRect();
+                spawnParticles(zoneRect); showFloatingText(result.word, zoneRect);
+                player.hand.splice(selectedTileIndex, 1);
+                if (orient === 'flipped') { const temp = tile.left; tile.left = tile.right; tile.right = temp; }
+                if (side === 'left') board.unshift(tile); else board.push(tile);
+                selectedTileIndex = null; hideDropZones(); document.getElementById('game-message').style.opacity = 0;
+                renderGame(); nextTurn();
+            } else {
+                shakeScreen(); inputLocked = true; selectedTileIndex = null; hideDropZones();
+                showFeedback("❌ Wrong Match! Turn Lost.", "bg-red-500"); renderGame();
+                setTimeout(() => nextTurn(), 1500);
+            }
+        }
+
+        function drawTile() {
+            if (players[currentPlayerIndex].type === 'computer' || gameOver || inputLocked) return;
+            if (deck.length > 0) {
+                const t = deck.pop(); players[currentPlayerIndex].hand.push(t); renderGame();
+                showFeedback(`Drew a tile`, "bg-blue-600"); selectedTileIndex = null; hideDropZones();
+            } else { document.getElementById('draw-btn').disabled = true; document.getElementById('pass-btn').classList.remove('hidden'); showFeedback("Deck empty! Play or Pass.", "bg-red-600"); }
+        }
+
+        function passTurn() { if (players[currentPlayerIndex].type === 'computer' || gameOver || inputLocked) return; showFeedback("Passed turn", "bg-gray-600"); nextTurn(); }
+
+        function computerLogic() {
+            const comp = players[currentPlayerIndex]; const leftEnd = board[0].left; const rightEnd = board[board.length - 1].right;
+            let move = null; let wordFound = "";
+
+            for (let i = 0; i < comp.hand.length; i++) {
+                const tile = comp.hand[i];
+                let check = isValidConnection(rightEnd, tile.left); if (check.valid) { move = { index: i, side: 'right', flip: false }; wordFound = check.word; break; }
+                check = isValidConnection(rightEnd, tile.right); if (check.valid) { move = { index: i, side: 'right', flip: true }; wordFound = check.word; break; }
+                check = isValidConnection(leftEnd, tile.right); if (check.valid) { move = { index: i, side: 'left', flip: false }; wordFound = check.word; break; }
+                check = isValidConnection(leftEnd, tile.left); if (check.valid) { move = { index: i, side: 'left', flip: true }; wordFound = check.word; break; }
+            }
+
+            const msgEl = document.getElementById('game-message');
+            if (move) {
+                const tile = comp.hand[move.index]; comp.hand.splice(move.index, 1);
+                if (move.flip) { const temp = tile.left; tile.left = tile.right; tile.right = temp; }
+                const zoneId = `drop-${move.side}`; const zoneRect = document.getElementById(zoneId).getBoundingClientRect();
+                spawnParticles(zoneRect); showFloatingText(wordFound, zoneRect);
+                if (move.side === 'left') board.unshift(tile); else board.push(tile);
+                msgEl.innerText = "Played a tile!"; msgEl.style.opacity = 1; msgEl.style.transform = "scale(1)";
+                renderGame(); nextTurn();
+            } else {
+                if (deck.length > 0) {
+                    msgEl.innerText = "Drawing..."; msgEl.style.opacity = 1; msgEl.style.transform = "scale(1)";
+                    setTimeout(() => { comp.hand.push(deck.pop()); renderGame(); setTimeout(computerLogic, 1000); }, 1000);
+                } else { msgEl.innerText = "Passed."; msgEl.style.opacity = 1; setTimeout(nextTurn, 1000); }
+            }
+            setTimeout(() => { msgEl.style.opacity = 0; msgEl.style.transform = "scale(0.9)"; }, 2000);
+        }
+
+        function checkWinCondition() { if (players[0].hand.length === 0) endGame(`${players[0].name} Wins!`, "Great job!"); else if (players[1].hand.length === 0) endGame(`${players[1].name} Wins!`, "Well played!"); }
+        function endGame(title, message) {
+            gameOver = true;
+            var duration = 3 * 1000; var end = Date.now() + duration;
+            (function frame() { confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } }); confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } }); if (Date.now() < end) requestAnimationFrame(frame); }());
+            document.getElementById('modal-title').innerText = title; document.getElementById('modal-content').innerText = message; document.getElementById('modal').classList.remove('hidden');
+        }
+        function showFeedback(text, bgClass) {
+            const fb = document.getElementById('feedback'); fb.classList.remove('transition-all', 'duration-300'); fb.style.opacity = '0'; fb.style.transform = 'translate(-50%, -20px) scale(0.9)'; void fb.offsetWidth;
+            fb.className = `absolute -top-16 left-1/2 transform -translate-x-1/2 text-white px-6 py-2 rounded-full font-bold shadow-xl border-2 border-white transition-all duration-300 ${bgClass} z-40`; fb.innerText = text; fb.style.opacity = '1'; fb.style.transform = 'translate(-50%, 0) scale(1)';
+        }
+        function showRules() { document.getElementById('modal-title').innerText = "How to Play"; document.getElementById('modal-content').innerHTML = `<ul class="list-disc pl-5 text-left space-y-2 text-sm"><li><strong>Goal:</strong> Empty your hand first.</li><li><strong>Connect:</strong> Match Prefix to Root.</li><li><strong>Penalty:</strong> Wrong match costs a turn!</li></ul>`; document.getElementById('modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        window.onload = showSetup;
+    </script>
+</body>
+</html>
