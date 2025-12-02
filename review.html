@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Vocabulary Betting Game</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .game-wrapper {
+      width: 100%;
+      padding: 2.5%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100%;
+    }
+
+    .game-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 5%;
+      max-width: 1000px;
+      width: 100%;
+    }
+
+    .game-header {
+      text-align: center;
+      margin-bottom: 5%;
+    }
+
+    .game-title {
+      font-size: 2.5em;
+      color: #667eea;
+      margin: 0 0 2% 0;
+      font-weight: 700;
+    }
+
+    /* Team Setup Section */
+    .setup-section {
+      display: block;
+    }
+
+    .setup-instructions {
+      text-align: center;
+      font-size: 1.2em;
+      color: #333;
+      margin-bottom: 4%;
+    }
+
+    .team-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 3%;
+      margin-bottom: 4%;
+    }
+
+    .team-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2%;
+    }
+
+    .team-input-group label {
+      font-weight: 600;
+      color: #333;
+      font-size: 1em;
+    }
+
+    .team-input-group input {
+      padding: 3%;
+      font-size: 1.1em;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      transition: border-color 0.3s ease;
+    }
+
+    .team-input-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .start-game-btn {
+      width: 100%;
+      padding: 4%;
+      font-size: 1.3em;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .start-game-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Game Section */
+    .game-section {
+      display: none;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: rgba(102, 126, 234, 0.2);
+      border-radius: 10px;
+      margin-bottom: 4%;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      width: 8.33%;
+    }
+
+    .question-container {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 8%;
+      border-radius: 20px;
+      margin-bottom: 5%;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+      border: 4px solid rgba(255, 255, 255, 0.5);
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .question-number {
+      color: rgba(255, 255, 255, 0.95);
+      font-weight: 700;
+      font-size: 1.4em;
+      margin-bottom: 3%;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .question-text {
+      font-size: 3.5em;
+      color: #ffd700;
+      line-height: 1.5;
+      margin: 0;
+      font-weight: 700;
+      text-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+      letter-spacing: 0.5px;
+    }
+
+    .teams-betting-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 3%;
+      margin-bottom: 4%;
+    }
+
+    .team-card {
+      background: white;
+      border: 3px solid #e0e0e0;
+      border-radius: 15px;
+      padding: 4%;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .team-card:hover::before {
+      left: 100%;
+    }
+
+    .team-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+      border-color: #667eea;
+    }
+
+    .team-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4%;
+      padding-bottom: 3%;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .team-name {
+      font-size: 1.3em;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .team-balance {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #764ba2;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      padding: 2% 4%;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+    }
+
+    .answer-section {
+      margin-bottom: 4%;
+    }
+
+    .section-label {
+      font-size: 0.9em;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 2%;
+    }
+
+    .answer-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2%;
+    }
+
+    .answer-btn {
+      padding: 3%;
+      font-size: 1em;
+      font-weight: 600;
+      border: 2px solid #e0e0e0;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .answer-btn:hover {
+      background: #f8f9ff;
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .answer-btn.selected {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+      animation: pulse 0.5s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.08);
+      }
+    }
+
+    .bet-section {
+      margin-bottom: 4%;
+    }
+
+    .bet-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 2%;
+      margin-bottom: 2%;
+    }
+
+    .bet-input-wrapper label {
+      font-size: 1em;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .bet-input {
+      flex: 1;
+      padding: 2%;
+      font-size: 1.1em;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .bet-slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 5px;
+      background: #e0e0e0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .bet-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+    }
+
+    .bet-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      border: none;
+    }
+
+    .team-status {
+      padding: 2%;
+      text-align: center;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-weight: 600;
+      display: none;
+    }
+
+    .team-status.ready {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+
+    .submit-bets-btn {
+      width: 100%;
+      padding: 4%;
+      font-size: 1.3em;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .submit-bets-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-bets-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Results Section */
+    .results-container {
+      display: none;
+      margin-bottom: 4%;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 3%;
+      margin-bottom: 4%;
+    }
+
+    .team-result {
+      padding: 4%;
+      border-radius: 12px;
+      text-align: center;
+      animation: resultPop 0.5s ease;
+      transform-origin: center;
+    }
+
+    @keyframes resultPop {
+      0% {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      60% {
+        transform: scale(1.05);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .team-result.correct {
+      background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+      border: 3px solid #28a745;
+      box-shadow: 0 5px 20px rgba(40, 167, 69, 0.3);
+    }
+
+    .team-result.incorrect {
+      background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+      border: 3px solid #dc3545;
+      box-shadow: 0 5px 20px rgba(220, 53, 69, 0.3);
+    }
+
+    .team-result.eliminated {
+      background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);
+      border: 3px solid #999;
+      opacity: 0.8;
+    }
+
+    .result-team-name {
+      font-size: 1.2em;
+      font-weight: 700;
+      margin-bottom: 2%;
+    }
+
+    .result-icon {
+      font-size: 3.5em;
+      margin-bottom: 2%;
+      animation: iconBounce 0.6s ease;
+    }
+
+    @keyframes iconBounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      25% {
+        transform: translateY(-10px);
+      }
+      50% {
+        transform: translateY(-5px);
+      }
+      75% {
+        transform: translateY(-7px);
+      }
+    }
+
+    .result-change {
+      font-size: 1.5em;
+      font-weight: 700;
+      margin-bottom: 1%;
+    }
+
+    .result-balance {
+      font-size: 1.1em;
+      color: #666;
+      font-weight: 600;
+    }
+
+    .explanation-box {
+      background: linear-gradient(135deg, #f8f9ff 0%, #e8edff 100%);
+      padding: 4%;
+      border-radius: 12px;
+      border-left: 5px solid #667eea;
+      margin-bottom: 4%;
+      box-shadow: 0 3px 10px rgba(102, 126, 234, 0.1);
+      animation: slideUp 0.5s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .explanation-title {
+      font-size: 1.2em;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 2%;
+      display: flex;
+      align-items: center;
+      gap: 2%;
+    }
+
+    .explanation-title::before {
+      content: '💡';
+      font-size: 1.3em;
+    }
+
+    .explanation-text {
+      font-size: 1.05em;
+      color: #555;
+      line-height: 1.7;
+    }
+
+    .next-question-btn {
+      width: 100%;
+      padding: 4%;
+      font-size: 1.2em;
+      font-weight: 700;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .next-question-btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+    }
+
+    /* Game Over Section */
+    .game-over {
+      text-align: center;
+      display: none;
+    }
+
+    .game-over-title {
+      font-size: 2.5em;
+      color: #667eea;
+      margin-bottom: 4%;
+      font-weight: 700;
+    }
+
+    .winner-announcement {
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      padding: 5%;
+      border-radius: 15px;
+      margin-bottom: 4%;
+      box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+    }
+
+    .winner-icon {
+      font-size: 4em;
+      margin-bottom: 2%;
+    }
+
+    .winner-text {
+      font-size: 2em;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 2%;
+    }
+
+    .winner-balance {
+      font-size: 1.5em;
+      color: #666;
+    }
+
+    .final-standings {
+      margin-bottom: 4%;
+    }
+
+    .standings-title {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 3%;
+    }
+
+    .standing-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3%;
+      background: #f8f9ff;
+      border-radius: 10px;
+      margin-bottom: 2%;
+    }
+
+    .standing-position {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #764ba2;
+      width: 50px;
+    }
+
+    .standing-team {
+      flex: 1;
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .standing-balance {
+      font-size: 1.3em;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .play-again-btn {
+      padding: 4% 8%;
+      font-size: 1.3em;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .play-again-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .warning-message {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      color: #856404;
+      padding: 3%;
+      border-radius: 10px;
+      margin-bottom: 3%;
+      text-align: center;
+      font-weight: 600;
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .game-title {
+        font-size: 2em;
+      }
+
+      .teams-betting-container {
+        grid-template-columns: 1fr;
+      }
+
+      .question-text {
+        font-size: 2.2em;
+      }
+
+      .question-number {
+        font-size: 1.1em;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="game-wrapper">
+   <div class="game-container">
+    <div class="game-header">
+     <h1 class="game-title" id="gameTitle">Team Vocabulary Betting Game</h1>
+    </div><!-- Team Setup Section -->
+    <div class="setup-section" id="setupSection">
+     <p class="setup-instructions" id="setupInstructions">Enter team names below (2-4 teams). Each team starts with $10.</p>
+     <div class="team-inputs">
+      <div class="team-input-group"><label for="team1">Team 1 Name:</label> <input type="text" id="team1" placeholder="Team 1" value="Team 1">
+      </div>
+      <div class="team-input-group"><label for="team2">Team 2 Name:</label> <input type="text" id="team2" placeholder="Team 2" value="Team 2">
+      </div>
+      <div class="team-input-group"><label for="team3">Team 3 Name:</label> <input type="text" id="team3" placeholder="Team 3" value="Team 3">
+      </div>
+      <div class="team-input-group"><label for="team4">Team 4 Name:</label> <input type="text" id="team4" placeholder="Team 4" value="Team 4">
+      </div>
+     </div><button class="start-game-btn" id="startGameBtn" onclick="startGame()">Start Game</button>
+    </div><!-- Game Section -->
+    <div class="game-section" id="gameSection">
+     <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+     </div>
+     <div class="question-container">
+      <div class="question-number" id="questionNumber">
+       Question 1 of 12
+      </div>
+      <p class="question-text" id="questionText"></p>
+     </div>
+     <div class="warning-message" id="warningMessage"></div>
+     <div class="teams-betting-container" id="teamsBettingContainer"></div><button class="submit-bets-btn" id="submitBetsBtn" onclick="submitAllBets()">Submit All Bets</button> <!-- Results Section -->
+     <div class="results-container" id="resultsContainer">
+      <div class="results-grid" id="resultsGrid"></div>
+      <div class="explanation-box">
+       <div class="explanation-title">
+        Explanation:
+       </div>
+       <div class="explanation-text" id="explanationText"></div>
+      </div><button class="next-question-btn" id="nextQuestionBtn" onclick="nextQuestion()">Next Question</button>
+     </div>
+    </div><!-- Game Over Section -->
+    <div class="game-over" id="gameOver">
+     <h2 class="game-over-title">Game Over!</h2>
+     <div class="winner-announcement" id="winnerAnnouncement">
+      <div class="winner-icon">
+       🏆
+      </div>
+      <div class="winner-text" id="winnerText"></div>
+      <div class="winner-balance" id="winnerBalance"></div>
+     </div>
+     <div class="final-standings">
+      <div class="standings-title">
+       Final Standings
+      </div>
+      <div id="standingsContainer"></div>
+     </div><button class="play-again-btn" id="playAgainBtn" onclick="restartGame()">Play Again</button>
+    </div>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      game_title: "Team Vocabulary Betting Game",
+      setup_instructions: "Enter team names below (2-4 teams). Each team starts with $10.",
+      start_game_button: "Start Game",
+      submit_bets_button: "Submit All Bets",
+      next_question_button: "Next Question",
+      play_again_button: "Play Again",
+      background_color: "#667eea",
+      secondary_surface_color: "#ffffff",
+      text_color: "#333333",
+      primary_action_color: "#667eea",
+      secondary_action_color: "#764ba2",
+      font_family: "Segoe UI",
+      font_size: 16
+    };
+
+    const allQuestions = [
+      {
+        text: "A fever always shows that your body temperature is above the normal level.",
+        correct: true,
+        explanation: "Correct! A fever indicates that body temperature has risen above the normal range, typically as a response to infection or illness."
+      },
+      {
+        text: "A wound is any injury that does not break the skin.",
+        correct: false,
+        explanation: "A wound is an injury that DOES break the skin. Injuries without broken skin are called bruises or contusions."
+      },
+      {
+        text: "A plaster cast is used when a bone needs support to heal.",
+        correct: true,
+        explanation: "Correct! A plaster cast immobilizes broken bones to support proper healing and alignment."
+      },
+      {
+        text: "A bruise normally appears without pain and without skin discoloration.",
+        correct: false,
+        explanation: "A bruise typically causes pain and appears as discolored skin (purple, blue, or yellow) due to blood pooling under the skin."
+      },
+      {
+        text: "A sprain is an injury to the muscles, not the ligaments.",
+        correct: false,
+        explanation: "A sprain is an injury to ligaments (tissues connecting bones). Muscle injuries are called strains."
+      },
+      {
+        text: "A helmet is worn in sports where the head needs protection from impact.",
+        correct: true,
+        explanation: "Correct! Helmets protect the head from impacts in sports like cycling, football, hockey, and skiing."
+      },
+      {
+        text: "Boots are usually used in sports played on wet or uneven ground.",
+        correct: true,
+        explanation: "Correct! Boots provide ankle support and better traction on wet or uneven surfaces like in football and hiking."
+      },
+      {
+        text: "A racket is equipment used for sports that involve hitting a ball.",
+        correct: true,
+        explanation: "Correct! Rackets are used in tennis, badminton, squash, and other sports where you hit a ball or shuttlecock."
+      },
+      {
+        text: "To beat a team means both teams finish with the same score.",
+        correct: false,
+        explanation: "To beat a team means to defeat them by scoring more points. Equal scores result in a draw or tie."
+      },
+      {
+        text: "To draw a match means neither side wins.",
+        correct: true,
+        explanation: "Correct! A draw occurs when both teams finish with equal scores, meaning neither team wins."
+      },
+      {
+        text: "To score means successfully making a goal or point.",
+        correct: true,
+        explanation: "Correct! Scoring means earning points or goals in a game or sport."
+      },
+      {
+        text: "To lose a match means finishing with more points than the other team.",
+        correct: false,
+        explanation: "To lose means finishing with FEWER points than the other team. More points means you win."
+      },
+      {
+        text: "A course is one part of a meal served separately from other parts.",
+        correct: true,
+        explanation: "Correct! A course is one section of a meal (appetizer, main course, dessert) served in sequence."
+      },
+      {
+        text: "A dish always refers only to the plate, not the food prepared in it.",
+        correct: false,
+        explanation: "A dish can refer to both the plate AND the prepared food. For example, 'This dish is delicious' refers to the food."
+      },
+      {
+        text: "A bakery sells products made from flour, such as bread or cakes.",
+        correct: true,
+        explanation: "Correct! Bakeries specialize in baked goods made from flour, including bread, cakes, pastries, and cookies."
+      },
+      {
+        text: "A chemist is a place where you repair cars.",
+        correct: false,
+        explanation: "A chemist (or pharmacy) is where you get medicine and healthcare products. Car repairs happen at a garage or mechanic."
+      },
+      {
+        text: "A travel agent helps customers book holidays and trips.",
+        correct: true,
+        explanation: "Correct! Travel agents assist with planning and booking vacations, flights, hotels, and tours."
+      },
+      {
+        text: "Exploration is the noun form of explore.",
+        correct: true,
+        explanation: "Correct! The verb 'explore' becomes the noun 'exploration' by adding the suffix '-ation'."
+      },
+      {
+        text: "Pollution and invention are nouns built from verbs using common suffixes.",
+        correct: true,
+        explanation: "Correct! 'Pollute' becomes 'pollution' (-ion suffix) and 'invent' becomes 'invention' (-ion suffix)."
+      },
+      {
+        text: "Grassland habitats are known for tall trees and thick forests.",
+        correct: false,
+        explanation: "Grasslands have few trees and are dominated by grasses. Tall trees and thick forests characterize woodland and rainforest habitats."
+      },
+      {
+        text: "Flamingos are animals typically found near lakes or coasts.",
+        correct: true,
+        explanation: "Correct! Flamingos live near water bodies like lakes, lagoons, and coastal areas where they feed on algae and small organisms."
+      },
+      {
+        text: "Camels are naturally suited to dry environments like deserts.",
+        correct: true,
+        explanation: "Correct! Camels have adaptations like fat storage in humps and efficient water conservation that make them ideal for desert life."
+      },
+      {
+        text: "To share videos is a phone activity that involves sending or posting media.",
+        correct: true,
+        explanation: "Correct! Sharing videos means uploading to social media or sending directly to others via messaging or apps."
+      },
+      {
+        text: "To text friends means speaking to them directly by voice.",
+        correct: false,
+        explanation: "Texting means sending written messages, not voice communication. Speaking by voice is calling or voice messaging."
+      }
+    ];
+
+    let questions = [];
+
+    let teams = [];
+    let currentQuestion = 0;
+    let teamBets = {};
+    let teamStreaks = {};
+
+    function startGame() {
+      const team1Name = document.getElementById('team1').value.trim() || 'Team 1';
+      const team2Name = document.getElementById('team2').value.trim() || 'Team 2';
+      const team3Name = document.getElementById('team3').value.trim() || 'Team 3';
+      const team4Name = document.getElementById('team4').value.trim() || 'Team 4';
+
+      teams = [
+        { name: team1Name, balance: 10, active: true, streak: 0 },
+        { name: team2Name, balance: 10, active: true, streak: 0 },
+        { name: team3Name, balance: 10, active: true, streak: 0 },
+        { name: team4Name, balance: 10, active: true, streak: 0 }
+      ];
+      
+      teamStreaks = { 0: 0, 1: 0, 2: 0, 3: 0 };
+
+      // Select 12 random questions from the bank
+      questions = selectRandomQuestions(allQuestions, 12);
+      currentQuestion = 0;
+
+      document.getElementById('setupSection').style.display = 'none';
+      document.getElementById('gameSection').style.display = 'block';
+      
+      loadQuestion();
+      renderTeamCards();
+    }
+
+    function selectRandomQuestions(questionBank, count) {
+      const shuffled = [...questionBank].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count);
+    }
+
+    function loadQuestion() {
+      const question = questions[currentQuestion];
+      document.getElementById('questionNumber').textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+      document.getElementById('questionText').textContent = question.text;
+      document.getElementById('warningMessage').style.display = 'none';
+      
+      // Update progress bar
+      const progress = ((currentQuestion + 1) / questions.length) * 100;
+      document.getElementById('progressBar').style.width = `${progress}%`;
+    }
+
+    function renderTeamCards() {
+      const container = document.getElementById('teamsBettingContainer');
+      container.innerHTML = '';
+
+      teams.forEach((team, index) => {
+        if (!team.active) return;
+
+        const card = document.createElement('div');
+        card.className = 'team-card';
+        const streakBadge = team.streak >= 2 ? `<span style="margin-left: 10px; font-size: 0.8em;">🔥 ${team.streak}x</span>` : '';
+        
+        card.innerHTML = `
+          <div class="team-header">
+            <div class="team-name">${team.name}${streakBadge}</div>
+            <div class="team-balance">$${team.balance}</div>
+          </div>
+          
+          <div class="answer-section">
+            <div class="section-label">Answer:</div>
+            <div class="answer-buttons">
+              <button class="answer-btn" onclick="selectTeamAnswer(${index}, 'correct')">✓ Correct</button>
+              <button class="answer-btn" onclick="selectTeamAnswer(${index}, 'incorrect')">✗ Incorrect</button>
+            </div>
+          </div>
+
+          <div class="bet-section">
+            <div class="section-label">Bet Amount:</div>
+            <div class="bet-input-wrapper">
+              <label>$</label>
+              <input type="number" id="betInput${index}" class="bet-input" min="1" max="${team.balance}" value="${Math.min(5, team.balance)}" oninput="updateTeamSlider(${index})">
+            </div>
+            <input type="range" id="betSlider${index}" class="bet-slider" min="1" max="${team.balance}" value="${Math.min(5, team.balance)}" oninput="updateTeamBetInput(${index})">
+          </div>
+
+          <div class="team-status" id="teamStatus${index}">✓ Ready to bet</div>
+        `;
+        
+        container.appendChild(card);
+
+        // Initialize bet data
+        teamBets[index] = {
+          answer: null,
+          amount: Math.min(5, team.balance)
+        };
+      });
+    }
+
+    function selectTeamAnswer(teamIndex, answer) {
+      teamBets[teamIndex].answer = answer;
+      
+      const card = document.querySelectorAll('.team-card')[getActiveCardIndex(teamIndex)];
+      const buttons = card.querySelectorAll('.answer-btn');
+      buttons.forEach(btn => btn.classList.remove('selected'));
+      
+      if (answer === 'correct') {
+        buttons[0].classList.add('selected');
+      } else {
+        buttons[1].classList.add('selected');
+      }
+
+      document.getElementById(`teamStatus${teamIndex}`).classList.add('ready');
+      
+      // Add visual feedback
+      card.style.animation = 'none';
+      setTimeout(() => {
+        card.style.animation = '';
+      }, 10);
+    }
+
+    function getActiveCardIndex(teamIndex) {
+      let activeIndex = 0;
+      for (let i = 0; i <= teamIndex; i++) {
+        if (teams[i].active) {
+          if (i === teamIndex) return activeIndex;
+          activeIndex++;
+        }
+      }
+      return activeIndex;
+    }
+
+    function updateTeamSlider(teamIndex) {
+      const input = document.getElementById(`betInput${teamIndex}`);
+      const slider = document.getElementById(`betSlider${teamIndex}`);
+      let value = parseInt(input.value) || 1;
+      value = Math.max(1, Math.min(teams[teamIndex].balance, value));
+      input.value = value;
+      slider.value = value;
+      teamBets[teamIndex].amount = value;
+    }
+
+    function updateTeamBetInput(teamIndex) {
+      const input = document.getElementById(`betInput${teamIndex}`);
+      const slider = document.getElementById(`betSlider${teamIndex}`);
+      input.value = slider.value;
+      teamBets[teamIndex].amount = parseInt(slider.value);
+    }
+
+    function submitAllBets() {
+      // Check if all active teams have selected an answer
+      let allReady = true;
+      teams.forEach((team, index) => {
+        if (team.active && !teamBets[index].answer) {
+          allReady = false;
+        }
+      });
+
+      if (!allReady) {
+        const warning = document.getElementById('warningMessage');
+        warning.textContent = 'All teams must select an answer before submitting!';
+        warning.style.display = 'block';
+        return;
+      }
+
+      // Process bets
+      const question = questions[currentQuestion];
+      const resultsGrid = document.getElementById('resultsGrid');
+      resultsGrid.innerHTML = '';
+
+      teams.forEach((team, index) => {
+        if (!team.active) return;
+
+        const bet = teamBets[index];
+        const userCorrect = (bet.answer === 'correct' && question.correct) || 
+                           (bet.answer === 'incorrect' && !question.correct);
+
+        const resultCard = document.createElement('div');
+        resultCard.className = 'team-result';
+
+        if (userCorrect) {
+          team.balance += bet.amount;
+          team.streak = (team.streak || 0) + 1;
+          
+          const streakBonus = team.streak >= 3 ? ' 🔥 STREAK!' : '';
+          resultCard.classList.add('correct');
+          resultCard.innerHTML = `
+            <div class="result-team-name">${team.name}${streakBonus}</div>
+            <div class="result-icon">🎉</div>
+            <div class="result-change" style="color: #28a745;">+$${bet.amount}</div>
+            <div class="result-balance">New Balance: $${team.balance}</div>
+          `;
+        } else {
+          team.balance -= bet.amount;
+          team.streak = 0;
+          if (team.balance <= 0) {
+            team.active = false;
+            resultCard.classList.add('eliminated');
+            resultCard.innerHTML = `
+              <div class="result-team-name">${team.name}</div>
+              <div class="result-icon">💀</div>
+              <div class="result-change" style="color: #dc3545;">-$${bet.amount}</div>
+              <div class="result-balance">ELIMINATED</div>
+            `;
+          } else {
+            resultCard.classList.add('incorrect');
+            resultCard.innerHTML = `
+              <div class="result-team-name">${team.name}</div>
+              <div class="result-icon">😞</div>
+              <div class="result-change" style="color: #dc3545;">-$${bet.amount}</div>
+              <div class="result-balance">New Balance: $${team.balance}</div>
+            `;
+          }
+        }
+
+        resultsGrid.appendChild(resultCard);
+      });
+
+      document.getElementById('explanationText').textContent = question.explanation;
+      document.getElementById('resultsContainer').style.display = 'block';
+      document.getElementById('teamsBettingContainer').style.display = 'none';
+      document.getElementById('submitBetsBtn').style.display = 'none';
+
+      // Check if game should end
+      const activeTeams = teams.filter(t => t.active);
+      if (activeTeams.length <= 1) {
+        setTimeout(() => endGame(), 500);
+      }
+    }
+
+    function nextQuestion() {
+      currentQuestion++;
+
+      if (currentQuestion >= questions.length) {
+        endGame();
+        return;
+      }
+
+      // Check if only one or zero teams remain
+      const activeTeams = teams.filter(t => t.active);
+      if (activeTeams.length <= 1) {
+        endGame();
+        return;
+      }
+
+      document.getElementById('resultsContainer').style.display = 'none';
+      document.getElementById('teamsBettingContainer').style.display = 'grid';
+      document.getElementById('submitBetsBtn').style.display = 'block';
+
+      teamBets = {};
+      loadQuestion();
+      renderTeamCards();
+    }
+
+    function endGame() {
+      document.getElementById('gameSection').style.display = 'none';
+      document.getElementById('gameOver').style.display = 'block';
+
+      // Sort teams by balance
+      const sortedTeams = [...teams].sort((a, b) => b.balance - a.balance);
+      const winner = sortedTeams[0];
+
+      document.getElementById('winnerText').textContent = `${winner.name} Wins!`;
+      document.getElementById('winnerBalance').textContent = `Final Balance: $${winner.balance}`;
+
+      // Display standings
+      const standingsContainer = document.getElementById('standingsContainer');
+      standingsContainer.innerHTML = '';
+
+      sortedTeams.forEach((team, index) => {
+        const standing = document.createElement('div');
+        standing.className = 'standing-item';
+        
+        let medal = '';
+        if (index === 0) medal = '🥇';
+        else if (index === 1) medal = '🥈';
+        else if (index === 2) medal = '🥉';
+        else medal = `${index + 1}.`;
+
+        standing.innerHTML = `
+          <div class="standing-position">${medal}</div>
+          <div class="standing-team">${team.name}</div>
+          <div class="standing-balance">$${team.balance}</div>
+        `;
+        
+        standingsContainer.appendChild(standing);
+      });
+    }
+
+    function restartGame() {
+      currentQuestion = 0;
+      teams = [];
+      teamBets = {};
+      questions = [];
+      
+      document.getElementById('gameOver').style.display = 'none';
+      document.getElementById('setupSection').style.display = 'block';
+      document.getElementById('resultsContainer').style.display = 'none';
+      document.getElementById('teamsBettingContainer').style.display = 'grid';
+      document.getElementById('submitBetsBtn').style.display = 'block';
+    }
+
+    async function onConfigChange(config) {
+      const gameTitle = config.game_title || defaultConfig.game_title;
+      const setupInstructions = config.setup_instructions || defaultConfig.setup_instructions;
+      const startGameButton = config.start_game_button || defaultConfig.start_game_button;
+      const submitBetsButton = config.submit_bets_button || defaultConfig.submit_bets_button;
+      const nextQuestionButton = config.next_question_button || defaultConfig.next_question_button;
+      const playAgainButton = config.play_again_button || defaultConfig.play_again_button;
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const secondarySurface = config.secondary_surface_color || defaultConfig.secondary_surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const primaryAction = config.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryAction = config.secondary_action_color || defaultConfig.secondary_action_color;
+      const fontFamily = config.font_family || defaultConfig.font_family;
+      const fontSize = config.font_size || defaultConfig.font_size;
+
+      document.getElementById('gameTitle').textContent = gameTitle;
+      document.getElementById('setupInstructions').textContent = setupInstructions;
+      document.getElementById('startGameBtn').textContent = startGameButton;
+      document.getElementById('submitBetsBtn').textContent = submitBetsButton;
+      document.getElementById('nextQuestionBtn').textContent = nextQuestionButton;
+      document.getElementById('playAgainBtn').textContent = playAgainButton;
+
+      document.body.style.background = `linear-gradient(135deg, ${backgroundColor} 0%, ${secondaryAction} 100%)`;
+      document.body.style.fontFamily = `${fontFamily}, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
+
+      const containers = document.querySelectorAll('.game-container, .team-card');
+      containers.forEach(el => el.style.background = secondarySurface);
+
+      const textElements = document.querySelectorAll('.question-text, .setup-instructions, .explanation-text, .section-label');
+      textElements.forEach(el => {
+        el.style.color = textColor;
+        el.style.fontSize = `${fontSize * 1}px`;
+      });
+
+      const titleElements = document.querySelectorAll('.game-title, .game-over-title');
+      titleElements.forEach(el => {
+        el.style.color = primaryAction;
+        el.style.fontSize = `${fontSize * 2.5}px`;
+      });
+
+      const teamNames = document.querySelectorAll('.team-name');
+      teamNames.forEach(el => {
+        el.style.color = primaryAction;
+        el.style.fontSize = `${fontSize * 1.3}px`;
+      });
+
+      const primaryButtons = document.querySelectorAll('.start-game-btn, .submit-bets-btn, .play-again-btn');
+      primaryButtons.forEach(el => {
+        el.style.background = `linear-gradient(135deg, ${primaryAction} 0%, ${secondaryAction} 100%)`;
+        el.style.fontSize = `${fontSize * 1.3}px`;
+      });
+
+      const nextButtons = document.querySelectorAll('.next-question-btn');
+      nextButtons.forEach(el => {
+        el.style.background = primaryAction;
+        el.style.fontSize = `${fontSize * 1.2}px`;
+      });
+
+      const selectedButtons = document.querySelectorAll('.answer-btn.selected');
+      selectedButtons.forEach(el => {
+        el.style.background = primaryAction;
+        el.style.borderColor = primaryAction;
+      });
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_surface_color || defaultConfig.secondary_surface_color,
+              set: (value) => {
+                config.secondary_surface_color = value;
+                window.elementSdk.setConfig({ secondary_surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                config.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["game_title", config.game_title || defaultConfig.game_title],
+          ["setup_instructions", config.setup_instructions || defaultConfig.setup_instructions],
+          ["start_game_button", config.start_game_button || defaultConfig.start_game_button],
+          ["submit_bets_button", config.submit_bets_button || defaultConfig.submit_bets_button],
+          ["next_question_button", config.next_question_button || defaultConfig.next_question_button],
+          ["play_again_button", config.play_again_button || defaultConfig.play_again_button]
+        ])
+      });
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a7876c9a58ede13',t:'MTc2NDY1Mzc1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
