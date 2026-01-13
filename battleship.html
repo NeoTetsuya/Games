@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battleship: B1 English Review</title>
+    <style>
+        :root {
+            --primary-cyan: #06b6d4;
+            --primary-cyan-dim: #06b6d440;
+            --danger-red: #ef4444;
+            --success-green: #22c55e;
+            --dark-bg: #0b1121;
+            --panel-bg: #1e293b;
+            --grid-line: #334155;
+            --text-main: #f1f5f9;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+            background-color: var(--dark-bg);
+            background-image: 
+                radial-gradient(circle at 50% 50%, #172554 0%, transparent 50%),
+                linear-gradient(0deg, transparent 24%, rgba(6, 182, 212, .05) 25%, rgba(6, 182, 212, .05) 26%, transparent 27%, transparent 74%, rgba(6, 182, 212, .05) 75%, rgba(6, 182, 212, .05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(6, 182, 212, .05) 25%, rgba(6, 182, 212, .05) 26%, transparent 27%, transparent 74%, rgba(6, 182, 212, .05) 75%, rgba(6, 182, 212, .05) 76%, transparent 77%, transparent);
+            background-size: 100% 100%, 50px 50px, 50px 50px;
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            background: linear-gradient(to right, var(--primary-cyan), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+            font-weight: 900;
+            font-size: 2.5rem;
+            text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .turn-indicator {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--primary-cyan);
+            padding: 10px 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px var(--primary-cyan-dim);
+            transition: all 0.3s ease;
+        }
+
+        .turn-t1 { color: var(--primary-cyan); border-color: var(--primary-cyan); }
+        .turn-t2 { color: #f59e0b; border-color: #f59e0b; }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--primary-cyan);
+            color: var(--primary-cyan);
+            padding: 8px 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--primary-cyan);
+        }
+
+        .game-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .team-board {
+            background: rgba(30, 41, 59, 0.4);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .team-board.active-turn {
+            border: 2px solid var(--primary-cyan);
+            box-shadow: 0 0 20px var(--primary-cyan-dim);
+        }
+
+        .team-title {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .t1-title { color: var(--primary-cyan); }
+        .t2-title { color: #f59e0b; }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-family: 'Courier New', monospace;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 30px repeat(11, 1fr);
+            gap: 2px;
+        }
+
+        .cell {
+            width: 32px;
+            height: 32px;
+            background-color: rgba(51, 65, 85, 0.5);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            position: relative;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .cell:hover:not(.header-cell):not(.revealed) {
+            background-color: var(--primary-cyan);
+            color: var(--dark-bg);
+            transform: scale(1.1);
+            z-index: 2;
+            box-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .header-cell {
+            background-color: transparent;
+            border: none;
+            color: var(--primary-cyan);
+            font-weight: bold;
+            cursor: default;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* States */
+        .cell.hit {
+            background-color: var(--danger-red) !important;
+            box-shadow: inset 0 0 10px black;
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            border-color: #991b1b;
+        }
+        
+        .cell.hit::after {
+            content: '💥';
+            font-size: 1.2rem;
+            animation: popIn 0.3s ease;
+        }
+
+        .cell.miss {
+            background-color: var(--grid-line) !important;
+            opacity: 0.7;
+        }
+
+        .cell.miss::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #94a3b8;
+            border-radius: 50%;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 17, 33, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal {
+            background: #1e293b;
+            border: 1px solid var(--primary-cyan);
+            padding: 0;
+            width: 600px;
+            max-width: 95%;
+            border-radius: 8px;
+            box-shadow: 0 0 50px rgba(6, 182, 212, 0.2);
+            overflow: hidden;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .modal-header {
+            background: rgba(6, 182, 212, 0.1);
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: var(--primary-cyan);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        .modal-body {
+            padding: 30px;
+            text-align: center;
+        }
+
+        #modal-question {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .answer-box {
+            margin: 20px auto;
+            padding: 20px;
+            background: #0f172a;
+            border: 1px dashed var(--primary-cyan);
+            display: none;
+            font-size: 1.1rem;
+            color: #fff;
+            border-radius: 6px;
+            max-width: 90%;
+        }
+
+        .btn-check {
+            background: transparent;
+            border: 2px solid var(--text-main);
+            color: var(--text-main);
+        }
+
+        .btn-correct { border-color: var(--success-green); color: var(--success-green); }
+        .btn-correct:hover { background: var(--success-green); color: #fff; box-shadow: 0 0 20px var(--success-green); }
+        
+        .btn-wrong { border-color: var(--danger-red); color: var(--danger-red); }
+        .btn-wrong:hover { background: var(--danger-red); color: #fff; box-shadow: 0 0 20px var(--danger-red); }
+
+        /* Animations */
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Editor Area */
+        #editor-area {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background: #1e293b;
+            padding: 20px;
+            border: 2px solid var(--primary-cyan);
+            z-index: 2000;
+            box-shadow: 0 0 100px black;
+            border-radius: 8px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: calc(100% - 100px);
+            background: #0f172a;
+            color: #bef264;
+            border: 1px solid #475569;
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            resize: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Battleship: B1 English Review</h1>
+    
+    <div class="turn-indicator turn-t1" id="turn-display">
+        Current Turn: TEAM 1
+    </div>
+
+    <div class="header-controls">
+        <button onclick="resetGame()">Reset Board</button>
+        <button onclick="toggleEditor()">Edit Questions (JSON)</button>
+        <button onclick="toggleSound()">Sound: <span id="sound-status">ON</span></button>
+    </div>
+
+    <!-- Hidden by default -->
+    <div id="editor-area">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <h3 style="margin:0; color:var(--primary-cyan);">Question Editor</h3>
+            <button onclick="toggleEditor()" style="padding:5px 10px;">X</button>
+        </div>
+        <textarea id="question-json"></textarea>
+        <div style="margin-top:15px; text-align:right;">
+            <button onclick="saveQuestions()">Save Changes</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <!-- Team 1 shoots here to hit Team 2's ships -->
+        <div class="team-board" id="board-1">
+            <div class="team-title t1-title">Team 1 Target (A-I)</div>
+            <div class="stats">
+                <span>Enemy Fleet: <strong id="t2-health">17</strong> segments</span>
+            </div>
+            <div class="grid" id="grid-1"></div>
+        </div>
+
+        <!-- Team 2 shoots here to hit Team 1's ships -->
+        <div class="team-board" id="board-2">
+            <div class="team-title t2-title">Team 2 Target (J-R)</div>
+            <div class="stats">
+                <span>Enemy Fleet: <strong id="t1-health">17</strong> segments</span>
+            </div>
+            <div class="grid" id="grid-2"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="game-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Sector A1 Locked</h2>
+                <div style="font-family:monospace; color:#64748b;">CLASS: B1</div>
+            </div>
+            <div class="modal-body">
+                <p id="modal-question">Question loading...</p>
+                
+                <div class="modal-buttons" id="reveal-btn-container">
+                    <button class="btn-check" onclick="showAnswer()">Reveal Answer</button>
+                </div>
+                
+                <div class="answer-box" id="modal-answer">
+                    Answer hidden
+                </div>
+
+                <div class="modal-buttons" id="result-buttons" style="display:none;">
+                    <button class="btn-correct" onclick="handleResult(true)">Correct (Fire!)</button>
+                    <button class="btn-wrong" onclick="handleResult(false)">Incorrect (Miss)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const rowsTeam1 = ['A','B','C','D','E','F','G','H','I'];
+        const rowsTeam2 = ['J','K','L','M','N','O','P','Q','R'];
+        const cols = 11;
+        const shipSizes = [5, 4, 3, 3, 2];
+        let soundEnabled = true;
+        let currentTurn = 1; // 1 or 2
+        
+        // --- Audio Context (Synthesized sounds) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if(!soundEnabled) return;
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'hit') {
+                // Low boom
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } else if (type === 'miss') {
+                // High blip
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'ui') {
+                // Click
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            }
+        }
+
+        // --- B1 Question Bank ---
+        const b1QuestionBank = [
+            // --- NEW ADDITIONS ---
+            // Question Tags
+            {q: "You like coffee, _____?", a: "don't you"},
+            {q: "She hasn't arrived yet, _____?", a: "has she"},
+            {q: "They were happy, _____?", a: "weren't they"},
+            {q: "He can swim, _____?", a: "can't he"},
+            
+            // Word Formation
+            {q: "What is the noun form of 'safe'?", a: "Safety"},
+            {q: "What is the adjective form of 'danger'?", a: "Dangerous"},
+            {q: "What is the verb form of 'choice'?", a: "Choose"},
+            {q: "What is the noun form of 'decide'?", a: "Decision"},
+
+            // Quantifiers
+            {q: "Complete: 'I don't have _____ (much/many) time.'", a: "much"},
+            {q: "Complete: 'There are _____ (a few/a little) apples left.'", a: "a few"},
+            {q: "Complete: 'I have _____ (too much/too many) clothes.'", a: "too many"},
+
+            // Connectors
+            {q: "Complete: 'I went to bed _____ I was tired.'", a: "because"},
+            {q: "Complete: '_____ it was raining, we played football.'", a: "Although / Even though"},
+            {q: "Complete: 'I was late _____ the traffic.'", a: "because of / due to"},
+
+            // Used to / Get used to
+            {q: "Complete: 'I _____ (play) tennis when I was young, but I stopped.'", a: "used to play"},
+            {q: "Complete: 'I am getting _____ to the cold weather.'", a: "used"},
+            {q: "Complete: 'Did you _____ live here?'", a: "use to"},
+
+            // So / Such / Too / Enough
+            {q: "Complete: 'She is _____ a nice person.'", a: "such"},
+            {q: "Complete: 'The movie was _____ boring.'", a: "so"},
+            {q: "Complete: 'He isn't old _____ to drive.'", a: "enough"},
+            {q: "Complete: 'The tea is _____ hot to drink.'", a: "too"},
+
+            // Phrasal Verbs 2
+            {q: "Phrasal Verb: 'Can you look _____ my cat while I'm away?' (care for)", a: "after"},
+            {q: "Phrasal Verb: 'I run _____ of milk.' (have none left)", a: "out"},
+            {q: "Phrasal Verb: 'Please turn _____ the music.' (lower volume)", a: "down"},
+            {q: "Phrasal Verb: 'Never give _____!' (stop trying)", a: "up"},
+
+            // Present Perfect Continuous
+            {q: "Complete: 'I _____ (wait) for you for two hours!'", a: "have been waiting"},
+            {q: "Complete: 'She _____ (work) here since 2010.'", a: "has been working"},
+
+            // --- EXISTING QUESTIONS ---
+            // Present Perfect vs Past Simple
+            {q: "Complete: 'I _____ (never/be) to Japan.'", a: "have never been"},
+            {q: "Complete: 'She _____ (go) to Paris last year.'", a: "went"},
+            {q: "Make a question using 'Have you ever...' and the verb 'eat'.", a: "Have you ever eaten...?"},
+            {q: "Complete: 'I _____ (lose) my keys. I can't find them.'", a: "have lost"},
+            {q: "Complete: 'Shakespeare _____ (write) many plays.'", a: "wrote"},
+            
+            // Conditionals
+            {q: "First Conditional: 'If it rains tomorrow, we _____ (stay) inside.'", a: "will stay / are going to stay"},
+            {q: "Second Conditional: 'If I _____ (win) the lottery, I would buy a boat.'", a: "won"},
+            {q: "Second Conditional: 'If I _____ (be) you, I wouldn't do that.'", a: "were / was"},
+            {q: "Complete: 'Unless you study, you _____ (fail) the exam.'", a: "will fail"},
+            
+            // Passives
+            {q: "Change to Passive: 'Someone stole my car.'", a: "My car was stolen."},
+            {q: "Change to Passive: 'They make these cars in Germany.'", a: "These cars are made in Germany."},
+            {q: "Change to Passive: 'JK Rowling wrote Harry Potter.'", a: "Harry Potter was written by JK Rowling."},
+            
+            // Modals
+            {q: "Advice: 'You look tired. You _____ go to sleep.'", a: "should / ought to"},
+            {q: "Prohibition: 'You _____ smoke in the hospital.'", a: "mustn't / cannot"},
+            {q: "Deduction: 'The lights are off. They _____ be at home.'", a: "can't / might not"},
+            {q: "Ability: 'I _____ swim when I was five.'", a: "could"},
+            
+            // Future Forms
+            {q: "Prediction (Evidence): 'Look at those clouds! It _____ rain.'", a: "is going to"},
+            {q: "Instant Decision: 'The phone is ringing.' 'I _____ answer it.'", a: "will"},
+            {q: "Arrangement: 'We _____ (meet) John at 8pm tonight.'", a: "are meeting"},
+            
+            // Gerunds and Infinitives
+            {q: "Complete: 'I enjoy _____ (read) books.'", a: "reading"},
+            {q: "Complete: 'I promised _____ (help) him.'", a: "to help"},
+            {q: "Complete: 'She is good at _____ (draw).'", a: "drawing"},
+            {q: "Complete: 'I decided _____ (move) to Spain.'", a: "to move"},
+            
+            // Vocabulary & Misc
+            {q: "What is the opposite of 'generous'?", a: "Mean / Stingy / Selfish"},
+            {q: "What do you call the person who directs a film?", a: "Director"},
+            {q: "Phrasal Verb: 'I need to find _____ what happened.' (discover)", a: "out"},
+            {q: "Phrasal Verb: 'The plane took _____ at 9am.'", a: "off"},
+            {q: "What is the noun for the adjective 'angry'?", a: "Anger"},
+            {q: "What is the noun for the adjective 'happy'?", a: "Happiness"},
+            {q: "Relative Clause: 'This is the school _____ I studied.'", a: "where"},
+            {q: "Relative Clause: 'That is the man _____ stole my bag.'", a: "who / that"},
+            {q: "Reported Speech: 'I am happy', said Tom. -> Tom said he _____ happy.", a: "was"},
+            {q: "Reported Speech: 'I will call you', said Sara. -> Sara said she _____ call me.", a: "would"},
+            
+            // Past Continuous
+            {q: "Complete: 'I _____ (sleep) when the thief entered.'", a: "was sleeping"},
+            {q: "Complete: 'While we _____ (walk) in the park, it started to rain.'", a: "were walking"},
+            
+            // Comparatives/Superlatives
+            {q: "Superlative: 'This is the _____ (bad) movie I have ever seen.'", a: "worst"},
+            {q: "Comparative: 'My car is _____ (expensive) than yours.'", a: "more expensive"},
+            {q: "Comparative: 'Today is _____ (hot) than yesterday.'", a: "hotter"},
+            
+            // Prepositions
+            {q: "Preposition: 'I was born _____ 1995.'", a: "in"},
+            {q: "Preposition: 'See you _____ Monday.'", a: "on"},
+            {q: "Preposition: 'She is married _____ a doctor.'", a: "to"},
+            {q: "Preposition: 'He is afraid _____ spiders.'", a: "of"},
+            {q: "Preposition: 'I am interested _____ music.'", a: "in"}
+        ];
+
+        // --- State ---
+        let questions = {};
+        let currentTarget = null;
+        let shipMap = {
+            'grid-1': new Set(), // Contains Team 2's ships (Hidden)
+            'grid-2': new Set()  // Contains Team 1's ships (Hidden)
+        };
+        
+        function generateQuestions() {
+            const allRows = [...rowsTeam1, ...rowsTeam2];
+            let qObj = {};
+            let index = 0;
+            
+            // Randomize array
+            const shuffled = [...b1QuestionBank].sort(() => 0.5 - Math.random());
+            
+            allRows.forEach(r => {
+                for(let c=1; c<=cols; c++) {
+                    let id = r + c;
+                    // Cycle through shuffled questions
+                    let qData = shuffled[index % shuffled.length];
+                    qObj[id] = {
+                        q: qData.q,
+                        a: qData.a
+                    };
+                    index++;
+                }
+            });
+            return qObj;
+        }
+
+        // --- Initialization ---
+        function init() {
+            questions = generateQuestions();
+            document.getElementById('question-json').value = JSON.stringify(questions, null, 2);
+            resetGame();
+        }
+
+        function resetGame() {
+            shipMap['grid-1'] = new Set();
+            shipMap['grid-2'] = new Set();
+            
+            placeShips(rowsTeam1, cols, shipMap['grid-1']);
+            placeShips(rowsTeam2, cols, shipMap['grid-2']);
+
+            renderGrid('grid-1', rowsTeam1, "Team 1");
+            renderGrid('grid-2', rowsTeam2, "Team 2");
+
+            document.getElementById('t1-health').innerText = "17"; 
+            document.getElementById('t2-health').innerText = "17";
+            
+            currentTurn = 1;
+            updateTurnUI();
+            playSound('ui');
+        }
+
+        function updateTurnUI() {
+            const tDiv = document.getElementById('turn-display');
+            const b1 = document.getElementById('board-1');
+            const b2 = document.getElementById('board-2');
+            
+            if(currentTurn === 1) {
+                tDiv.innerText = "Current Turn: TEAM 1";
+                tDiv.className = "turn-indicator turn-t1";
+                // Team 1 shoots at board 1 (which holds T2 ships)
+                b1.classList.add('active-turn');
+                b2.classList.remove('active-turn');
+            } else {
+                tDiv.innerText = "Current Turn: TEAM 2";
+                tDiv.className = "turn-indicator turn-t2";
+                // Team 2 shoots at board 2 (which holds T1 ships)
+                b2.classList.add('active-turn');
+                b1.classList.remove('active-turn');
+            }
+        }
+
+        function placeShips(rowLabels, colCount, setStorage) {
+            shipSizes.forEach(size => {
+                let placed = false;
+                while (!placed) {
+                    const isVertical = Math.random() < 0.5;
+                    const rIndex = Math.floor(Math.random() * (rowLabels.length - (isVertical ? size : 0)));
+                    const cIndex = Math.floor(Math.random() * (colCount - (isVertical ? 0 : size))) + 1;
+                    
+                    let coords = [];
+                    let collision = false;
+                    for(let i=0; i<size; i++) {
+                        let r = isVertical ? rowLabels[rIndex + i] : rowLabels[rIndex];
+                        let c = isVertical ? cIndex : cIndex + i;
+                        let id = r + c;
+                        if(setStorage.has(id)) collision = true;
+                        coords.push(id);
+                    }
+
+                    if(!collision) {
+                        coords.forEach(id => setStorage.add(id));
+                        placed = true;
+                    }
+                }
+            });
+        }
+
+        function renderGrid(elementId, rowLabels, teamName) {
+            const grid = document.getElementById(elementId);
+            grid.innerHTML = '';
+
+            grid.appendChild(createCell('header-cell', ''));
+            for(let i=1; i<=cols; i++) {
+                grid.appendChild(createCell('header-cell', i));
+            }
+
+            rowLabels.forEach(row => {
+                grid.appendChild(createCell('header-cell', row));
+                for(let c=1; c<=cols; c++) {
+                    let cellId = row + c;
+                    let div = document.createElement('div');
+                    div.className = 'cell';
+                    div.dataset.id = cellId;
+                    div.onclick = () => handleCellClick(elementId, cellId);
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function createCell(className, text) {
+            let div = document.createElement('div');
+            div.className = className;
+            div.innerText = text;
+            return div;
+        }
+
+        // --- Interaction ---
+        function handleCellClick(gridId, cellId) {
+            // Check turn
+            if(currentTurn === 1 && gridId !== 'grid-1') {
+                alert("It's Team 1's turn! Please fire at Team 1's Target Grid (Left).");
+                return;
+            }
+            if(currentTurn === 2 && gridId !== 'grid-2') {
+                alert("It's Team 2's turn! Please fire at Team 2's Target Grid (Right).");
+                return;
+            }
+
+            const cell = document.querySelector(`.grid[id="${gridId}"] .cell[data-id="${cellId}"]`);
+            if(cell.classList.contains('revealed') || cell.classList.contains('hit') || cell.classList.contains('miss')) {
+                return;
+            }
+
+            playSound('ui');
+            currentTarget = { gridId, cellId };
+            
+            const qData = questions[cellId] || { q: "No question set", a: "N/A" };
+            document.getElementById('modal-title').innerText = `TARGET LOCKED: ${cellId}`;
+            document.getElementById('modal-question').innerText = qData.q;
+            document.getElementById('modal-answer').innerText = qData.a;
+            
+            // Reset Modal UI
+            document.getElementById('modal-answer').style.display = 'none';
+            document.getElementById('result-buttons').style.display = 'none';
+            document.getElementById('reveal-btn-container').style.display = 'flex';
+
+            document.getElementById('game-modal').style.display = 'flex';
+        }
+
+        function showAnswer() {
+            playSound('ui');
+            document.getElementById('modal-answer').style.display = 'block';
+            document.getElementById('reveal-btn-container').style.display = 'none';
+            document.getElementById('result-buttons').style.display = 'flex';
+        }
+
+        function handleResult(isCorrect) {
+            const cell = document.querySelector(`.grid[id="${currentTarget.gridId}"] .cell[data-id="${currentTarget.cellId}"]`);
+            cell.classList.add('revealed');
+
+            if (isCorrect) {
+                const isHit = shipMap[currentTarget.gridId].has(currentTarget.cellId);
+                if(isHit) {
+                    cell.classList.add('hit');
+                    updateHealth(currentTarget.gridId);
+                    playSound('hit');
+                } else {
+                    cell.classList.add('miss');
+                    playSound('miss');
+                }
+            } else {
+                cell.classList.add('miss');
+                playSound('miss');
+            }
+            
+            // Switch Turn
+            currentTurn = currentTurn === 1 ? 2 : 1;
+            updateTurnUI();
+            
+            document.getElementById('game-modal').style.display = 'none';
+        }
+
+        function updateHealth(gridId) {
+            let healthSpanId = (gridId === 'grid-1') ? 't2-health' : 't1-health';
+            let current = parseInt(document.getElementById(healthSpanId).innerText);
+            current--;
+            document.getElementById(healthSpanId).innerText = current;
+
+            if(current === 0) {
+                setTimeout(() => {
+                    alert(gridId === 'grid-1' ? "TEAM 1 WINS! ENEMY FLEET DESTROYED!" : "TEAM 2 WINS! ENEMY FLEET DESTROYED!");
+                    playSound('hit'); 
+                }, 500);
+            }
+        }
+
+        function toggleEditor() {
+            const editor = document.getElementById('editor-area');
+            editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function saveQuestions() {
+            try {
+                const raw = document.getElementById('question-json').value;
+                questions = JSON.parse(raw);
+                alert("Database updated!");
+                toggleEditor();
+            } catch (e) {
+                alert("Invalid JSON format.");
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-status').innerText = soundEnabled ? "ON" : "OFF";
+        }
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
