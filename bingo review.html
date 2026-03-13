@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Review Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Small animations included in tailwind but needing explicit keyframes if not using the full plugin */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-100 p-4 md:p-8 font-sans text-slate-800 flex flex-col items-center">
+
+    <!-- Header -->
+    <div class="w-full max-w-5xl flex justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div>
+            <h1 class="text-4xl md:text-5xl font-black tracking-tight flex items-baseline gap-1">
+                <span class="text-pink-600">B</span>
+                <span class="text-teal-500">I</span>
+                <span class="text-green-500">N</span>
+                <span class="text-red-500">G</span>
+                <span class="text-orange-500">O</span>
+                <span class="text-purple-600">!</span>
+            </h1>
+            <p class="text-md font-bold text-slate-400 uppercase tracking-widest mt-1">The Review Game</p>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <div class="text-sm font-bold text-slate-400 uppercase tracking-wider">Balls Remaining</div>
+                <div class="text-3xl font-black text-indigo-600" id="balls-remaining">24 / 24</div>
+            </div>
+            <div class="h-12 w-px bg-slate-200 mx-2"></div>
+            <button onclick="startNewGame()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl font-bold transition-colors" title="Reset Game">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i> Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="w-full max-w-5xl flex-1 flex flex-col bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden relative min-h-[500px]">
+        
+        <!-- Start Screen -->
+        <div id="start-screen" class="flex-1 flex flex-col items-center justify-center p-12 text-center bg-slate-50 h-full">
+            <div class="relative mb-8 group">
+                <div class="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
+                <div class="relative w-48 h-48 bg-gradient-to-br from-yellow-300 to-orange-500 rounded-full flex items-center justify-center shadow-[inset_-8px_-8px_20px_rgba(0,0,0,0.1),_8px_8px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 group-hover:scale-105">
+                    <span class="text-8xl font-black text-white drop-shadow-md">?</span>
+                </div>
+            </div>
+            <h2 class="text-4xl font-black text-slate-800 mb-4">Ready to Play!</h2>
+            <p class="text-xl text-slate-500 mb-10 max-w-lg">Students should have their 1-24 Bingo cards and mini whiteboards ready. Draw a ball, and guide the students to write down their answers!</p>
+            <button onclick="drawBall()" class="bg-indigo-600 text-white px-12 py-5 rounded-full font-black text-2xl shadow-[0_8px_30px_rgb(79,70,229,0.4)] hover:bg-indigo-700 hover:-translate-y-1 active:translate-y-0 transition-all">
+                Draw First Ball
+            </button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden flex-1 flex flex-col p-8 md:p-12 h-full">
+            
+            <!-- Top Row: Ball & Timer -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
+                <!-- The Drawn Ball -->
+                <div class="flex items-center gap-6">
+                    <div class="w-32 h-32 md:w-40 md:h-40 bg-[radial-gradient(circle_at_30%_30%,_#fde047,_#ea580c)] rounded-full flex items-center justify-center shadow-[inset_-6px_-6px_15px_rgba(0,0,0,0.2),_6px_6px_15px_rgba(0,0,0,0.2)]">
+                        <span id="current-ball-number" class="text-6xl md:text-7xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.3)]">1</span>
+                    </div>
+                    <div>
+                        <div class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Drawn Number</div>
+                        <div id="current-ball-category" class="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 font-bold rounded-lg text-lg">
+                            Category
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timer -->
+                <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 shadow-sm min-w-[280px]">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-bold text-slate-500 flex items-center gap-1"><i data-lucide="clock" class="w-4 h-4"></i> Timer</span>
+                        <div class="flex items-center gap-1 bg-white rounded-lg border border-slate-200 p-0.5">
+                            <button onclick="adjustTimerPreset(-15)" class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                            <span id="timer-preset" class="text-xs font-bold w-8 text-center">60s</span>
+                            <button onclick="adjustTimerPreset(15)" class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div id="time-left" class="text-5xl font-black tabular-nums tracking-tight text-slate-800">
+                            1:00
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btn-timer-toggle" onclick="toggleTimer()" class="w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md transition-all bg-emerald-500 hover:bg-emerald-600">
+                                <i data-lucide="play" class="w-6 h-6 ml-1 fill-current"></i>
+                            </button>
+                            <button onclick="resetTimer()" class="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Area -->
+            <div class="flex-1 flex flex-col justify-center mb-8">
+                <h3 id="current-question" class="text-3xl md:text-5xl font-bold text-slate-800 leading-tight text-center md:text-left">
+                    Question goes here
+                </h3>
+            </div>
+
+            <!-- Controls & Answer Area -->
+            <div class="mt-auto">
+                <!-- Reveal Button State -->
+                <div id="reveal-section">
+                    <button onclick="handleRevealAnswer()" class="w-full bg-slate-800 text-white px-8 py-6 rounded-2xl font-bold text-2xl shadow-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-3 group">
+                        Reveal Answer <i data-lucide="arrow-right" class="w-7 h-7 group-hover:translate-x-2 transition-transform"></i>
+                    </button>
+                </div>
+
+                <!-- Answer Revealed State -->
+                <div id="answer-section" class="hidden bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-8 text-center shadow-sm relative overflow-hidden transition-all duration-300">
+                    <div class="absolute -right-4 -top-4 text-emerald-100 opacity-50">
+                        <i data-lucide="check-circle-2" class="w-32 h-32"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-sm font-black text-emerald-600 uppercase tracking-widest mb-2">Correct Answer</p>
+                        <p id="current-answer" class="text-4xl md:text-6xl font-black text-emerald-800 mb-8">Answer</p>
+                        <button id="btn-next" onclick="drawBall()" class="w-full md:w-auto bg-indigo-600 text-white px-10 py-5 rounded-full font-black text-xl shadow-[0_4px_20px_rgb(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mx-auto">
+                            Draw Next Ball <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Master Board Tracker -->
+    <div class="w-full max-w-5xl mt-6 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 text-center">Master Board Tracker</h3>
+        <div id="master-board-container" class="flex flex-wrap justify-center gap-2 md:gap-3">
+            <!-- Numbers will be populated by JS -->
+        </div>
+    </div>
+
+    <script>
+        // Data Bank: Contains all potential questions (Normal + Challenges)
+        const QUESTION_BANK = [
+            // --- Normal Questions ---
+            { category: "Grammar: Present Simple", text: "Write the correct form: My cousin ______ (play) the guitar in a band.", answer: "plays" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: The coffee shop ______ (open) at 7 a.m.", answer: "opens" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: We ______ (need) to buy more milk.", answer: "need" },
+            { category: "Grammar: Adverbs", text: "Rewrite with the adverb: The bus is late. (sometimes)", answer: "The bus is sometimes late." },
+            { category: "Grammar: Adverbs", text: "Rewrite with the adverb: I eat vegetables. (often)", answer: "I often eat vegetables." },
+            { category: "Grammar: Adverbs", text: "Rewrite with the adverb: She forgets her keys. (never)", answer: "She never forgets her keys." },
+            { category: "Vocabulary: Time", text: "Write the time in words: 07:15", answer: "a quarter past seven" },
+            { category: "Vocabulary: Time", text: "Write the time in words: 10:45", answer: "a quarter to eleven" },
+            { category: "Vocabulary: Time", text: "Write the time in words: 13:30", answer: "half past one" },
+            { category: "Vocabulary: Time", text: "Write the time in words: 16:10", answer: "ten past four" },
+            { category: "Vocabulary: Time", text: "Write the time in words: 12:00", answer: "twelve o'clock (or midday)" },
+            { category: "Vocabulary: Time", text: "Write the time in words: 09:20", answer: "twenty past nine" },
+            { category: "Vocabulary: Chores", text: "What is another way to say 'prepare a meal'?", answer: "make lunch/dinner (or cook)" },
+            { category: "Vocabulary: Chores", text: "When your clothes are dirty, you must ______.", answer: "do the laundry (or wash the clothes)" },
+            { category: "Vocabulary: Chores", text: "After eating, it's time to ______.", answer: "wash up (or clean the dishes)" },
+            { category: "Vocabulary: Chores", text: "What do you call the chore of putting things away and organizing your room?", answer: "tidying up" },
+            { category: "Vocabulary: Chores", text: "What is another phrase for 'putting the rubbish out'?", answer: "taking out the bins" },
+            { category: "Vocabulary: Routines", text: "Before going to school, I ______ my hair and ______ my teeth.", answer: "brush / brush" },
+            { category: "Vocabulary: Routines", text: "Instead of driving, my sister decides to ______ the bus.", answer: "catch (or take)" },
+            { category: "Vocabulary: Routines", text: "To get information for my project, I ______ online.", answer: "go" },
+            { category: "Vocabulary: Routines", text: "When the alarm rings, I ______ up.", answer: "get (or wake)" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: He ______ (worry) about his exams too much.", answer: "worries" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: The baby ______ (cry) when she is hungry.", answer: "cries" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: My grandparents ______ (live) in a big city.", answer: "live" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: The sun ______ (rise) in the east.", answer: "rises" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: My mom ______ (relax) by reading a book.", answer: "relaxes" },
+            { category: "Grammar: Present Simple", text: "Write the correct form: The class ______ (finish) at 3 PM.", answer: "finishes" },
+            { category: "Grammar: Adverbs", text: "Rewrite with the adverb: They are happy. (always)", answer: "They are always happy." },
+            { category: "Grammar: Adverbs", text: "Rewrite with the adverb: I drink coffee. (rarely)", answer: "I rarely drink coffee." },
+
+            // --- Challenge Questions ---
+            { category: "🔥 Sentence Order", text: "Write the correct sentence: cinema / rarely / We / to / go / the / .", answer: "We rarely go to the cinema." },
+            { category: "🔥 Sentence Order", text: "Write the correct sentence: morning / showers / usually / takes / He / in / the / .", answer: "He usually takes showers in the morning." },
+            { category: "🔥 Sentence Order", text: "Write the correct sentence: park / sometimes / dogs / their / walk / They / the / in / .", answer: "They sometimes walk their dogs in the park." },
+            { category: "🔥 Sentence Order", text: "Write the correct sentence: always / homework / dinner / does / She / her / before / .", answer: "She always does her homework before dinner." },
+            { category: "🔥 Find the Mistake", text: "Find and correct the grammar mistake: 'My mom never watch TV.'", answer: "watch -> watches" },
+            { category: "🔥 Find the Mistake", text: "Find and correct the spelling mistake: 'He studyes Spanish every evening.'", answer: "studyes -> studies" },
+            { category: "🔥 Find the Mistake", text: "Find and correct the grammar mistake: 'I always am tired on Mondays.'", answer: "always am -> am always" },
+            { category: "🔥 Anagram Challenge", text: "Unscramble to find a daily routine:  x e e r c s i e", answer: "exercise" },
+            { category: "🔥 Anagram Challenge", text: "Unscramble to find a chore:  d o   t e h   r u a l n d y", answer: "do the laundry" },
+            { category: "🔥 Anagram Challenge", text: "Unscramble to find a routine:  a w c h t   V T", answer: "watch TV" }
+        ];
+
+        let GAME_DATA = []; // Will be populated dynamically on start
+        let drawnNumbers = [];
+        let currentBall = null;
+        let showAnswer = false;
+        
+        let timerPreset = 60;
+        let timeLeft = 60;
+        let isTimerRunning = false;
+        let timerInterval = null;
+
+        // Shuffle helper function
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function updateUI() {
+            // Header Stats
+            document.getElementById('balls-remaining').innerText = `${24 - drawnNumbers.length} / 24`;
+
+            // Screen Toggle
+            if (!currentBall) {
+                document.getElementById('start-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('hidden');
+            } else {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+
+                // Ball Info
+                document.getElementById('current-ball-number').innerText = currentBall.id;
+                document.getElementById('current-ball-category').innerText = currentBall.category;
+                document.getElementById('current-question').innerText = currentBall.text;
+
+                // Answer State
+                if (showAnswer) {
+                    document.getElementById('reveal-section').classList.add('hidden');
+                    document.getElementById('answer-section').classList.remove('hidden');
+                    document.getElementById('current-answer').innerText = currentBall.answer;
+
+                    const btnNext = document.getElementById('btn-next');
+                    if (drawnNumbers.length === 24) {
+                        btnNext.innerHTML = 'Game Over - All Balls Drawn';
+                        btnNext.disabled = true;
+                        btnNext.className = "w-full md:w-auto bg-slate-300 text-white px-10 py-5 rounded-full font-black text-xl flex items-center justify-center gap-3 mx-auto cursor-not-allowed";
+                    } else {
+                        btnNext.innerHTML = 'Draw Next Ball <i data-lucide="arrow-right" class="w-6 h-6"></i>';
+                        btnNext.disabled = false;
+                        btnNext.className = "w-full md:w-auto bg-indigo-600 text-white px-10 py-5 rounded-full font-black text-xl shadow-[0_4px_20px_rgb(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mx-auto";
+                    }
+                } else {
+                    document.getElementById('reveal-section').classList.remove('hidden');
+                    document.getElementById('answer-section').classList.add('hidden');
+                }
+            }
+
+            // Timer Info
+            document.getElementById('timer-preset').innerText = `${timerPreset}s`;
+            const timeLeftEl = document.getElementById('time-left');
+            timeLeftEl.innerText = formatTime(timeLeft);
+            
+            // Timer Formatting
+            if (timeLeft <= 10 && timeLeft > 0) {
+                timeLeftEl.className = 'text-5xl font-black tabular-nums tracking-tight text-red-500 animate-pulse';
+            } else if (timeLeft === 0) {
+                timeLeftEl.className = 'text-5xl font-black tabular-nums tracking-tight text-red-600';
+            } else {
+                timeLeftEl.className = 'text-5xl font-black tabular-nums tracking-tight text-slate-800';
+            }
+
+            // Timer Button State
+            const btnTimerToggle = document.getElementById('btn-timer-toggle');
+            btnTimerToggle.disabled = (timeLeft === 0 || showAnswer);
+            
+            if (btnTimerToggle.disabled) {
+                btnTimerToggle.className = 'w-12 h-12 flex items-center justify-center rounded-xl text-white transition-all bg-slate-300 cursor-not-allowed';
+                btnTimerToggle.innerHTML = '<i data-lucide="play" class="w-6 h-6 ml-1 fill-current opacity-50"></i>';
+            } else if (isTimerRunning) {
+                btnTimerToggle.className = 'w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md transition-all bg-amber-500 hover:bg-amber-600';
+                btnTimerToggle.innerHTML = '<i data-lucide="pause" class="w-6 h-6 fill-current"></i>';
+            } else {
+                btnTimerToggle.className = 'w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md transition-all bg-emerald-500 hover:bg-emerald-600';
+                btnTimerToggle.innerHTML = '<i data-lucide="play" class="w-6 h-6 ml-1 fill-current"></i>';
+            }
+
+            // Master Board Tracker
+            const boardContainer = document.getElementById('master-board-container');
+            boardContainer.innerHTML = '';
+            
+            for (let num = 1; num <= 24; num++) {
+                const isDrawn = drawnNumbers.includes(num);
+                const isLatest = drawnNumbers[0] === num;
+                
+                const div = document.createElement('div');
+                div.innerText = num;
+                
+                let classes = "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-all duration-300 ";
+                
+                if (isLatest) {
+                    classes += "bg-yellow-400 text-yellow-950 shadow-md border-2 border-yellow-500 scale-110 z-10";
+                } else if (isDrawn) {
+                    classes += "bg-indigo-100 text-indigo-400 opacity-60";
+                } else {
+                    classes += "bg-slate-100 text-slate-600";
+                }
+                
+                div.className = classes;
+                boardContainer.appendChild(div);
+            }
+
+            // Re-initialize icons since DOM was updated
+            lucide.createIcons();
+        }
+
+        function startNewGame() {
+            // Split bank into normal and challenge
+            let normalQuestions = QUESTION_BANK.filter(q => !q.category.includes('🔥'));
+            let challengeQuestions = QUESTION_BANK.filter(q => q.category.includes('🔥'));
+            
+            // Shuffle both banks independently
+            normalQuestions = shuffleArray([...normalQuestions]);
+            challengeQuestions = shuffleArray([...challengeQuestions]);
+            
+            // Pick exactly 18 normal and 6 challenge questions for the board
+            let selectedQuestions = [
+                ...normalQuestions.slice(0, 18), 
+                ...challengeQuestions.slice(0, 6)
+            ];
+            
+            // Shuffle the combined 24 questions so challenges are distributed randomly
+            selectedQuestions = shuffleArray(selectedQuestions);
+            
+            // Map them to IDs 1-24 to match the physical Bingo boards!
+            GAME_DATA = selectedQuestions.map((q, index) => ({
+                id: index + 1,
+                category: q.category,
+                text: q.text,
+                answer: q.answer
+            }));
+
+            // Reset Game state
+            drawnNumbers = [];
+            currentBall = null;
+            showAnswer = false;
+            stopTimerInterval();
+            timeLeft = timerPreset;
+            updateUI();
+        }
+
+        function drawBall() {
+            const availableNumbers = Array.from({ length: 24 }, (_, i) => i + 1).filter(n => !drawnNumbers.includes(n));
+            if (availableNumbers.length === 0) return;
+
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const newNumber = availableNumbers[randomIndex];
+            
+            currentBall = GAME_DATA.find(q => q.id === newNumber);
+            drawnNumbers.unshift(newNumber); // Add to beginning (makes drawnNumbers[0] the latest)
+            showAnswer = false;
+            
+            // Reset timer
+            stopTimerInterval();
+            timeLeft = timerPreset;
+            
+            updateUI();
+        }
+
+        function handleRevealAnswer() {
+            showAnswer = true;
+            stopTimerInterval();
+            updateUI();
+        }
+
+        function adjustTimerPreset(amount) {
+            timerPreset = Math.max(15, timerPreset + amount); // Min 15s
+            if (!isTimerRunning && !currentBall) {
+                timeLeft = timerPreset;
+            }
+            updateUI();
+        }
+
+        function stopTimerInterval() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            isTimerRunning = false;
+        }
+
+        function toggleTimer() {
+            if (timeLeft === 0 || showAnswer) return;
+            
+            isTimerRunning = !isTimerRunning;
+            
+            if (isTimerRunning) {
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        timeLeft = 0;
+                        stopTimerInterval();
+                    }
+                    updateUI();
+                }, 1000);
+            } else {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            updateUI();
+        }
+
+        function resetTimer() {
+            stopTimerInterval();
+            timeLeft = timerPreset;
+            updateUI();
+        }
+
+        // Initialize UI and Game Data on load
+        window.addEventListener('DOMContentLoaded', () => {
+            startNewGame(); // Set up the initial 24 questions & call updateUI
+        });
+
+    </script>
+</body>
+</html>

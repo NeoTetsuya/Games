@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Mystery Box Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #5C94FC; /* Mario Sky Blue */
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.8) 5%, transparent 6%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.8) 4%, transparent 5%),
+                radial-gradient(circle at 50% 80%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.6) 8%, transparent 9%);
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Chunky 3D Text Effect */
+        .text-3d {
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0px 4px 0 #000;
+        }
+
+        .text-3d-light {
+            text-shadow: 2px 2px 0 #D9801D;
+        }
+
+        /* Mystery Box Styles */
+        .mystery-box {
+            background-color: #FBD000;
+            border: 4px solid #000;
+            box-shadow: inset -4px -4px 0px 0px #D9801D, inset 4px 4px 0px 0px #FFEFA6, 0 6px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+            position: relative;
+        }
+        
+        .mystery-box::before {
+            content: '';
+            position: absolute;
+            top: 4px; left: 4px; width: 6px; height: 6px; background: #D9801D; border-radius: 50%;
+        }
+        .mystery-box::after {
+            content: '';
+            position: absolute;
+            top: 4px; right: 4px; width: 6px; height: 6px; background: #D9801D; border-radius: 50%;
+        }
+        .mystery-box .dot-bl {
+            position: absolute;
+            bottom: 4px; left: 4px; width: 6px; height: 6px; background: #D9801D; border-radius: 50%;
+        }
+        .mystery-box .dot-br {
+            position: absolute;
+            bottom: 4px; right: 4px; width: 6px; height: 6px; background: #D9801D; border-radius: 50%;
+        }
+
+        .mystery-box:hover:not(.opened) {
+            transform: translateY(-4px);
+            box-shadow: inset -4px -4px 0px 0px #D9801D, inset 4px 4px 0px 0px #FFEFA6, 0 10px 0 #000;
+            cursor: pointer;
+        }
+
+        .mystery-box:active:not(.opened) {
+            transform: translateY(2px);
+            box-shadow: inset -4px -4px 0px 0px #D9801D, inset 4px 4px 0px 0px #FFEFA6, 0 4px 0 #000;
+        }
+
+        .mystery-box.opened {
+            background-color: #C49A45;
+            box-shadow: inset -4px -4px 0px 0px #A0782E, inset 4px 4px 0px 0px #DBC38F, 0 6px 0 #000;
+            color: rgba(0,0,0,0.3);
+            cursor: not-allowed;
+        }
+
+        /* Big Button Styles */
+        .btn-mario {
+            background-color: #E52521;
+            color: white;
+            border: 4px solid #000;
+            box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.3), inset 4px 4px 0px 0px rgba(255,255,255,0.4), 0 6px 0 #000;
+            transition: all 0.1s;
+        }
+        .btn-mario:hover { transform: translateY(-2px); box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.3), inset 4px 4px 0px 0px rgba(255,255,255,0.4), 0 8px 0 #000; }
+        .btn-mario:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.3), inset 4px 4px 0px 0px rgba(255,255,255,0.4), 0 2px 0 #000; }
+
+        .btn-luigi { background-color: #43B047; color: white; border: 4px solid #000; box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.3), inset 4px 4px 0px 0px rgba(255,255,255,0.4), 0 6px 0 #000; transition: all 0.1s; }
+        .btn-luigi:hover { transform: translateY(-2px); box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.3), inset 4px 4px 0px 0px rgba(255,255,255,0.4), 0 8px 0 #000; }
+        .btn-luigi:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.3), inset 4px 4px 0px 0px rgba(255,255,255,0.4), 0 2px 0 #000; }
+
+        .btn-yellow { background-color: #FBD000; color: #000; border: 4px solid #000; box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.2), inset 4px 4px 0px 0px rgba(255,255,255,0.6), 0 6px 0 #000; transition: all 0.1s; }
+        .btn-yellow:hover { transform: translateY(-2px); box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.2), inset 4px 4px 0px 0px rgba(255,255,255,0.6), 0 8px 0 #000; }
+        .btn-yellow:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.2), inset 4px 4px 0px 0px rgba(255,255,255,0.6), 0 2px 0 #000; }
+
+        /* Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: popIn 0.4s ease-out forwards; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        .card {
+            background-color: white;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.2);
+            border-radius: 16px;
+        }
+
+        .grass-floor {
+            background-color: #43B047;
+            border-top: 8px solid #000;
+            box-shadow: inset 0 8px 0 #60E065;
+        }
+        
+        .team-input:focus { outline: none; border-color: #FBD000; box-shadow: 0 0 0 3px rgba(251, 208, 0, 0.4); }
+    </style>
+</head>
+<body class="text-gray-900 flex flex-col h-screen">
+
+    <!-- Header -->
+    <header class="p-4 text-center z-10">
+        <h1 class="text-4xl md:text-6xl font-bold text-white text-3d tracking-wider">MYSTERY BOX</h1>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="app" class="flex-grow flex flex-col items-center justify-center p-4 z-10 overflow-y-auto">
+        <!-- Rendered via JS -->
+    </main>
+
+    <!-- Footer / Scoreboard -->
+    <footer id="scoreboard" class="grass-floor p-4 z-20 hidden">
+        <div class="max-w-6xl mx-auto flex flex-wrap justify-center gap-4" id="team-scores">
+            <!-- Rendered via JS -->
+        </div>
+    </footer>
+
+    <script>
+        // --- GAME DATA & CONFIG ---
+        const REWARDS_POOL = [
+            { text: "+100 PTS", type: 'add', val: 100, color: 'text-green-500' },
+            { text: "+100 PTS", type: 'add', val: 100, color: 'text-green-500' },
+            { text: "+100 PTS", type: 'add', val: 100, color: 'text-green-500' },
+            { text: "+200 PTS", type: 'add', val: 200, color: 'text-green-500' },
+            { text: "+200 PTS", type: 'add', val: 200, color: 'text-green-500' },
+            { text: "+300 PTS", type: 'add', val: 300, color: 'text-green-500' },
+            { text: "+300 PTS", type: 'add', val: 300, color: 'text-green-500' },
+            { text: "+400 PTS", type: 'add', val: 400, color: 'text-green-500' },
+            { text: "+500 PTS", type: 'add', val: 500, color: 'text-green-500' },
+            { text: "+1000 PTS!", type: 'add', val: 1000, color: 'text-yellow-500' },
+            { text: "-100 PTS", type: 'sub', val: 100, color: 'text-red-500' },
+            { text: "-100 PTS", type: 'sub', val: 100, color: 'text-red-500' },
+            { text: "-100 PTS", type: 'sub', val: 100, color: 'text-red-500' },
+            { text: "-200 PTS", type: 'sub', val: 200, color: 'text-red-500' },
+            { text: "-200 PTS", type: 'sub', val: 200, color: 'text-red-500' },
+            { text: "-300 PTS", type: 'sub', val: 300, color: 'text-red-500' },
+            { text: "-300 PTS", type: 'sub', val: 300, color: 'text-red-500' },
+            { text: "-400 PTS", type: 'sub', val: 400, color: 'text-red-500' },
+            { text: "-500 PTS", type: 'sub', val: 500, color: 'text-red-500' },
+            { text: "LOSE ALL PTS!", type: 'zero', val: 0, color: 'text-red-600' },
+            { text: "PTS x2!", type: 'mult', val: 2, color: 'text-blue-500' },
+            { text: "PTS x2!", type: 'mult', val: 2, color: 'text-blue-500' },
+            { text: "PTS ÷2", type: 'div', val: 2, color: 'text-orange-500' },
+            { text: "SWAP SCORES", type: 'swap', val: 0, color: 'text-purple-500' } // Special action
+        ];
+
+        const TRIVIA_QUESTIONS = [
+            // Standard Questions
+            { q: "Grammar: What do we use the present simple for?", answer: "Every day routines and habits." },
+            { q: "Grammar: Why do we use adverbs of frequency?", answer: "To say how often we do something." },
+            { q: "Grammar: What is the 'he/she/it' form of the verb 'watch'?", answer: "Watches" },
+            { q: "Grammar: What is the 'he/she/it' form of the verb 'try'?", answer: "Tries" },
+            { q: "Grammar: Complete: 'My brother _____ (work) for a computer company.'", answer: "Works" },
+            { q: "Grammar: Complete: 'My friends and I often _____ (play) basketball.'", answer: "Play" },
+            { q: "Grammar: Complete: 'My grandparents _____ (come) from Germany.'", answer: "Come" },
+            { q: "Grammar: Complete: 'In my family, only my sister _____ (get up) before 6 a.m.'", answer: "Gets up" },
+            { q: "Grammar: Complete: 'She _____ (have) a dance class every Wednesday.'", answer: "Has" },
+            { q: "Grammar: Complete with the 3rd person: 'Tom cooks and _____ (do) the washing up.'", answer: "Does" },
+            { q: "Grammar: Complete with the 3rd person: 'Anna _____ (catch) the bus to college.'", answer: "Catches" },
+            { q: "Grammar: Put in order: weekend / the / I / at / play / football.", answer: "I play football at the weekend." },
+            { q: "Grammar: Put in order: evening / a / have / the / in / I / shower.", answer: "I have a shower in the evening." },
+            { q: "Grammar: Which adverb means 0% of the time?", answer: "Never" },
+            { q: "Grammar: Which adverb means 100% of the time?", answer: "Always" },
+            { q: "Vocabulary: Unscramble the routine: 'I _____ (hrbus) my teeth.'", answer: "Brush" },
+            { q: "Vocabulary: Unscramble the routine: 'We _____ (atchc) the bus.'", answer: "Catch" },
+            { q: "Vocabulary: Unscramble the routine: 'I quickly _____ (lfal) asleep.'", answer: "Fall" },
+            { q: "Vocabulary: What is another phrase for 'wash the clothes'?", answer: "Do the laundry" },
+            { q: "Vocabulary: What is another phrase for 'clean the dishes'?", answer: "Wash up / Do the washing up" },
+            { q: "Vocabulary: What is another phrase for 'take out the bins'?", answer: "Put the rubbish out" },
+            { q: "Vocabulary: What is another phrase for 'do the housework'?", answer: "Do the cleaning" },
+            { q: "Vocabulary: Phrase meaning 'put things away' in your room?", answer: "Tidy up" },
+            { q: "Vocabulary: Unscramble: 'vahe' a shower.", answer: "Have" },
+            { q: "Vocabulary: Unscramble: 'elave' college.", answer: "Leave" },
+            { q: "Time: digital 12:00 in words?", answer: "Twelve o'clock" },
+            { q: "Time: digital 05:15 in words?", answer: "A quarter past five" },
+            
+            // CHALLENGING QUESTIONS
+            { q: "🔥 Challenge: Complete with 3rd person: 'My brother _____ (switch off) his light at midnight.'", answer: "Switches off" },
+            { q: "🔥 Challenge: Complete with 3rd person: 'Nadia _____ (relax) by doing yoga.'", answer: "Relaxes" },
+            { q: "🔥 Challenge: Put in order: his / brother / every / phone / five / My / minutes / checks.", answer: "My brother checks his phone every five minutes." },
+            { q: "🔥 Challenge: Put in order: six / dentist / every / I / the / go / to / months.", answer: "I go to the dentist every six months." },
+            { q: "🔥 Challenge: Put in order: mother / of / housework / the / does / most / My.", answer: "My mother does most of the housework." },
+            { q: "🔥 Challenge: Digital 20:50 in words?", answer: "Ten to nine" },
+            { q: "🔥 Challenge: Digital 15:35 in words?", answer: "Twenty-five to four" },
+            { q: "🔥 Challenge: Complete: 'Everyone _____ (study) different languages.'", answer: "Studies" },
+            { q: "🔥 Challenge: Change to the 3rd person: 'Adrian's baby _____ (cry) a lot.'", answer: "Cries" },
+            { q: "🔥 Challenge: Complete with 3rd person: 'My friend _____ (tidy up) his room.'", answer: "Tidies up" },
+            { q: "🔥 Challenge: Digital 16:55 in words?", answer: "Five to five" },
+            { q: "🔥 Challenge: Complete with 3rd person: 'My brother _____ (practice) every day.'", answer: "Practices" },
+            { q: "🔥 Challenge: Put in order: visit / my / weekend / I / at / family / the.", answer: "I visit my family at the weekend." }
+        ];
+
+        const BOX_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWX".split("");
+
+        const DEFAULT_TEAMS_CONFIG = [
+            { name: 'Mario', color: 'bg-red-500' },
+            { name: 'Luigi', color: 'bg-green-500' },
+            { name: 'Peach', color: 'bg-pink-400' },
+            { name: 'Toad', color: 'bg-blue-500' },
+            { name: 'Yoshi', color: 'bg-green-600' },
+            { name: 'Bowser', color: 'bg-orange-600' }
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            screen: 'setup', // setup, board, question, target (if swap/give), reveal
+            teams: [
+                { id: 1, name: 'Mario', score: 0, color: 'bg-red-500' },
+                { id: 2, name: 'Luigi', score: 0, color: 'bg-green-500' },
+                { id: 3, name: 'Peach', score: 0, color: 'bg-pink-400' },
+                { id: 4, name: 'Toad', score: 0, color: 'bg-blue-500' }
+            ],
+            currentTeamIndex: 0,
+            boxes: [],
+            activeBox: null,
+            showAnswer: false,
+            decision: null, // 'keep' or 'give'
+            targetTeamIndex: null // team receiving the box or swapping
+        };
+
+        const appEl = document.getElementById('app');
+        const scoreboardEl = document.getElementById('scoreboard');
+        const teamScoresEl = document.getElementById('team-scores');
+
+        // --- UTILS ---
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // --- INITIALIZATION ---
+        function adjustTeams(delta) {
+            let newCount = state.teams.length + delta;
+            if (newCount >= 2 && newCount <= 6) {
+                if (delta > 0) {
+                    let config = DEFAULT_TEAMS_CONFIG[newCount - 1] || { name: `Team ${newCount}`, color: 'bg-purple-500' };
+                    state.teams.push({ id: newCount, name: config.name, score: 0, color: config.color });
+                } else {
+                    state.teams.pop();
+                }
+                render();
+            }
+        }
+
+        function updateTeamName(index, newName) {
+            state.teams[index].name = newName || `Team ${index + 1}`;
+        }
+
+        function initGame() {
+            let shuffledRewards = shuffle([...REWARDS_POOL]);
+            let shuffledQuestions = shuffle([...TRIVIA_QUESTIONS]); // Randomize all questions
+            
+            state.boxes = BOX_LETTERS.map((letter, index) => ({
+                id: letter,
+                reward: shuffledRewards[index],
+                question: shuffledQuestions[index], // Pick 24 at random
+                opened: false
+            }));
+            state.currentTeamIndex = 0;
+            state.screen = 'board';
+            render();
+        }
+
+        // --- ACTIONS ---
+        function openBox(boxId) {
+            state.activeBox = state.boxes.find(b => b.id === boxId);
+            state.showAnswer = false;
+            state.screen = 'question';
+            render();
+        }
+
+        function revealAnswer() {
+            state.showAnswer = true;
+            render();
+        }
+
+        function makeDecision(choice) {
+            state.decision = choice;
+            if (choice === 'give' || state.activeBox.reward.type === 'swap') {
+                state.screen = 'target'; // Need to select a team
+            } else {
+                state.targetTeamIndex = state.currentTeamIndex; // Keeping it
+                state.screen = 'reveal';
+            }
+            render();
+        }
+
+        function selectTargetTeam(index) {
+            state.targetTeamIndex = index;
+            state.screen = 'reveal';
+            render();
+        }
+
+        function applyRewardAndNext() {
+            const reward = state.activeBox.reward;
+            let targetTeam = state.teams[state.targetTeamIndex];
+            let currentTeam = state.teams[state.currentTeamIndex];
+
+            if (reward.type === 'swap') {
+                // Swap current team with target team
+                let temp = currentTeam.score;
+                currentTeam.score = targetTeam.score;
+                targetTeam.score = temp;
+            } else {
+                // Apply math to target team (could be current if kept, or other if given)
+                if (reward.type === 'add') targetTeam.score += reward.val;
+                if (reward.type === 'sub') targetTeam.score -= reward.val;
+                if (reward.type === 'mult') targetTeam.score *= reward.val;
+                if (reward.type === 'div') targetTeam.score = Math.floor(targetTeam.score / reward.val);
+                if (reward.type === 'zero') targetTeam.score = 0;
+            }
+
+            state.activeBox.opened = true;
+            state.activeBox = null;
+            state.decision = null;
+            state.targetTeamIndex = null;
+            state.showAnswer = false;
+            
+            // Next turn
+            state.currentTeamIndex = (state.currentTeamIndex + 1) % state.teams.length;
+            state.screen = 'board';
+            render();
+        }
+
+        // --- RENDERERS ---
+        function render() {
+            appEl.innerHTML = '';
+            
+            if (state.screen === 'setup') {
+                scoreboardEl.classList.add('hidden');
+                appEl.innerHTML = renderSetup();
+            } else {
+                scoreboardEl.classList.remove('hidden');
+                renderScoreboard();
+                
+                if (state.screen === 'board') appEl.innerHTML = renderBoard();
+                else if (state.screen === 'question') appEl.innerHTML = renderQuestion();
+                else if (state.screen === 'target') appEl.innerHTML = renderTargetSelection();
+                else if (state.screen === 'reveal') appEl.innerHTML = renderReveal();
+            }
+        }
+
+        function renderSetup() {
+            return `
+                <div class="card p-8 max-w-2xl w-full text-center animate-pop">
+                    <h2 class="text-4xl font-bold mb-2 text-red-600 text-3d-light">Game Setup</h2>
+                    <p class="mb-6 text-gray-600 font-semibold text-lg">Choose the number of teams and their names!</p>
+                    
+                    <div class="flex items-center justify-center gap-6 mb-8">
+                        <button onclick="adjustTeams(-1)" class="w-12 h-12 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-2xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-1 active:shadow-none">&minus;</button>
+                        <span class="text-3xl font-bold text-gray-800 w-32">${state.teams.length} Teams</span>
+                        <button onclick="adjustTeams(1)" class="w-12 h-12 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full font-bold text-2xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-1 active:shadow-none">&plus;</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left">
+                        ${state.teams.map((t, i) => `
+                            <div class="flex flex-col">
+                                <label class="font-bold text-sm mb-1 text-gray-600 ml-1">Team ${i + 1}</label>
+                                <input type="text" oninput="updateTeamName(${i}, this.value)" value="${t.name}" maxlength="12" class="team-input border-2 border-black p-3 rounded-xl font-bold text-lg text-gray-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <button onclick="initGame()" class="btn-mario text-3xl px-8 py-5 rounded-xl w-full font-bold uppercase tracking-wide text-3d-light">
+                        START GAME
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderBoard() {
+            const currentTeam = state.teams[state.currentTeamIndex];
+            let html = `
+                <div class="mb-4 text-center animate-pop">
+                    <span class="${currentTeam.color} text-white px-8 py-3 rounded-full border-2 border-black font-bold text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        It's ${currentTeam.name}'s Turn!
+                    </span>
+                </div>
+                <div class="grid grid-cols-4 md:grid-cols-6 gap-3 md:gap-6 p-4 max-w-5xl">
+            `;
+
+            state.boxes.forEach(box => {
+                if (box.opened) {
+                    html += `
+                        <div class="mystery-box opened w-16 h-16 md:w-24 md:h-24 flex items-center justify-center text-3xl md:text-5xl font-bold rounded-lg">
+                            <div class="dot-bl"></div><div class="dot-br"></div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <button onclick="openBox('${box.id}')" class="mystery-box w-16 h-16 md:w-24 md:h-24 flex items-center justify-center text-3xl md:text-5xl font-bold rounded-lg text-white text-3d-light animate-pop" style="animation-delay: ${Math.random() * 0.2}s">
+                            ${box.id}
+                            <div class="dot-bl"></div><div class="dot-br"></div>
+                        </button>
+                    `;
+                }
+            });
+
+            html += `</div>`;
+            return html;
+        }
+
+        function renderQuestion() {
+            const currentTeam = state.teams[state.currentTeamIndex];
+            
+            let interactiveContent = state.showAnswer 
+                ? `
+                    <p class="text-gray-500 text-xl mb-2 font-bold uppercase">Answer:</p>
+                    <p class="text-2xl md:text-4xl text-green-600 font-bold mb-10">${state.activeBox.question.answer}</p>
+                    
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gray-800">What will <span class="${currentTeam.color.replace('bg-', 'text-')}">${currentTeam.name}</span> do?</h2>
+                    
+                    <div class="flex flex-col md:flex-row gap-6 justify-center">
+                        <button onclick="makeDecision('keep')" class="btn-mario text-2xl px-8 py-6 rounded-xl flex-1 font-bold flex flex-col items-center">
+                            <span class="text-5xl mb-2">📦</span>
+                            KEEP IT
+                        </button>
+                        <button onclick="makeDecision('give')" class="btn-luigi text-2xl px-8 py-6 rounded-xl flex-1 font-bold flex flex-col items-center">
+                            <span class="text-5xl mb-2">🎁</span>
+                            GIVE IT
+                        </button>
+                    </div>
+                `
+                : `
+                    <p class="text-gray-500 text-xl mb-4 font-bold uppercase tracking-wider">Question for ${currentTeam.name}</p>
+                    <p class="text-2xl md:text-3xl font-bold text-gray-800 mb-10 leading-snug">${state.activeBox.question.q}</p>
+                    
+                    <button onclick="revealAnswer()" class="btn-yellow text-2xl px-8 py-5 rounded-xl w-full font-bold mt-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]">
+                        SHOW ANSWER
+                    </button>
+                `;
+
+            return `
+                <div class="card p-8 md:p-12 max-w-3xl w-full text-center animate-pop mx-4">
+                    <div class="text-6xl md:text-7xl text-yellow-500 font-bold mb-8 text-3d-light border-b-4 border-gray-200 pb-6">BOX ${state.activeBox.id}</div>
+                    ${interactiveContent}
+                </div>
+            `;
+        }
+
+        function renderTargetSelection() {
+            let actionText = state.activeBox.reward.type === 'swap' ? "Swap scores with who?" : "Who will you give the box to?";
+            
+            let html = `
+                <div class="card p-8 max-w-2xl w-full text-center animate-pop mx-4">
+                    <h2 class="text-3xl font-bold mb-8 text-gray-800">${actionText}</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            `;
+
+            state.teams.forEach((team, index) => {
+                if (index !== state.currentTeamIndex) {
+                    html += `
+                        <button onclick="selectTargetTeam(${index})" class="${team.color} text-white btn-mario text-2xl px-6 py-6 rounded-xl font-bold text-3d-light">
+                            ${team.name}
+                        </button>
+                    `;
+                }
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+            return html;
+        }
+
+        function renderReveal() {
+            const reward = state.activeBox.reward;
+            let targetTeam = state.teams[state.targetTeamIndex];
+            let currentTeam = state.teams[state.currentTeamIndex];
+            
+            let actionDesc = "";
+            if (reward.type === 'swap') {
+                actionDesc = `${currentTeam.name} and ${targetTeam.name} swapped scores!`;
+            } else if (state.decision === 'give') {
+                actionDesc = `${currentTeam.name} gave the box to ${targetTeam.name}!`;
+            } else {
+                actionDesc = `${currentTeam.name} kept the box!`;
+            }
+
+            return `
+                <div class="card p-8 md:p-12 max-w-2xl w-full text-center animate-pop mx-4 relative overflow-hidden">
+                    <p class="text-xl font-bold text-gray-500 mb-6 uppercase tracking-widest border-b-2 border-gray-100 pb-4">${actionDesc}</p>
+                    
+                    <div class="text-6xl md:text-8xl font-bold mb-10 ${reward.color} animate-float text-3d py-4">
+                        ${reward.text}
+                    </div>
+
+                    <button onclick="applyRewardAndNext()" class="btn-yellow text-2xl px-8 py-5 rounded-xl w-full font-bold mt-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]">
+                        APPLY & NEXT TURN
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderScoreboard() {
+            teamScoresEl.innerHTML = '';
+            state.teams.forEach((team, index) => {
+                const isActive = index === state.currentTeamIndex;
+                const activeClass = isActive ? 'scale-110 -translate-y-2 ring-4 ring-yellow-400 z-10' : 'opacity-80 scale-95';
+                
+                teamScoresEl.innerHTML += `
+                    <div class="flex-1 min-w-[100px] md:min-w-[120px] max-w-[200px] ${team.color} border-4 border-black rounded-lg p-2 md:p-3 text-center transition-all duration-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] ${activeClass}">
+                        <div class="text-white font-bold text-base md:text-xl truncate text-3d-light">${team.name}</div>
+                        <div class="bg-white border-2 border-black rounded mt-1 md:mt-2 py-1 md:py-2 font-bold text-xl md:text-3xl text-gray-800">
+                            ${team.score}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Start Initial Render
+        render();
+
+    </script>
+</body>
+</html>

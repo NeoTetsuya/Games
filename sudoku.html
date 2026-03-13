@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Sudoku</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sudoku-grid {
+            border: 3px solid #1e293b;
+        }
+
+        @keyframes popup {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .animate-popup {
+            animation: popup 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        .win-bg {
+            background-image: radial-gradient(circle at center, #ffffff 0%, rgba(255,255,255,0.85) 100%);
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+    <div id="root" class="flex-grow flex flex-col"></div>
+
+    <script type="text/babel">
+        // --- GAME DATA & LEVELS ---
+        const levels = [
+            {
+                name: "Level 1: 4x4 Words",
+                size: 4,
+                boxRows: 2,
+                boxCols: 2,
+                symbols: ["sun", "moon", "star", "sky"],
+                initialGrid: [
+                    [null, "sky", "sun", null],
+                    ["moon", null, null, "star"],
+                    [null, "star", "moon", null],
+                    ["sun", null, null, "sky"]
+                ]
+            },
+            {
+                name: "Level 2: 6x6 Words",
+                size: 6,
+                boxRows: 2,
+                boxCols: 3,
+                symbols: ["cat", "mom", "dog", "bus", "dad", "car"],
+                initialGrid: [
+                    ["dad", null, "mom", "car", null, "dog"],
+                    [null, "dog", "car", null, "dad", "cat"],
+                    ["cat", "car", null, "dad", "dog", null],
+                    ["dog", null, "dad", "cat", null, "bus"],
+                    ["car", "bus", null, "dog", "mom", null],
+                    [null, "dad", "dog", "bus", null, "car"]
+                ]
+            },
+            {
+                name: "Level 3: 9x9 Words",
+                size: 9,
+                boxRows: 3,
+                boxCols: 3,
+                symbols: ["red", "blue", "lime", "gold", "pink", "teal", "plum", "gray", "navy"],
+                initialGrid: [
+                    ["pink", "red", null, "gray", null, "gold", null, "navy", "plum"],
+                    [null, "lime", null, "teal", "navy", "pink", null, "gold", null],
+                    [null, null, "navy", "plum", null, null, "pink", null, null],
+                    ["gold", null, null, null, "pink", "plum", null, null, "teal"],
+                    [null, "pink", "lime", null, null, null, "red", "blue", null],
+                    ["navy", null, "gray", "blue", null, null, "gold", null, "pink"],
+                    [null, "plum", null, "red", "gold", "navy", null, "gray", null],
+                    ["teal", null, "gold", null, "gray", null, "plum", "red", null],
+                    [null, "gray", null, "lime", null, "teal", "navy", null, "gold"]
+                ]
+            }
+        ];
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [currentLevelIndex, setCurrentLevelIndex] = React.useState(0);
+            const [grid, setGrid] = React.useState([]);
+            const [selectedSymbol, setSelectedSymbol] = React.useState(null);
+            const [showRules, setShowRules] = React.useState(false);
+            
+            const level = levels[currentLevelIndex];
+
+            // Initialize Grid
+            React.useEffect(() => {
+                handleReset();
+            }, [currentLevelIndex]);
+
+            const handleReset = () => {
+                const currentLvl = levels[currentLevelIndex];
+                setGrid(currentLvl.initialGrid.map(row => 
+                    row.map(val => ({ value: val, isFixed: val !== null }))
+                ));
+                setSelectedSymbol(currentLvl.symbols[0]);
+            };
+
+            // Calculate Errors
+            const getErrors = () => {
+                const size = level.size;
+                const errors = Array(size).fill(null).map(() => Array(size).fill(false));
+                
+                // CRITICAL FIX: Ensure grid is populated AND matches the current level size
+                // React updates state asynchronously. If the level changes, this prevents 
+                // the error matrix loop from looking for indexes out of bounds on the old grid.
+                if (!grid.length || grid.length !== size) return errors;
+
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        const val = grid[r][c].value;
+                        if (val === null) continue;
+                        
+                        // Check row
+                        for (let i = 0; i < size; i++) {
+                            if (i !== c && grid[r][i].value === val) {
+                                errors[r][c] = true;
+                                errors[r][i] = true;
+                            }
+                        }
+                        
+                        // Check col
+                        for (let i = 0; i < size; i++) {
+                            if (i !== r && grid[i][c].value === val) {
+                                errors[r][c] = true;
+                                errors[i][c] = true;
+                            }
+                        }
+                        
+                        // Check box
+                        const boxRowStart = Math.floor(r / level.boxRows) * level.boxRows;
+                        const boxColStart = Math.floor(c / level.boxCols) * level.boxCols;
+                        for (let i = 0; i < level.boxRows; i++) {
+                            for (let j = 0; j < level.boxCols; j++) {
+                                const br = boxRowStart + i;
+                                const bc = boxColStart + j;
+                                if ((br !== r || bc !== c) && grid[br][bc].value === val) {
+                                    errors[r][c] = true;
+                                    errors[br][bc] = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                return errors;
+            };
+
+            const errors = getErrors();
+            const isGridReady = grid.length === level.size; // Safegaurd for rendering/evaluating
+            const isGridFull = isGridReady && grid.every(row => row.every(cell => cell.value !== null));
+            const hasNoErrors = isGridReady && errors.every(row => row.every(err => err === false));
+            const isWin = isGridFull && hasNoErrors;
+
+            // Handle Interaction
+            const handleCellClick = (r, c) => {
+                if (!isGridReady || grid[r][c].isFixed || isWin) return;
+
+                const newGrid = [...grid.map(row => [...row])];
+                
+                if (selectedSymbol === null) {
+                    newGrid[r][c] = { ...newGrid[r][c], value: null };
+                } else {
+                    if (newGrid[r][c].value === selectedSymbol) {
+                        newGrid[r][c] = { ...newGrid[r][c], value: null };
+                    } else {
+                        newGrid[r][c] = { ...newGrid[r][c], value: selectedSymbol };
+                    }
+                }
+                setGrid(newGrid);
+            };
+
+            const getFontSizeClass = () => {
+                if (level.size === 4) return 'text-2xl md:text-4xl';
+                if (level.size === 6) return 'text-lg md:text-2xl';
+                return 'text-[0.65rem] sm:text-xs md:text-sm';
+            };
+
+            return (
+                <div className="flex flex-col h-full w-full">
+                    {/* Header */}
+                    <header className="text-center py-5 bg-blue-700 text-white shadow-md">
+                        <h1 className="text-3xl md:text-4xl font-extrabold tracking-wider flex items-center justify-center gap-3">
+                            <i className="fas fa-border-all"></i> Word Sudoku
+                        </h1>
+                        <p className="mt-1 text-blue-100 font-medium">Train your brain with words and logic!</p>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-grow max-w-4xl mx-auto w-full p-4 md:p-6 flex flex-col items-center">
+                        
+                        {/* Controls Container */}
+                        <div className="w-full max-w-lg flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+                            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+                                <label className="font-bold text-slate-700"><i className="fas fa-layer-group text-blue-500 mr-1"></i> Level:</label>
+                                <select 
+                                    value={currentLevelIndex}
+                                    onChange={e => setCurrentLevelIndex(Number(e.target.value))}
+                                    className="font-semibold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+                                >
+                                    {levels.map((lvl, idx) => (
+                                        <option key={idx} value={idx}>{lvl.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div className="flex gap-3">
+                                <button onClick={handleReset} className="bg-white hover:bg-slate-50 text-slate-700 font-semibold py-2 px-4 border border-slate-200 rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                                    <i className="fas fa-redo-alt text-slate-500"></i> Restart
+                                </button>
+                                <button 
+                                    onClick={() => setShowRules(true)}
+                                    className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-2 px-4 border border-blue-200 rounded-xl shadow-sm transition-colors flex items-center gap-2"
+                                >
+                                    <i className="fas fa-question-circle"></i> Rules
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Game Board Container */}
+                        <div className="relative w-full max-w-lg aspect-square">
+                            {isGridReady && (
+                                <div 
+                                    className="sudoku-grid grid bg-white shadow-2xl w-full h-full"
+                                    style={{ 
+                                        gridTemplateColumns: `repeat(${level.size}, minmax(0, 1fr))`,
+                                        gridTemplateRows: `repeat(${level.size}, minmax(0, 1fr))`
+                                    }}
+                                >
+                                    {grid.map((row, r) => row.map((cell, c) => {
+                                        const hasRightBorder = c !== level.size - 1;
+                                        const hasBottomBorder = r !== level.size - 1;
+                                        const isThickRight = (c + 1) % level.boxCols === 0 && hasRightBorder;
+                                        const isThickBottom = (r + 1) % level.boxRows === 0 && hasBottomBorder;
+                                        const isError = errors[r][c];
+
+                                        const borderRightStyle = isThickRight ? '3px solid #1e293b' : hasRightBorder ? '1px solid #cbd5e1' : 'none';
+                                        const borderBottomStyle = isThickBottom ? '3px solid #1e293b' : hasBottomBorder ? '1px solid #cbd5e1' : 'none';
+
+                                        let bgColor = cell.isFixed ? 'bg-slate-100' : 'bg-white';
+                                        let textColor = cell.isFixed ? 'text-slate-800 font-bold' : 'text-blue-600 font-bold';
+                                        let cursor = cell.isFixed ? 'cursor-default' : 'cursor-pointer hover:bg-blue-50';
+
+                                        if (isError) {
+                                            bgColor = 'bg-rose-100';
+                                            textColor = 'text-rose-600 font-extrabold';
+                                        }
+
+                                        return (
+                                            <div 
+                                                key={`${r}-${c}`}
+                                                className={`flex items-center justify-center transition-colors ${bgColor} ${textColor} ${cursor} ${getFontSizeClass()}`}
+                                                style={{ borderRight: borderRightStyle, borderBottom: borderBottomStyle }}
+                                                onClick={() => handleCellClick(r, c)}
+                                            >
+                                                {cell.value}
+                                            </div>
+                                        );
+                                    }))}
+                                </div>
+                            )}
+
+                            {/* Win Overlay */}
+                            {isWin && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center win-bg backdrop-blur-sm rounded-lg animate-popup border-4 border-green-500">
+                                    <div className="p-8 text-center">
+                                        <div className="text-6xl mb-4 animate-bounce">🎉</div>
+                                        <h2 className="text-4xl font-extrabold text-green-600 mb-2">You Win!</h2>
+                                        <p className="text-slate-600 font-medium mb-8">Puzzle completely solved.</p>
+                                        <button
+                                            onClick={() => {
+                                                if (currentLevelIndex < levels.length - 1) {
+                                                    setCurrentLevelIndex(currentLevelIndex + 1);
+                                                } else {
+                                                    handleReset();
+                                                }
+                                            }}
+                                            className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-green-500/30 transition-all transform hover:scale-105 active:scale-95 w-full text-lg"
+                                        >
+                                            {currentLevelIndex < levels.length - 1 ? 'Next Level ➡️' : 'Play Again 🔄'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Palette / Tools */}
+                        <div className="mt-8 w-full max-w-lg">
+                            <h3 className="text-center font-bold text-slate-400 mb-4 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                                <span className="h-px bg-slate-300 w-12"></span>
+                                Select a brush
+                                <span className="h-px bg-slate-300 w-12"></span>
+                            </h3>
+                            <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                                {level.symbols.map(sym => {
+                                    const isSelected = selectedSymbol === sym;
+                                    return (
+                                        <button
+                                            key={sym}
+                                            onClick={() => setSelectedSymbol(sym)}
+                                            className={`px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-lg shadow-sm transition-all transform active:scale-95 ${
+                                                isSelected 
+                                                    ? 'bg-blue-600 text-white shadow-blue-500/50 scale-105 border-2 border-blue-600' 
+                                                    : 'bg-white text-slate-700 hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-300'
+                                            }`}
+                                        >
+                                            {sym}
+                                        </button>
+                                    )
+                                })}
+                                <button
+                                    onClick={() => setSelectedSymbol(null)}
+                                    className={`px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-lg shadow-sm transition-all transform active:scale-95 ${
+                                        selectedSymbol === null 
+                                            ? 'bg-rose-500 text-white shadow-rose-500/50 scale-105 border-2 border-rose-500' 
+                                            : 'bg-white text-rose-500 hover:bg-rose-50 border-2 border-slate-200 hover:border-rose-300'
+                                    }`}
+                                    title="Eraser"
+                                >
+                                    <i className="fas fa-eraser"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </main>
+
+                    {/* Rules Modal */}
+                    {showRules && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-popup relative">
+                                <button 
+                                    onClick={() => setShowRules(false)}
+                                    className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors"
+                                >
+                                    <i className="fas fa-times text-xl"></i>
+                                </button>
+                                <h3 className="text-2xl font-extrabold mb-4 text-slate-800 flex items-center gap-2">
+                                    <i className="fas fa-book-open text-blue-600"></i> How to Play
+                                </h3>
+                                <div className="space-y-4 text-slate-600 font-medium">
+                                    <p>Welcome to Word Sudoku! The goal is to fill the entire grid logically.</p>
+                                    <ul className="list-none space-y-3">
+                                        <li className="flex items-start gap-3">
+                                            <i className="fas fa-check-circle text-green-500 mt-1"></i>
+                                            <span>Use a word or letter <strong>only once</strong> in each <strong>horizontal row</strong>.</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <i className="fas fa-check-circle text-green-500 mt-1"></i>
+                                            <span>Use a word or letter <strong>only once</strong> in each <strong>vertical column</strong>.</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <i className="fas fa-check-circle text-green-500 mt-1"></i>
+                                            <span>Use a word or letter <strong>only once</strong> in each <strong>thick-bordered box</strong>.</span>
+                                        </li>
+                                    </ul>
+                                    <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm border border-blue-100 mt-4 shadow-inner">
+                                        <i className="fas fa-lightbulb text-yellow-500 mr-2 text-lg"></i> 
+                                        <strong>Tip:</strong> Select a symbol or word from the palette at the bottom, then click on any empty cell in the grid to place it.
+                                    </div>
+                                </div>
+                                <div className="mt-6">
+                                    <button 
+                                        onClick={() => setShowRules(false)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-colors w-full text-lg"
+                                    >
+                                        Got it! Let's Play
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
