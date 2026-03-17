@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Review Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Small animations included in tailwind but needing explicit keyframes if not using the full plugin */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-100 p-4 md:p-8 font-sans text-slate-800 flex flex-col items-center">
+
+    <!-- Header -->
+    <div class="w-full max-w-5xl flex justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div>
+            <h1 class="text-4xl md:text-5xl font-black tracking-tight flex items-baseline gap-1">
+                <span class="text-pink-600">B</span>
+                <span class="text-teal-500">I</span>
+                <span class="text-green-500">N</span>
+                <span class="text-red-500">G</span>
+                <span class="text-orange-500">O</span>
+                <span class="text-purple-600">!</span>
+            </h1>
+            <p class="text-md font-bold text-slate-400 uppercase tracking-widest mt-1">The Review Game</p>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <div class="text-sm font-bold text-slate-400 uppercase tracking-wider">Balls Remaining</div>
+                <div class="text-3xl font-black text-indigo-600" id="balls-remaining">24 / 24</div>
+            </div>
+            <div class="h-12 w-px bg-slate-200 mx-2"></div>
+            <button onclick="startNewGame()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl font-bold transition-colors" title="Reset Game">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i> Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="w-full max-w-5xl flex-1 flex flex-col bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden relative min-h-[500px]">
+        
+        <!-- Start Screen -->
+        <div id="start-screen" class="flex-1 flex flex-col items-center justify-center p-12 text-center bg-slate-50 h-full">
+            <div class="relative mb-8 group">
+                <div class="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
+                <div class="relative w-48 h-48 bg-gradient-to-br from-yellow-300 to-orange-500 rounded-full flex items-center justify-center shadow-[inset_-8px_-8px_20px_rgba(0,0,0,0.1),_8px_8px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 group-hover:scale-105">
+                    <span class="text-8xl font-black text-white drop-shadow-md">?</span>
+                </div>
+            </div>
+            <h2 class="text-4xl font-black text-slate-800 mb-4">Ready to Play!</h2>
+            <p class="text-xl text-slate-500 mb-10 max-w-lg">Students should have their 1-24 Bingo cards and mini whiteboards ready. Draw a ball, and guide the students to write down their answers!</p>
+            <button onclick="drawBall()" class="bg-indigo-600 text-white px-12 py-5 rounded-full font-black text-2xl shadow-[0_8px_30px_rgb(79,70,229,0.4)] hover:bg-indigo-700 hover:-translate-y-1 active:translate-y-0 transition-all">
+                Draw First Ball
+            </button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden flex-1 flex flex-col p-8 md:p-12 h-full">
+            
+            <!-- Top Row: Ball & Timer -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
+                <!-- The Drawn Ball -->
+                <div class="flex items-center gap-6">
+                    <div class="w-32 h-32 md:w-40 md:h-40 bg-[radial-gradient(circle_at_30%_30%,_#fde047,_#ea580c)] rounded-full flex items-center justify-center shadow-[inset_-6px_-6px_15px_rgba(0,0,0,0.2),_6px_6px_15px_rgba(0,0,0,0.2)]">
+                        <span id="current-ball-number" class="text-6xl md:text-7xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.3)]">1</span>
+                    </div>
+                    <div>
+                        <div class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Drawn Number</div>
+                        <div id="current-ball-category" class="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 font-bold rounded-lg text-lg">
+                            Category
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timer -->
+                <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 shadow-sm min-w-[280px]">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-bold text-slate-500 flex items-center gap-1"><i data-lucide="clock" class="w-4 h-4"></i> Timer</span>
+                        <div class="flex items-center gap-1 bg-white rounded-lg border border-slate-200 p-0.5">
+                            <button onclick="adjustTimerPreset(-15)" class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                            <span id="timer-preset" class="text-xs font-bold w-8 text-center">60s</span>
+                            <button onclick="adjustTimerPreset(15)" class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div id="time-left" class="text-5xl font-black tabular-nums tracking-tight text-slate-800">
+                            1:00
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btn-timer-toggle" onclick="toggleTimer()" class="w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md transition-all bg-emerald-500 hover:bg-emerald-600">
+                                <i data-lucide="play" class="w-6 h-6 ml-1 fill-current"></i>
+                            </button>
+                            <button onclick="resetTimer()" class="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Area -->
+            <div class="flex-1 flex flex-col justify-center mb-8">
+                <h3 id="current-question" class="text-3xl md:text-5xl font-bold text-slate-800 leading-tight text-center md:text-left">
+                    Question goes here
+                </h3>
+            </div>
+
+            <!-- Controls & Answer Area -->
+            <div class="mt-auto">
+                <!-- Reveal Button State -->
+                <div id="reveal-section">
+                    <button onclick="handleRevealAnswer()" class="w-full bg-slate-800 text-white px-8 py-6 rounded-2xl font-bold text-2xl shadow-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-3 group">
+                        Reveal Answer <i data-lucide="arrow-right" class="w-7 h-7 group-hover:translate-x-2 transition-transform"></i>
+                    </button>
+                </div>
+
+                <!-- Answer Revealed State -->
+                <div id="answer-section" class="hidden bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-8 text-center shadow-sm relative overflow-hidden transition-all duration-300">
+                    <div class="absolute -right-4 -top-4 text-emerald-100 opacity-50">
+                        <i data-lucide="check-circle-2" class="w-32 h-32"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-sm font-black text-emerald-600 uppercase tracking-widest mb-2">Correct Answer</p>
+                        <p id="current-answer" class="text-4xl md:text-6xl font-black text-emerald-800 mb-8">Answer</p>
+                        <button id="btn-next" onclick="drawBall()" class="w-full md:w-auto bg-indigo-600 text-white px-10 py-5 rounded-full font-black text-xl shadow-[0_4px_20px_rgb(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mx-auto">
+                            Draw Next Ball <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Master Board Tracker -->
+    <div class="w-full max-w-5xl mt-6 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 text-center">Master Board Tracker</h3>
+        <div id="master-board-container" class="flex flex-wrap justify-center gap-2 md:gap-3">
+            <!-- Numbers will be populated by JS -->
+        </div>
+    </div>
+
+    <script>
+        // Data Bank: Contains all vocabulary questions from the new file
+        const QUESTION_BANK = [
+            { category: "Fill in the blank", text: "Oh no! My car is going to _____ _____ because the engine sounds terrible.", answer: "break down" },
+            { category: "Synonyms", text: "What verb means 'to have something inside' or 'to include'?", answer: "contain" },
+            { category: "Fill in the blank", text: "The prisoner tried to _____ from the police.", answer: "escape" },
+            { category: "Anagram", text: "Unscramble the noun: t - i - s - o - u - t - a - n - i", answer: "situation" },
+            { category: "Concept Check", text: "Is a 'sequel' a book or movie that comes BEFORE or AFTER the original?", answer: "after" },
+            { category: "Fill in the blank", text: "I will _____ be at the party tonight; I wouldn't miss it!", answer: "definitely" },
+            { category: "Definition", text: "What adjective describes someone who is not young but not very old?", answer: "middle-aged" },
+            { category: "Synonyms", text: "Which adjective means 'wanting to do something very much despite difficulties'?", answer: "determined" },
+            { category: "Phrasal Verb", text: "If you work hard, you will _____ _____ in your career.", answer: "get ahead" },
+            { category: "Antonyms", text: "What is the opposite of 'married' or 'multiple'?", answer: "single" },
+            { category: "Noun/Verb", text: "What word can mean 'the reason why something happens' OR 'to make something happen'?", answer: "cause" },
+            { category: "Synonyms", text: "Give a 4-letter synonym for 'very large' or 'enormous'.", answer: "huge" },
+            { category: "Fill in the blank", text: "It takes a lot of time and _____ to learn a new language.", answer: "effort" },
+            { category: "Word Formation", text: "What is the noun form of the adjective 'poor'?", answer: "poverty" },
+            { category: "Fill in the blank", text: "She is an _____ student; her grades are better than most others.", answer: "exceptional" },
+            { category: "Synonyms", text: "What is a more formal adjective for 'funny' or 'making you laugh'?", answer: "humorous" },
+            { category: "Antonyms", text: "What is the opposite of 'relaxed' or 'calm'?", answer: "tense" },
+            { category: "Word Formation", text: "What is the adjective form of 'psychology'?", answer: "psychological" },
+            { category: "Anagram", text: "Unscramble the noun: p - i - s - i - r - t", answer: "spirit" },
+            { category: "Fill in the blank", text: "The detective found a _____ that helped solve the mystery.", answer: "clue" },
+            { category: "Preposition", text: "It rained _____ the whole night.", answer: "throughout" },
+            { category: "Antonyms", text: "What is the opposite of 'unpredictable'?", answer: "predictable" },
+            { category: "Word Formation", text: "What do you call someone who commits murder?", answer: "murderer" },
+            { category: "Concept Check", text: "Is a 'victim' someone who commits a crime or someone who gets hurt?", answer: "someone who gets hurt" },
+            { category: "Fill in the blank", text: "The police arrested the main _____ in the robbery.", answer: "suspect" },
+            { category: "Word Formation", text: "What is the verb form of 'disappointment'?", answer: "disappoint" },
+            { category: "History", text: "What do we call the period in European history between AD 1000 and AD 1500?", answer: "the Middle Ages" },
+            { category: "Fill in the blank", text: "The soldiers will _____ through the streets in the parade.", answer: "march" },
+            { category: "Synonyms", text: "What is a 6-letter verb that means 'to stay in the same place or condition'?", answer: "remain" },
+            { category: "Anagram", text: "Unscramble: p - e - r - s - o - a - n - i - y - l - t", answer: "personality" },
+            { category: "Word Formation", text: "What is the noun for 'the time when you were a child'?", answer: "childhood" },
+            { category: "Phrasal Verb", text: "To end a relationship is to _____ _____.", answer: "split up" },
+            { category: "Synonyms", text: "What adverb means 'in the end' or 'after a long time'?", answer: "eventually" },
+            { category: "Phrase", text: "They travelled to the mountains ___ ______ ___ gold.", answer: "in search of" },
+            { category: "Fill in the blank", text: "She flew a plane completely by herself; it was a _____ flight.", answer: "solo" },
+            { category: "Synonyms", text: "What noun means 'difficult or unpleasant conditions of life'?", answer: "hardship" },
+            { category: "Definition", text: "What do we call a child whose parents are dead?", answer: "orphan" },
+            { category: "Concept Check", text: "If you 'found' an organization, does it mean you discovered it or started it?", answer: "started it" },
+            { category: "Synonyms", text: "What is another general noun for 'clothes'?", answer: "clothing" },
+            { category: "Fill in the blank", text: "During the storm, they had to find _____ to stay dry and safe.", answer: "shelter" },
+            { category: "Word Formation", text: "What is the noun form of the verb 'educate'?", answer: "education" },
+            { category: "Collocation", text: "Hospitals and clinics provide ______ ____ to sick people.", answer: "medical care" },
+            { category: "Fill in the blank", text: "I _____ why the sky is blue. (to want to know)", answer: "wonder" },
+            { category: "Definition", text: "What do you call doing unpaid work to help others?", answer: "volunteering" },
+            { category: "Anagram", text: "Unscramble: r - i - c - a - h - y - t (an organization that helps people)", answer: "charity" },
+            { category: "Synonyms", text: "What noun means 'an advantage' or 'something good for you'?", answer: "benefit" },
+            { category: "Synonyms", text: "What adverb means 'mostly' or 'primarily'?", answer: "mainly" },
+            { category: "Phrase", text: "The match was cancelled _____ _____ the heavy rain. (because of)", answer: "due to" },
+            { category: "Word Formation", text: "What is the adjective form of 'passion'?", answer: "passionate" },
+            { category: "Fill in the blank", text: "A university degree is an important _____ for many jobs.", answer: "qualification" },
+            { category: "Definition", text: "What adjective means 'having to do with money'?", answer: "financial" },
+            { category: "Fill in the blank", text: "He received a cash _____ for returning the lost dog.", answer: "reward" },
+            { category: "Synonyms", text: "What verb means 'to think carefully about something'?", answer: "consider" },
+            { category: "Concept Check", text: "If a job 'suits' you, does it mean it is right for you or wrong for you?", answer: "right for you" },
+            { category: "Antonyms", text: "What is the opposite of 'unwilling'?", answer: "willing" },
+            { category: "Synonyms", text: "What phrase means 'a lot of' or 'more than enough'?", answer: "plenty of" },
+            { category: "Fill in the blank", text: "Use a ruler to _____ the length of the paper.", answer: "measure" },
+            { category: "Word Formation", text: "What is the adverb form of 'realistic'?", answer: "realistically" },
+            { category: "Fill in the blank", text: "Since the factory closed, many workers have been _____.", answer: "unemployed" },
+            { category: "Synonyms", text: "What is a 4-letter synonym for 'choose'?", answer: "pick" },
+            { category: "Definition", text: "What noun means 'a type of work that needs special training or a high level of education'?", answer: "profession" },
+            { category: "Word Formation", text: "What is the noun form of 'consider'?", answer: "consideration" },
+            { category: "Phrase", text: "Complete the phrase: make an informed _______", answer: "decision" },
+            { category: "Synonyms", text: "What 5-letter noun means 'strength' or 'power'?", answer: "force" },
+            { category: "Anagram", text: "Unscramble: n - i - p (a thin piece of metal)", answer: "pin" },
+            { category: "Definition", text: "What phrase is used to say that what you just said is also true in the opposite order?", answer: "vice-versa" },
+            { category: "Fill in the blank", text: "Mind the _____ between the train and the platform.", answer: "gap" },
+            { category: "Word Formation", text: "What verb is formed from the adjective 'able'?", answer: "enable" },
+            { category: "Concept Check", text: "Which point is the 'southernmost': the furthest North, East, South, or West?", answer: "South" },
+            { category: "Fill in the blank", text: "California is the most populated _____ in the USA.", answer: "state" },
+            { category: "Definition", text: "What do we call a thin tube made of plastic or paper used to drink something?", answer: "straw" },
+            { category: "Fill in the blank", text: "If the food is cold, you should _____ to the waiter.", answer: "complain" },
+            { category: "Word Formation", text: "What is the verb form of 'pollution'?", answer: "pollute" }
+        ];
+
+        let GAME_DATA = []; // Will be populated dynamically on start
+        let drawnNumbers = [];
+        let currentBall = null;
+        let showAnswer = false;
+        
+        let timerPreset = 60;
+        let timeLeft = 60;
+        let isTimerRunning = false;
+        let timerInterval = null;
+
+        // Shuffle helper function
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function updateUI() {
+            // Header Stats
+            document.getElementById('balls-remaining').innerText = `${24 - drawnNumbers.length} / 24`;
+
+            // Screen Toggle
+            if (!currentBall) {
+                document.getElementById('start-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('hidden');
+            } else {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+
+                // Ball Info
+                document.getElementById('current-ball-number').innerText = currentBall.id;
+                document.getElementById('current-ball-category').innerText = currentBall.category;
+                document.getElementById('current-question').innerText = currentBall.text;
+
+                // Answer State
+                if (showAnswer) {
+                    document.getElementById('reveal-section').classList.add('hidden');
+                    document.getElementById('answer-section').classList.remove('hidden');
+                    document.getElementById('current-answer').innerText = currentBall.answer;
+
+                    const btnNext = document.getElementById('btn-next');
+                    if (drawnNumbers.length === 24) {
+                        btnNext.innerHTML = 'Game Over - All Balls Drawn';
+                        btnNext.disabled = true;
+                        btnNext.className = "w-full md:w-auto bg-slate-300 text-white px-10 py-5 rounded-full font-black text-xl flex items-center justify-center gap-3 mx-auto cursor-not-allowed";
+                    } else {
+                        btnNext.innerHTML = 'Draw Next Ball <i data-lucide="arrow-right" class="w-6 h-6"></i>';
+                        btnNext.disabled = false;
+                        btnNext.className = "w-full md:w-auto bg-indigo-600 text-white px-10 py-5 rounded-full font-black text-xl shadow-[0_4px_20px_rgb(79,70,229,0.3)] hover:bg-indigo-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mx-auto";
+                    }
+                } else {
+                    document.getElementById('reveal-section').classList.remove('hidden');
+                    document.getElementById('answer-section').classList.add('hidden');
+                }
+            }
+
+            // Timer Info
+            document.getElementById('timer-preset').innerText = `${timerPreset}s`;
+            const timeLeftEl = document.getElementById('time-left');
+            timeLeftEl.innerText = formatTime(timeLeft);
+            
+            // Timer Formatting
+            if (timeLeft <= 10 && timeLeft > 0) {
+                timeLeftEl.className = 'text-5xl font-black tabular-nums tracking-tight text-red-500 animate-pulse';
+            } else if (timeLeft === 0) {
+                timeLeftEl.className = 'text-5xl font-black tabular-nums tracking-tight text-red-600';
+            } else {
+                timeLeftEl.className = 'text-5xl font-black tabular-nums tracking-tight text-slate-800';
+            }
+
+            // Timer Button State
+            const btnTimerToggle = document.getElementById('btn-timer-toggle');
+            btnTimerToggle.disabled = (timeLeft === 0 || showAnswer);
+            
+            if (btnTimerToggle.disabled) {
+                btnTimerToggle.className = 'w-12 h-12 flex items-center justify-center rounded-xl text-white transition-all bg-slate-300 cursor-not-allowed';
+                btnTimerToggle.innerHTML = '<i data-lucide="play" class="w-6 h-6 ml-1 fill-current opacity-50"></i>';
+            } else if (isTimerRunning) {
+                btnTimerToggle.className = 'w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md transition-all bg-amber-500 hover:bg-amber-600';
+                btnTimerToggle.innerHTML = '<i data-lucide="pause" class="w-6 h-6 fill-current"></i>';
+            } else {
+                btnTimerToggle.className = 'w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md transition-all bg-emerald-500 hover:bg-emerald-600';
+                btnTimerToggle.innerHTML = '<i data-lucide="play" class="w-6 h-6 ml-1 fill-current"></i>';
+            }
+
+            // Master Board Tracker
+            const boardContainer = document.getElementById('master-board-container');
+            boardContainer.innerHTML = '';
+            
+            for (let num = 1; num <= 24; num++) {
+                const isDrawn = drawnNumbers.includes(num);
+                const isLatest = drawnNumbers[0] === num;
+                
+                const div = document.createElement('div');
+                div.innerText = num;
+                
+                let classes = "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-all duration-300 ";
+                
+                if (isLatest) {
+                    classes += "bg-yellow-400 text-yellow-950 shadow-md border-2 border-yellow-500 scale-110 z-10";
+                } else if (isDrawn) {
+                    classes += "bg-indigo-100 text-indigo-400 opacity-60";
+                } else {
+                    classes += "bg-slate-100 text-slate-600";
+                }
+                
+                div.className = classes;
+                boardContainer.appendChild(div);
+            }
+
+            // Re-initialize icons since DOM was updated
+            lucide.createIcons();
+        }
+
+        function startNewGame() {
+            // Shuffle the entire new vocabulary bank
+            let shuffledQuestions = shuffleArray([...QUESTION_BANK]);
+            
+            // Pick exactly 24 questions randomly for the current board
+            let selectedQuestions = shuffledQuestions.slice(0, 24);
+            
+            // Map them to IDs 1-24 to match the physical Bingo boards!
+            GAME_DATA = selectedQuestions.map((q, index) => ({
+                id: index + 1,
+                category: q.category,
+                text: q.text,
+                answer: q.answer
+            }));
+
+            // Reset Game state
+            drawnNumbers = [];
+            currentBall = null;
+            showAnswer = false;
+            stopTimerInterval();
+            timeLeft = timerPreset;
+            updateUI();
+        }
+
+        function drawBall() {
+            const availableNumbers = Array.from({ length: 24 }, (_, i) => i + 1).filter(n => !drawnNumbers.includes(n));
+            if (availableNumbers.length === 0) return;
+
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const newNumber = availableNumbers[randomIndex];
+            
+            currentBall = GAME_DATA.find(q => q.id === newNumber);
+            drawnNumbers.unshift(newNumber); // Add to beginning (makes drawnNumbers[0] the latest)
+            showAnswer = false;
+            
+            // Reset timer
+            stopTimerInterval();
+            timeLeft = timerPreset;
+            
+            updateUI();
+        }
+
+        function handleRevealAnswer() {
+            showAnswer = true;
+            stopTimerInterval();
+            updateUI();
+        }
+
+        function adjustTimerPreset(amount) {
+            timerPreset = Math.max(15, timerPreset + amount); // Min 15s
+            if (!isTimerRunning && !currentBall) {
+                timeLeft = timerPreset;
+            }
+            updateUI();
+        }
+
+        function stopTimerInterval() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            isTimerRunning = false;
+        }
+
+        function toggleTimer() {
+            if (timeLeft === 0 || showAnswer) return;
+            
+            isTimerRunning = !isTimerRunning;
+            
+            if (isTimerRunning) {
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        timeLeft = 0;
+                        stopTimerInterval();
+                    }
+                    updateUI();
+                }, 1000);
+            } else {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            updateUI();
+        }
+
+        function resetTimer() {
+            stopTimerInterval();
+            timeLeft = timerPreset;
+            updateUI();
+        }
+
+        // Initialize UI and Game Data on load
+        window.addEventListener('DOMContentLoaded', () => {
+            startNewGame(); // Set up the initial 24 questions & call updateUI
+        });
+
+    </script>
+</body>
+</html>
