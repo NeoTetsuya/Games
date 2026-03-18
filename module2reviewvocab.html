@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Vocabulary Game: Society & Traditions</title>
+    <!-- Tailwind CSS for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        /* Custom styles for the blanks */
+        .blank {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 90px;
+            min-height: 32px;
+            padding: 2px 8px;
+            margin: 0 4px;
+            border-bottom: 2px solid #94a3b8;
+            background-color: #f1f5f9;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #334155;
+            transition: all 0.2s ease;
+            vertical-align: middle;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        @media (min-width: 640px) {
+            .blank {
+                min-width: 130px;
+                padding: 2px 12px;
+            }
+        }
+
+        .blank:hover {
+            background-color: #e2e8f0;
+            border-bottom-color: #64748b;
+        }
+
+        .blank.active-target {
+            box-shadow: 0 0 0 2px #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .blank.correct {
+            background-color: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #15803d !important;
+        }
+
+        .blank.incorrect {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #b91c1c !important;
+        }
+
+        /* Word Bank item styles */
+        .word-item {
+            display: inline-block;
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 9999px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        @media (min-width: 640px) {
+            .word-item {
+                padding: 8px 16px;
+                font-size: 1rem;
+            }
+        }
+
+        .word-item:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            transform: translateY(-1px);
+        }
+
+        .word-item.selected {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+            transform: scale(1.05);
+        }
+
+        .word-item.used {
+            opacity: 0;
+            pointer-events: none;
+            position: absolute; /* Hide without shifting layout dramatically */
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">IELTS Reading Skills</h1>
+                <p class="text-sm text-slate-500 mt-1">Vocabulary Builder: Society & Traditions</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <!-- Text Size Controls -->
+                <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-md border border-slate-200">
+                    <button id="decrease-font-btn" class="w-8 h-8 flex items-center justify-center text-sm font-bold text-slate-600 bg-white hover:bg-slate-100 rounded border border-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" title="Decrease font size">A-</button>
+                    <button id="increase-font-btn" class="w-8 h-8 flex items-center justify-center text-base font-bold text-slate-600 bg-white hover:bg-slate-100 rounded border border-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" title="Increase font size">A+</button>
+                </div>
+                <div class="hidden sm:block">
+                    <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Academic Task</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row gap-8">
+        
+        <!-- Left Column: Reading Passages -->
+        <div class="w-full lg:w-2/3 space-y-8 order-2 lg:order-1">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4 border-b pb-2">Passage 1: Family & Society</h2>
+                <p class="passage-text text-slate-700 leading-relaxed text-base sm:text-lg">
+                    In modern, <span class="blank" data-answer="multicultural" data-current=""></span> societies, family structures have evolved significantly. While many young people value their <span class="blank" data-answer="independence" data-current=""></span> and prefer to live in <span class="blank" data-answer="nuclear" data-current=""></span> families consisting only of parents and children, others still maintain strong ties with their <span class="blank" data-answer="extended" data-current=""></span> families. Regardless of the setup, sharing household <span class="blank" data-answer="responsibility" data-current=""></span> remains a crucial aspect of maintaining a harmonious home environment.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4 border-b pb-2">Passage 2: Traditions & History</h2>
+                <p class="passage-text text-slate-700 leading-relaxed text-base sm:text-lg">
+                    Throughout history, communities have gathered to <span class="blank" data-answer="mark" data-current=""></span> significant seasonal changes and historical events. These vibrant festivals usually <span class="blank" data-answer="take place" data-current=""></span> annually and are deeply rooted in local tradition. A common <span class="blank" data-answer="custom" data-current=""></span> during these celebrations involves the <span class="blank" data-answer="host" data-current=""></span> warmly welcoming friends and family into their home, ensuring that all <span class="blank" data-answer="guests" data-current=""></span> are treated to traditional food and entertainment.
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Column: Word Bank & Controls -->
+        <div class="w-full lg:w-1/3 order-1 lg:order-2">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24">
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold text-slate-800">Word Bank</h2>
+                    <p class="text-sm text-slate-500 mt-1">
+                        <strong>How to play:</strong> Click a word to select it, then click an empty blank to place it. Click a filled blank to return the word to the bank. <br><br><em>Note: There are 5 extra words!</em>
+                    </p>
+                </div>
+
+                <!-- Word Bank Container -->
+                <div id="word-bank-container" class="flex flex-wrap gap-2.5 relative min-h-[200px] content-start">
+                    <!-- Words injected via JS -->
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-8 space-y-3">
+                    <button id="check-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Check Answers
+                    </button>
+                    <button id="reset-btn" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium py-3 px-4 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+                        Reset Exercise
+                    </button>
+                </div>
+                
+                <!-- Score Display -->
+                <div id="score-display" class="mt-4 text-center text-lg font-bold hidden">
+                    Score: <span id="score-text">0/10</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Target words and distractors
+            const vocabulary = [
+                "multicultural", "independence", "nuclear", "extended", "responsibility", 
+                "mark", "take place", "custom", "host", "guests",
+                "obsessed", "instrument", "anniversary", "tomb", "generation" // Distractors
+            ];
+
+            const wordBankContainer = document.getElementById('word-bank-container');
+            const blanks = document.querySelectorAll('.blank');
+            const checkBtn = document.getElementById('check-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const scoreDisplay = document.getElementById('score-display');
+            const scoreText = document.getElementById('score-text');
+            const passageTexts = document.querySelectorAll('.passage-text');
+
+            let selectedWordId = null; // Keeps track of currently selected word item
+            let wordElementsMap = {}; // Maps word strings to their DOM elements for easy access
+            let currentFontSize = 18; // Default font size in pixels
+
+            // Utility: Shuffle Array (Fisher-Yates)
+            function shuffleArray(array) {
+                const arr = [...array];
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            // Font Size adjustment logic
+            function updateFontSize() {
+                // Update Reading Passage font size
+                passageTexts.forEach(p => {
+                    p.style.fontSize = `${currentFontSize}px`;
+                    p.style.lineHeight = '1.7';
+                });
+
+                // Update Word Bank Items font size (keep slightly smaller than passage)
+                const wordItems = document.querySelectorAll('.word-item');
+                wordItems.forEach(item => {
+                    item.style.fontSize = `${Math.max(14, currentFontSize - 2)}px`;
+                });
+
+                // Update Blank placeholders to match passage font size
+                blanks.forEach(blank => {
+                    blank.style.fontSize = `${currentFontSize}px`;
+                });
+            }
+
+            document.getElementById('decrease-font-btn').addEventListener('click', () => {
+                if (currentFontSize > 14) {
+                    currentFontSize -= 2;
+                    updateFontSize();
+                }
+            });
+
+            document.getElementById('increase-font-btn').addEventListener('click', () => {
+                if (currentFontSize < 32) {
+                    currentFontSize += 2;
+                    updateFontSize();
+                }
+            });
+
+            // Initialize Game
+            function initGame() {
+                wordBankContainer.innerHTML = '';
+                wordElementsMap = {};
+                selectedWordId = null;
+                scoreDisplay.classList.add('hidden');
+                checkBtn.disabled = false;
+                checkBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                // Reset blanks
+                blanks.forEach(blank => {
+                    blank.textContent = '';
+                    blank.dataset.current = '';
+                    blank.classList.remove('correct', 'incorrect');
+                });
+
+                // Render shuffled words
+                const shuffledVocab = shuffleArray(vocabulary);
+                shuffledVocab.forEach((word, index) => {
+                    const wordEl = document.createElement('div');
+                    wordEl.className = 'word-item relative';
+                    wordEl.textContent = word;
+                    wordEl.dataset.word = word;
+                    wordEl.id = `word-${index}`;
+                    
+                    wordEl.addEventListener('click', () => handleWordClick(wordEl));
+                    wordBankContainer.appendChild(wordEl);
+                    wordElementsMap[word] = wordEl;
+                });
+
+                // Ensure newly generated word items respect the current font size
+                updateFontSize();
+            }
+
+            // Handle clicking a word in the word bank
+            function handleWordClick(wordEl) {
+                // If checking is already done, don't allow selection
+                if(checkBtn.disabled) return;
+
+                // Deselect if already selected
+                if (selectedWordId === wordEl.id) {
+                    wordEl.classList.remove('selected');
+                    selectedWordId = null;
+                    return;
+                }
+
+                // Deselect previous
+                if (selectedWordId) {
+                    const prevSelected = document.getElementById(selectedWordId);
+                    if (prevSelected) prevSelected.classList.remove('selected');
+                }
+
+                // Select new
+                wordEl.classList.add('selected');
+                selectedWordId = wordEl.id;
+            }
+
+            // Handle clicking a blank in the text
+            function handleBlankClick(blank) {
+                if(checkBtn.disabled) return;
+
+                const currentWordInBlank = blank.dataset.current;
+
+                // Scenario 1: User has a word selected from the bank
+                if (selectedWordId) {
+                    const selectedWordEl = document.getElementById(selectedWordId);
+                    const wordText = selectedWordEl.dataset.word;
+
+                    // If blank already has a word, return it to the bank first
+                    if (currentWordInBlank) {
+                        returnWordToBank(currentWordInBlank);
+                    }
+
+                    // Place new word in blank
+                    blank.textContent = wordText;
+                    blank.dataset.current = wordText;
+                    
+                    // Hide word from bank and deselect
+                    selectedWordEl.classList.remove('selected');
+                    selectedWordEl.classList.add('used');
+                    selectedWordId = null;
+                    
+                    // Remove any previous validation styling
+                    blank.classList.remove('correct', 'incorrect');
+                } 
+                // Scenario 2: User clicks a filled blank with NO word selected (wants to remove it)
+                else if (currentWordInBlank) {
+                    returnWordToBank(currentWordInBlank);
+                    blank.textContent = '';
+                    blank.dataset.current = '';
+                    blank.classList.remove('correct', 'incorrect');
+                }
+            }
+
+            // Helper: Return a word from a blank back to the word bank
+            function returnWordToBank(word) {
+                if (wordElementsMap[word]) {
+                    wordElementsMap[word].classList.remove('used', 'selected');
+                }
+            }
+
+            // Add event listeners to blanks
+            blanks.forEach(blank => {
+                blank.addEventListener('click', () => handleBlankClick(blank));
+            });
+
+            // Check Answers Logic
+            checkBtn.addEventListener('click', () => {
+                let score = 0;
+                const totalBlanks = blanks.length;
+
+                // Deselect any selected word before checking
+                if(selectedWordId) {
+                    const el = document.getElementById(selectedWordId);
+                    if(el) el.classList.remove('selected');
+                    selectedWordId = null;
+                }
+
+                blanks.forEach(blank => {
+                    const correctAnswer = blank.dataset.answer;
+                    const userAnswer = blank.dataset.current;
+
+                    blank.classList.remove('correct', 'incorrect');
+
+                    if (!userAnswer) {
+                        blank.classList.add('incorrect'); // Empty is wrong
+                        blank.innerHTML = `<span class="opacity-50">___</span> <span class="text-red-700 ml-1 font-bold">(${correctAnswer})</span>`;
+                    } else if (userAnswer === correctAnswer) {
+                        blank.classList.add('correct');
+                        score++;
+                    } else {
+                        blank.classList.add('incorrect');
+                        blank.innerHTML = `<del class="opacity-70">${userAnswer}</del> <span class="text-red-700 ml-1 font-bold">(${correctAnswer})</span>`;
+                    }
+                });
+
+                // Display Score
+                scoreText.textContent = `${score}/${totalBlanks}`;
+                scoreDisplay.classList.remove('hidden');
+                
+                if (score === totalBlanks) {
+                    scoreDisplay.classList.add('text-green-600');
+                    scoreDisplay.classList.remove('text-slate-800');
+                } else {
+                    scoreDisplay.classList.add('text-slate-800');
+                    scoreDisplay.classList.remove('text-green-600');
+                }
+
+                // Disable check button to prevent spamming, require reset to play again or fix
+                checkBtn.disabled = true;
+                checkBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Reset Logic
+            resetBtn.addEventListener('click', initGame);
+
+            // Start game on load
+            initGame();
+        });
+    </script>
+</body>
+</html>
