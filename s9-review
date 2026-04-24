@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocab Showdown</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&amp;family=Space+Mono:wght@700&amp;display=swap" rel="stylesheet">
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Outfit', sans-serif; }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 20px rgba(255,70,70,0.3); } 50% { box-shadow: 0 0 40px rgba(255,70,70,0.6); } }
+  @keyframes revealBounce { from { opacity:0; transform: scale(0.5) rotate(-3deg); } to { opacity:1; transform: scale(1) rotate(0); } }
+  @keyframes confetti1 { 0% { transform: translateY(0) rotate(0); opacity:1; } 100% { transform: translateY(-80px) translateX(30px) rotate(360deg); opacity:0; } }
+  @keyframes confetti2 { 0% { transform: translateY(0) rotate(0); opacity:1; } 100% { transform: translateY(-60px) translateX(-25px) rotate(-270deg); opacity:0; } }
+  @keyframes timerPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  @keyframes scorePopIn { from { transform: scale(1.4); color: #facc15; } to { transform: scale(1); } }
+
+  .slide-up { animation: slideUp 0.5s ease-out both; }
+  .reveal-bounce { animation: revealBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+  .timer-critical { animation: pulseGlow 0.8s ease-in-out infinite, timerPulse 0.8s ease-in-out infinite; }
+  .score-pop { animation: scorePopIn 0.4s ease-out; }
+
+  .emoji-scene { font-size: 4.5rem; line-height: 1.2; letter-spacing: 0.1em; user-select: none; }
+
+  .btn-game {
+    transition: all 0.15s ease;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .btn-game:active { transform: scale(0.96); }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto" style="background:#0f0f1a;">
+   <!-- START SCREEN -->
+   <div id="screen-start" class="h-full flex flex-col items-center justify-center p-6 text-center">
+    <div class="slide-up">
+     <div class="text-6xl mb-4">
+      🏆
+     </div>
+     <h1 id="main-title" class="text-5xl md:text-7xl font-black tracking-tight mb-3" style="color:#facc15; font-family:'Space Mono',monospace;">VOCAB SHOWDOWN</h1>
+     <p class="text-lg md:text-xl mb-10 opacity-70" style="color:#e2e8f0;">Teams compete to guess the vocabulary phrase!</p>
+     <div class="mb-8">
+      <p class="text-sm font-semibold uppercase tracking-widest mb-3" style="color:#94a3b8;">Number of Teams</p>
+      <div class="flex items-center justify-center gap-4">
+       <button onclick="changeTeams(-1)" class="btn-game w-12 h-12 rounded-full text-2xl flex items-center justify-center" style="background:#1e293b; color:#e2e8f0;">−</button> <span id="team-count-display" class="text-5xl font-black" style="color:#facc15; font-family:'Space Mono',monospace;">2</span> <button onclick="changeTeams(1)" class="btn-game w-12 h-12 rounded-full text-2xl flex items-center justify-center" style="background:#1e293b; color:#e2e8f0;">+</button>
+      </div>
+     </div><button onclick="startGame()" class="btn-game text-xl px-12 py-4 rounded-2xl" style="background:#facc15; color:#0f0f1a;"> Start Game → </button>
+    </div>
+   </div><!-- TEAM TURN SCREEN -->
+   <div id="screen-team-turn" class="h-full flex flex-col items-center justify-center p-6 text-center hidden" style="background:#0f0f1a;">
+    <div class="slide-up">
+     <p class="text-lg mb-6 opacity-70" style="color:#e2e8f0;">Get Ready!</p>
+     <div class="text-7xl mb-8" id="team-turn-emoji">
+      👀
+     </div>
+     <h2 id="team-turn-title" class="text-6xl md:text-7xl font-black tracking-tight mb-6" style="color:#facc15; font-family:'Space Mono',monospace;">TEAM 1</h2>
+     <p class="text-xl mb-12 opacity-70" style="color:#e2e8f0;">Your Turn to Guess 5 Words</p><button onclick="startTeamRound()" class="btn-game text-xl px-12 py-4 rounded-2xl" style="background:#facc15; color:#0f0f1a;"> Let's Go → </button>
+    </div>
+   </div><!-- ROUND TOTALS SCREEN -->
+   <div id="screen-round-totals" class="h-full flex flex-col items-center justify-center p-6 text-center hidden" style="background:#0f0f1a;">
+    <div class="slide-up">
+     <div class="text-7xl mb-6">
+      ⭐
+     </div>
+     <h2 id="round-totals-title" class="text-4xl md:text-5xl font-black tracking-tight mb-2" style="color:#facc15; font-family:'Space Mono',monospace;">TEAM 1</h2>
+     <p class="text-lg mb-12 opacity-70" style="color:#e2e8f0;">Round Complete</p>
+     <div class="text-6xl md:text-7xl font-black mb-12" style="color:#facc15; font-family:'Space Mono',monospace;" id="round-total-score">
+      5
+     </div><button onclick="nextTeamTurn()" class="btn-game text-xl px-12 py-4 rounded-2xl" style="background:#facc15; color:#0f0f1a;"> Next Team → </button>
+    </div>
+   </div><!-- GAME SCREEN -->
+   <div id="screen-game" class="h-full flex flex-col p-4 md:p-6 hidden">
+    <!-- Top bar: scores -->
+    <div id="scoreboard" class="flex flex-wrap gap-2 justify-center mb-4"></div><!-- Round indicator -->
+    <div class="text-center mb-3">
+     <span id="round-label" class="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full" style="background:#1e293b; color:#94a3b8;">Team 1: Word 1/5</span>
+    </div><!-- Main card -->
+    <div class="flex-1 flex items-center justify-center">
+     <div class="w-full max-w-3xl rounded-3xl p-6 md:p-10 slide-up" style="background:#1a1a2e; border: 2px solid #2a2a4a;">
+      <!-- Emoji scene -->
+      <div id="emoji-scene" class="emoji-scene text-center mb-6"></div><!-- Definition -->
+      <p id="definition-text" class="text-lg md:text-xl text-center leading-relaxed mb-6" style="color:#cbd5e1;"></p><!-- Timer -->
+      <div class="flex flex-col items-center mb-6">
+       <p id="timer-label-el" class="text-xs font-semibold uppercase tracking-widest mb-2" style="color:#64748b;">Time Left</p>
+       <div id="timer-ring" class="w-24 h-24 rounded-full flex items-center justify-center" style="background:#0f0f1a; border: 4px solid #facc15;">
+        <span id="timer-display" class="text-3xl font-black" style="color:#facc15; font-family:'Space Mono',monospace;">30</span>
+       </div>
+      </div><!-- Status message -->
+      <div class="text-center mb-6">
+       <p id="status-message" class="text-sm font-semibold px-4 py-2 rounded-lg" style="color:#cbd5e1; background:#0f0f1a;"></p>
+      </div><!-- Controls -->
+      <div id="controls" class="flex flex-wrap gap-3 justify-center">
+       <button id="btn-reveal" onclick="revealAnswer()" class="btn-game px-6 py-3 rounded-xl text-base" style="background:#6366f1; color:#fff;"> 👁 Reveal Answer </button> <button id="btn-correct" onclick="markCorrect()" class="btn-game px-6 py-3 rounded-xl text-base hidden" style="background:#22c55e; color:#fff;"> ✓ Correct </button> <button id="btn-incorrect" onclick="markIncorrect()" class="btn-game px-6 py-3 rounded-xl text-base hidden" style="background:#ef4444; color:#fff;"> ✗ Incorrect </button> <button id="btn-skip" onclick="skipWord()" class="btn-game px-6 py-3 rounded-xl text-base hidden" style="background:#f59e0b; color:#0f0f1a;"> ⏭️ Skip </button> <button id="btn-next-word" onclick="nextWord()" class="btn-game px-6 py-3 rounded-xl text-base hidden" style="background:#facc15; color:#0f0f1a;"> Next Word → </button>
+      </div><!-- Answer reveal -->
+      <div id="answer-box" class="mt-6 text-center hidden">
+       <div class="inline-block px-8 py-4 rounded-2xl reveal-bounce" style="background:#facc15;">
+        <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color:#0f0f1a; opacity:0.6;">Answer</p>
+        <p id="answer-text" class="text-2xl md:text-3xl font-black" style="color:#0f0f1a; font-family:'Space Mono',monospace;"></p>
+       </div>
+      </div><!-- Active team -->
+      <div class="text-center mt-4">
+       <span id="active-team-label" class="text-sm font-bold px-4 py-1 rounded-full" style="background:#facc15; color:#0f0f1a;"></span>
+      </div>
+     </div>
+    </div>
+   </div><!-- END SCREEN -->
+   <div id="screen-end" class="h-full flex flex-col items-center justify-center p-6 text-center hidden">
+    <div class="slide-up">
+     <div class="text-7xl mb-4">
+      🎉
+     </div>
+     <h2 class="text-4xl md:text-5xl font-black mb-2" style="color:#facc15; font-family:'Space Mono',monospace;">Game Over!</h2>
+     <div id="final-scores" class="my-8"></div><button onclick="resetGame()" class="btn-game text-xl px-12 py-4 rounded-2xl" style="background:#facc15; color:#0f0f1a;">Play Again</button>
+    </div>
+   </div>
+  </div>
+  <script>
+const VOCABULARY = [
+  { phrase:"City break", def:"A short holiday where you have the chance to visit museums, art galleries, and famous buildings in a busy urban area.", emoji:"🏙️📸🏛️🎨" },
+  { phrase:"Adventure holiday", def:"A trip in the great outdoors where you need lots of energy to do active sports like mountain climbing, cycling, or horse riding.", emoji:"🧗‍♂️🚴🐎⛰️" },
+  { phrase:"Language exchange", def:"A trip where you travel to another country to improve your skills by practicing speaking with local people.", emoji:"🗣️🌍🤝💬" },
+  { phrase:"Beach holiday", def:"A relaxing vacation by the sea where you can do water sports like surfing and waterskiing.", emoji:"🏖️🏄‍♂️☀️🌊" },
+  { phrase:"Water parks", def:"Fun places with large pools and slides where families go to cool down when the weather is hot.", emoji:"🎢💦🏊‍♂️😎" },
+  { phrase:"Local attractions", def:"Interesting places to visit in a specific area, such as old castles, monuments, or historical sites.", emoji:"🏰🗺️🗿📍" },
+  { phrase:"Host family", def:"The local people who welcome you to stay in their own home and might teach you how to cook traditional food.", emoji:"👨‍👩‍👧‍👦🏡🍲🤗" },
+  { phrase:"Cycling tour", def:"A good way to travel and see more of a country if you are fit, by riding a bike for long distances.", emoji:"🚲🛤️🌄💪" },
+  { phrase:"Gap year", def:"A period of time, usually a year, that a student takes off between finishing school and starting university.", emoji:"📅🌍✈️🎓" },
+  { phrase:"Backpacking", def:"A style of travel where you carry all your belongings in a backpack and usually stay in budget accommodation like hostels.", emoji:"🎒🧳🌏🛣️" },
+  { phrase:"All-inclusive resort", def:"A vacation destination where your accommodation, meals, and entertainment are all included in one price.", emoji:"🏨🍽️🎉☀️" },
+  { phrase:"Travel insurance", def:"Protection that covers unexpected events during your trip, such as medical emergencies or cancelled flights.", emoji:"🛡️✈️💼📋" },
+  { phrase:"Jet lag", def:"A temporary condition that occurs when you travel quickly across time zones and your body's sleep schedule becomes confused.", emoji:"✈️😴🕐🌍" },
+  { phrase:"Souvenir", def:"A small item that you buy while traveling to remember the place or experience.", emoji:"🎁📸🏺🗽" },
+  { phrase:"Guided tour", def:"A trip where a professional guide accompanies you and provides information about the historical or cultural sites.", emoji:"👨‍🏫🗣️📍🏛️" },
+  { phrase:"Passport", def:"An official government document that allows you to travel internationally and proves your identity.", emoji:"📕✈️🆔🌐" },
+  { phrase:"Accommodation", def:"A place where you stay during your travels, such as a hotel, hostel, apartment, or bed and breakfast.", emoji:"🏨🛏️🔑🏠" },
+  { phrase:"Luggage", def:"The bags and cases you carry with your belongings when traveling.", emoji:"🧳👜🎒✈️" },
+  { phrase:"Visa", def:"An official permission from a country that allows you to enter and stay for a specific period of time.", emoji:"📘✅🌍🚪" },
+  { phrase:"Itinerary", def:"A detailed plan or schedule of your trip, including dates, places to visit, and activities to do.", emoji:"📋✏️🗺️📅" },
+  { phrase:"Safari", def:"An expedition or journey through the African wildlife reserves to observe wild animals in their natural habitat.", emoji:"🦁🐘🌳🔭" },
+  { phrase:"Cruise ship", def:"A large boat that carries tourists on holiday, stopping at different ports and providing meals and entertainment.", emoji:"🚢⚓🌊🎉" },
+  { phrase:"Hostel", def:"A budget accommodation where travelers can rent a room, often sharing facilities like bathrooms and kitchens.", emoji:"🏢🛏️👥💰" },
+  { phrase:"Travel agency", def:"A business that helps people plan their trips by booking flights, hotels, and activities.", emoji:"🏪✈️📱🗺️" },
+  { phrase:"Duty-free shop", def:"A store at the airport where you can buy goods without paying taxes or duties.", emoji:"🛍️🏪✈️💳" },
+  { phrase:"Layover", def:"A stop during a journey, usually at an airport, between two flights or transportation connections.", emoji:"✈️⏰🌍🪑" },
+  { phrase:"Booking confirmation", def:"A document or email that proves you have reserved and paid for your flight, hotel, or activity.", emoji:"📧✅📄💾" },
+  { phrase:"Delayed flight", def:"When an aircraft does not depart at the scheduled time due to weather, technical issues, or other reasons.", emoji:"✈️⏰❌😞" },
+  { phrase:"Picnic", def:"An outdoor meal eaten in a natural setting like a park or countryside, typically enjoyed with family or friends.", emoji:"🧺🍞🌳🧑‍🤝‍🧑" },
+  { phrase:"Caravan", def:"A group of travelers or vehicles traveling together, or a mobile home used for vacations and traveling.", emoji:"🚐🛣️🌲👥" },
+  { phrase:"Hotel reception", def:"The front desk area of a hotel where staff help guests check in, get information, and solve problems.", emoji:"🏨👨‍💼📞🔑" },
+  { phrase:"Swimming pool", def:"A large body of water built for recreational swimming and relaxation at resorts and hotels.", emoji:"🏊‍♀️💦☀️😎" },
+  { phrase:"Sightseeing", def:"The activity of visiting famous and interesting places as a tourist, usually with a camera or tour guide.", emoji:"📸🗼👀🎫" },
+  { phrase:"Landmark", def:"A well-known or easily recognizable building, structure, or natural feature that helps identify a location.", emoji:"🗽🗼⛩️🏔️" },
+  { phrase:"Culture shock", def:"The feeling of disorientation that people experience when they are exposed to an unfamiliar culture or environment.", emoji:"😵🌍🤔💭" }
+];
+
+const TEAM_COLORS = ["#facc15","#38bdf8","#f472b6","#a78bfa","#34d399","#fb923c"];
+
+let teamCount = 2;
+let scores = [];
+let currentTeam = 0;
+let wordsPerRound = 5;
+let timePerWord = 30;
+let timer = null;
+let timeLeft = 30;
+let gameRoundWord = 0;
+let teamWordQueues = [];
+let teamRoundScore = 0;
+let wordInTeamRound = 0;
+let gameStarted = false;
+
+function changeTeams(d) {
+  teamCount = Math.max(2, Math.min(6, teamCount + d));
+  document.getElementById('team-count-display').textContent = teamCount;
+}
+
+function startGame() {
+  scores = Array(teamCount).fill(0);
+  currentTeam = 0;
+  gameRoundWord = 0;
+  gameStarted = true;
+  wordsPerRound = parseInt(document.querySelector('[data-words-per-round]')?.getAttribute('data-words-per-round') || '5') || 5;
+  timePerWord = parseInt(document.querySelector('[data-time-per-word]')?.getAttribute('data-time-per-word') || '30') || 30;
+  
+  // Create unique shuffled queues for each team
+  teamWordQueues = [];
+  for (let t = 0; t < teamCount; t++) {
+    const shuffled = [...VOCABULARY].sort(() => Math.random() - 0.5);
+    teamWordQueues.push(shuffled);
+  }
+  
+  document.getElementById('screen-start').classList.add('hidden');
+  showTeamTurnScreen();
+}
+
+function showTeamTurnScreen() {
+  teamRoundScore = 0;
+  wordInTeamRound = 0;
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-round-totals').classList.add('hidden');
+  document.getElementById('screen-team-turn').classList.remove('hidden');
+  document.getElementById('team-turn-title').textContent = 'TEAM ' + (currentTeam + 1);
+  document.getElementById('team-turn-emoji').textContent = TEAM_COLORS[currentTeam] ? '🎮' : '👀';
+  document.getElementById('team-turn-emoji').style.color = TEAM_COLORS[currentTeam];
+}
+
+function startTeamRound() {
+  document.getElementById('screen-team-turn').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+  loadWord();
+}
+
+function loadWord() {
+  if (wordInTeamRound >= wordsPerRound) {
+    showRoundTotals();
+    return;
+  }
+  
+  const word = teamWordQueues[currentTeam][wordInTeamRound];
+  
+  document.getElementById('round-label').textContent = `Team ${currentTeam + 1}: Word ${wordInTeamRound + 1}/${wordsPerRound}`;
+  document.getElementById('emoji-scene').textContent = word.emoji;
+  document.getElementById('definition-text').textContent = word.def;
+  document.getElementById('timer-display').textContent = timePerWord;
+  document.getElementById('timer-ring').style.borderColor = '#facc15';
+  document.getElementById('timer-ring').classList.remove('timer-critical');
+  document.getElementById('answer-box').classList.add('hidden');
+  document.getElementById('status-message').textContent = '';
+  
+  show('btn-reveal');
+  hide('btn-correct');
+  hide('btn-incorrect');
+  
+  timeLeft = timePerWord;
+  clearInterval(timer);
+  startAutoTimer();
+}
+
+function startAutoTimer() {
+  clearInterval(timer);
+  timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById('timer-display').textContent = timeLeft;
+    if (timeLeft <= 5) {
+      document.getElementById('timer-ring').style.borderColor = '#ef4444';
+      document.getElementById('timer-display').style.color = '#ef4444';
+      document.getElementById('timer-ring').classList.add('timer-critical');
+    }
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      timesUp();
+    }
+  }, 1000);
+}
+
+function timesUp() {
+  document.getElementById('status-message').textContent = '⏱️ Time\'s up!';
+  hide('btn-reveal');
+  show('btn-correct');
+  show('btn-incorrect');
+  revealAnswer();
+}
+
+function revealAnswer() {
+  clearInterval(timer);
+  hide('btn-reveal');
+  
+  const word = teamWordQueues[currentTeam][wordInTeamRound];
+  
+  document.getElementById('answer-text').textContent = word.phrase;
+  document.getElementById('answer-box').classList.remove('hidden');
+  
+  show('btn-correct');
+  show('btn-incorrect');
+}
+
+function markCorrect() {
+  teamRoundScore++;
+  scores[currentTeam]++;
+  nextWord();
+}
+
+function markIncorrect() {
+  document.getElementById('status-message').textContent = '❌ No points';
+  nextWord();
+}
+
+function nextWord() {
+  clearInterval(timer);
+  gameRoundWord++;
+  wordInTeamRound++;
+  document.getElementById('timer-display').style.color = '#facc15';
+  
+  if (wordInTeamRound >= wordsPerRound) {
+    // Team's round complete
+    showRoundTotals();
+  } else {
+    // Next word for same team
+    setTimeout(() => loadWord(), 1000);
+  }
+}
+
+function showRoundTotals() {
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-round-totals').classList.remove('hidden');
+  document.getElementById('round-totals-title').textContent = 'TEAM ' + (currentTeam + 1);
+  document.getElementById('round-total-score').textContent = teamRoundScore;
+}
+
+function nextTeamTurn() {
+  currentTeam = (currentTeam + 1) % teamCount;
+  showTeamTurnScreen();
+}
+
+function endGame() {
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-team-turn').classList.add('hidden');
+  document.getElementById('screen-round-totals').classList.add('hidden');
+  document.getElementById('screen-end').classList.remove('hidden');
+  
+  const container = document.getElementById('final-scores');
+  container.innerHTML = '';
+  const sorted = scores.map((s,i) => ({team:i, score:s})).sort((a,b) => b.score - a.score);
+  sorted.forEach((t, rank) => {
+    const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : '';
+    const div = document.createElement('div');
+    div.className = 'flex items-center justify-center gap-4 mb-3 slide-up';
+    div.style.animationDelay = rank * 0.15 + 's';
+    div.innerHTML = `<span class="text-3xl">${medal}</span><span class="text-xl font-bold" style="color:${TEAM_COLORS[t.team]}">Team ${t.team+1}</span><span class="text-3xl font-black" style="color:#facc15; font-family:'Space Mono',monospace;">${t.score}</span>`;
+    container.appendChild(div);
+  });
+}
+
+function resetGame() {
+  gameStarted = false;
+  document.getElementById('screen-end').classList.add('hidden');
+  document.getElementById('screen-start').classList.remove('hidden');
+  document.getElementById('timer-display').style.color = '#facc15';
+}
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+// Element SDK
+const defaultConfig = {
+  game_title: 'VOCAB SHOWDOWN',
+  timer_label: 'Time Left',
+  words_per_round: '5',
+  time_per_word: '30',
+  background_color: '#0f0f1a',
+  surface_color: '#1a1a2e',
+  text_color: '#cbd5e1',
+  primary_action_color: '#facc15',
+  secondary_action_color: '#6366f1',
+  font_family: 'Outfit',
+  font_size: 16
+};
+
+function applyConfig(config) {
+  const c = {...defaultConfig, ...config};
+  const app = document.getElementById('app');
+  app.style.background = c.background_color;
+
+  document.getElementById('main-title').textContent = c.game_title;
+  document.getElementById('main-title').style.color = c.primary_action_color;
+  document.getElementById('timer-label-el').textContent = c.timer_label;
+
+  document.querySelectorAll('[style*="background:#1a1a2e"]').forEach(el => el.style.background = c.surface_color);
+
+  document.getElementById('definition-text').style.color = c.text_color;
+
+  const font = c.font_family || defaultConfig.font_family;
+  const stack = `${font}, Outfit, sans-serif`;
+  document.body.style.fontFamily = stack;
+
+  const base = c.font_size || defaultConfig.font_size;
+  document.getElementById('definition-text').style.fontSize = base * 1.15 + 'px';
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => {
+    applyConfig(config);
+    const words = parseInt(config.words_per_round || defaultConfig.words_per_round || '5') || 5;
+    const time = parseInt(config.time_per_word || defaultConfig.time_per_word || '30') || 30;
+    if (words !== wordsPerRound) wordsPerRound = words;
+    if (time !== timePerWord) timePerWord = time;
+  },
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({background_color:v}); }},
+      { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({surface_color:v}); }},
+      { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({text_color:v}); }},
+      { get: () => config.primary_action_color || defaultConfig.primary_action_color, set: v => { config.primary_action_color = v; window.elementSdk.setConfig({primary_action_color:v}); }},
+      { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: v => { config.secondary_action_color = v; window.elementSdk.setConfig({secondary_action_color:v}); }}
+    ],
+    borderables: [],
+    fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: v => { config.font_family = v; window.elementSdk.setConfig({font_family:v}); }},
+    fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: v => { config.font_size = v; window.elementSdk.setConfig({font_size:v}); }}
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ["game_title", config.game_title || defaultConfig.game_title],
+    ["timer_label", config.timer_label || defaultConfig.timer_label],
+    ["words_per_round", config.words_per_round || defaultConfig.words_per_round],
+    ["time_per_word", config.time_per_word || defaultConfig.time_per_word]
+  ])
+});
+
+lucide.createIcons();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f142042565c933e',t:'MTc3NzAyMzQxMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
