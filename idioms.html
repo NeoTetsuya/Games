@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess The Idiom</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Load Twemoji for consistent cross-platform emojis -->
+  <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
+  
+  <style>
+    /* Custom Animations that were handled by 'animate-in' tailwind plugins in React */
+    @keyframes slideInFromBottom {
+      from { transform: translateY(1rem); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideInFromTop {
+      from { transform: translateY(-1rem); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes zoomIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    .animate-slide-in-bottom { animation: slideInFromBottom 0.3s ease-out forwards; }
+    .animate-slide-in-top { animation: slideInFromTop 0.3s ease-out forwards; }
+    .animate-zoom-in { animation: zoomIn 0.3s ease-out forwards; }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    .animate-float { animation: float 4s ease-in-out infinite; }
+    
+    /* Ensure Twemoji images scale correctly with text size */
+    img.emoji {
+      height: 1em;
+      width: 1em;
+      margin: 0 .05em 0 .1em;
+      vertical-align: -0.1em;
+      display: inline-block;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="font-sans text-gray-800">
+  <div id="root"></div>
+
+  <script>
+    // --- DATA: 40 Common Idioms ---
+    const IDIOMS_DATA = [
+      { idiom: "Piece of cake", meaning: "Something that is very easy to do.", emojis: "🧩 🍰", clue: "A sweet baked good." },
+      { idiom: "Hit the books", meaning: "To study very hard.", emojis: "👊 📚", clue: "Strike the reading materials." },
+      { idiom: "Under the weather", meaning: "Feeling ill or sick.", emojis: "⬇️ ⛅", clue: "Beneath the meteorological conditions." },
+      { idiom: "Spill the beans", meaning: "To reveal a secret.", emojis: "🫗 🫘", clue: "Drop the legumes." },
+      { idiom: "Hold your horses", meaning: "Wait a moment or slow down.", emojis: "🤲 🐎", clue: "Restrain your steeds." },
+      { idiom: "Cost an arm and a leg", meaning: "To be very expensive.", emojis: "💲 🦾 🦿", clue: "Priced at two limbs." },
+      { idiom: "Hit the nail on the head", meaning: "To describe exactly what is causing a situation or problem.", emojis: "👊 💅 🔛 👤", clue: "Strike the fastener perfectly." },
+      { idiom: "Once in a blue moon", meaning: "Something that happens very rarely.", emojis: "1️⃣ ➡️ 🔵 🌕", clue: "During a rare, colored lunar event." },
+      { idiom: "Let the cat out of the bag", meaning: "To accidentally reveal a secret.", emojis: "🐈 🚪 🎒", clue: "Release the feline from the sack." },
+      { idiom: "When pigs fly", meaning: "Something that will never happen.", emojis: "⏰ 🐷 🪽", clue: "Airborne swine." },
+      { idiom: "Beat around the bush", meaning: "To avoid talking about what is important.", emojis: "🥁 🔄 🌳", clue: "Strike near the shrubbery." },
+      { idiom: "Raining cats and dogs", meaning: "Raining very heavily.", emojis: "🌧️ 🐈 🐕", clue: "Precipitating domestic pets." },
+      { idiom: "Barking up the wrong tree", meaning: "Pursuing a false lead or making a mistake in someone's line of thought.", emojis: "🗣️ ⬆️ ❌ 🌲", clue: "Canine noises at the incorrect timber." },
+      { idiom: "Cry over spilled milk", meaning: "To complain about a loss from the past.", emojis: "😭 ⬆️ 🫗 🥛", clue: "Weep about dropped dairy." },
+      { idiom: "On cloud nine", meaning: "Being extremely happy.", emojis: "🔛 ☁️ 9️⃣", clue: "Sitting on the ninth cumulus." },
+      { idiom: "Elephant in the room", meaning: "An obvious problem or issue that people avoid discussing.", emojis: "🐘 ➡️ 🚪", clue: "Large pachyderm indoors." },
+      { idiom: "Burn the midnight oil", meaning: "To work late into the night.", emojis: "🔥 🕛 🛢️", clue: "Ignite the late-night fuel." },
+      { idiom: "Out of the woods", meaning: "To be out of danger or past the hardest part of a situation.", emojis: "🚪 🌲", clue: "Escaped the forest." },
+      { idiom: "Bite off more than you can chew", meaning: "To take on a task that is way too big.", emojis: "🦷 ➕ 👄", clue: "Mouthful is too big to masticate." },
+      { idiom: "Judge a book by its cover", meaning: "To judge someone or something based solely on appearance.", emojis: "⚖️ 📖 📘", clue: "Evaluate literature by its binding." },
+      { idiom: "A drop in the bucket", meaning: "A very small part of something big or whole.", emojis: "💧 ➡️ 🪣", clue: "One bead of water in a pail." },
+      { idiom: "Put all your eggs in one basket", meaning: "To risk everything on a single venture.", emojis: "🤲 🥚 ➡️ 1️⃣ 🧺", clue: "Store all ova in a single container." },
+      { idiom: "See eye to eye", meaning: "To agree with someone.", emojis: "👀 👁️ 2️⃣ 👁️", clue: "Viewing pupil to pupil." },
+      { idiom: "Head in the clouds", meaning: "To be daydreaming and not paying attention to what is happening around you.", emojis: "👤 ➡️ ☁️", clue: "Cranium in the atmosphere." },
+      { idiom: "Take with a grain of salt", meaning: "To not take something too seriously or to be skeptical.", emojis: "🤲 🌾 🧂", clue: "Accept with a speck of sodium." },
+      { idiom: "Best of both worlds", meaning: "Enjoying the advantages of two different things at the same time.", emojis: "🏆 2️⃣ 🌎", clue: "Top tier of two planets." },
+      { idiom: "Time is money", meaning: "Time is a valuable resource, so don't waste it.", emojis: "⏱️ 🟰 💵", clue: "Chronology equals currency." },
+      { idiom: "Up in the air", meaning: "Unresolved, undecided, or uncertain.", emojis: "⬆️ ➡️ 💨", clue: "Elevated in the atmosphere." },
+      { idiom: "A penny for your thoughts", meaning: "A way of asking what someone is thinking.", emojis: "🪙 4️⃣ 💭", clue: "One cent for your ideas." },
+      { idiom: "Couch potato", meaning: "A lazy person who watches too much TV.", emojis: "🛋️ 🥔", clue: "Sofa spud." },
+      { idiom: "Cut corners", meaning: "To do something poorly in order to save time or money.", emojis: "✂️ 📐", clue: "Slice the angles." },
+      { idiom: "Fish out of water", meaning: "Feeling uncomfortable in an unfamiliar situation.", emojis: "🐟 🚪 💧", clue: "Aquatic creature on dry land." },
+      { idiom: "Early bird catches the worm", meaning: "Being early gives you an advantage over others.", emojis: "⏰ 🐦 🤲 🪱", clue: "Punctual fowl gets the invertebrate." },
+      { idiom: "A needle in a haystack", meaning: "Something that is almost impossible to find.", emojis: "🪡 ➡️ 🌾", clue: "Sewing tool in dried grass." },
+      { idiom: "Walking on eggshells", meaning: "Being very careful not to offend someone.", emojis: "🚶 🔛 🥚", clue: "Stepping on fragile white casings." },
+      { idiom: "Zip your lip", meaning: "To stop talking or keep a secret.", emojis: "🤐 👄", clue: "Fasten your mouth shut." },
+      { idiom: "Out of the blue", meaning: "Something happening completely unexpectedly.", emojis: "🚪 🔵", clue: "Emerging from the azure." },
+      { idiom: "Apple of my eye", meaning: "Someone who is cherished above all others.", emojis: "🍎 👁️", clue: "Fruit of my vision." },
+      { idiom: "Tie the knot", meaning: "To get married.", emojis: "🎀 🪢", clue: "Fasten the rope." },
+      { idiom: "Cold shoulder", meaning: "To intentionally ignore someone.", emojis: "🥶 🤷", clue: "Frigid body part." },
+      { idiom: "Break the ice", meaning: "To start a conversation and make people feel comfortable.", emojis: "🔨 🧊", clue: "Shatter the frozen water." },
+      { idiom: "Let sleeping dogs lie", meaning: "To avoid interfering in a situation so you don't cause trouble.", emojis: "😴 🐕 🛌", clue: "Do not wake resting canines." },
+      { idiom: "Butter someone up", meaning: "To flatter someone to get a favor.", emojis: "🧈 👤 ⬆️", clue: "Apply churned cream to a person." },
+      { idiom: "In the same boat", meaning: "In the same difficult situation as someone else.", emojis: "➡️ 🟰 ⛵", clue: "Sharing a small watercraft." },
+      { idiom: "Out of this world", meaning: "Extremely good or impressive.", emojis: "🚪 🌎", clue: "Originating beyond our planet." },
+      { idiom: "Draw a blank", meaning: "To fail to remember something.", emojis: "🖍️ ⬜", clue: "Sketch an empty space." },
+      { idiom: "Give the green light", meaning: "To give permission to proceed with something.", emojis: "🤲 🟢 💡", clue: "Hand over a verdant illumination." },
+      { idiom: "Music to my ears", meaning: "Good news or something very pleasing to hear.", emojis: "🎵 ➡️ 👂", clue: "Melodies directed at hearing organs." },
+      { idiom: "A piece of the pie", meaning: "A share of something, like money or profits.", emojis: "🧩 🥧", clue: "A slice of a baked pastry." },
+      { idiom: "Miss the boat", meaning: "To be too late to take advantage of an opportunity.", emojis: "❌ ⛵", clue: "Fail to board the passenger vessel." },
+      { idiom: "Pull someone's leg", meaning: "To joke or tease someone by telling them something untrue.", emojis: "🤏 🦵", clue: "Tug on a lower limb." },
+      { idiom: "Under the radar", meaning: "Unnoticed or undetected by others.", emojis: "⬇️ 📡", clue: "Beneath the radio detection equipment." },
+      { idiom: "Clear as mud", meaning: "Not clear at all; very confusing.", emojis: "✨ 🟰 🟤", clue: "Transparent as wet dirt." },
+      { idiom: "Tip of the iceberg", meaning: "Only a small, visible part of a much larger problem.", emojis: "🔝 🏔️", clue: "The apex of a floating glacial mass." },
+      { idiom: "Weather the storm", meaning: "To successfully deal with a very difficult problem.", emojis: "⛅ ⛈️", clue: "Endure the severe meteorological event." },
+      { idiom: "Spaced out", meaning: "Not paying attention or daydreaming.", emojis: "🌌 🚪", clue: "Positioned in the cosmos." },
+      { idiom: "Back to the drawing board", meaning: "To start over because a previous plan failed.", emojis: "🔙 🖍️ 📋", clue: "Return to the sketching surface." },
+      { idiom: "Keep your chin up", meaning: "To remain cheerful in a difficult situation.", emojis: "🤲 🧏‍♂️ ⬆️", clue: "Elevate your lower jaw." },
+      { idiom: "Throw in the towel", meaning: "To give up or admit defeat.", emojis: "🤾 ➡️ 🧻", clue: "Toss the drying cloth." },
+      { idiom: "On thin ice", meaning: "In a risky or precarious situation.", emojis: "🔛 ➖ 🧊", clue: "Standing on frozen water lacking thickness." },
+      { idiom: "Cry wolf", meaning: "To call for help when it's not needed.", emojis: "😭 🐺", clue: "Weeping about a wild canine." },
+      { idiom: "Night owl", meaning: "A person who stays up and is active late into the night.", emojis: "🌃 🦉", clue: "A nocturnal bird." },
+      { idiom: "Open a can of worms", meaning: "To create a new, complicated set of problems.", emojis: "👐 🥫 🪱", clue: "Unseal a tin of squiggly invertebrates." },
+      { idiom: "Couch surfing", meaning: "Staying temporarily in a series of other people's homes.", emojis: "🛋️ 🏄‍♂️", clue: "Riding a wave on a sofa." },
+      { idiom: "Heart of gold", meaning: "A very kind and good nature.", emojis: "💛 🥇", clue: "A pumping organ made of precious metal." },
+      { idiom: "Two peas in a pod", meaning: "Two people who are very similar.", emojis: "2️⃣ 🫛 ➡️ 🫛", clue: "A pair of green seeds in their casing." },
+      { idiom: "Big cheese", meaning: "An important, influential person.", emojis: "🐘 🧀", clue: "A massive block of dairy." },
+      { idiom: "Bad apple", meaning: "A bad or corrupt person in a group.", emojis: "👎 🍎", clue: "A spoiled red fruit." },
+      { idiom: "Bookworm", meaning: "A person who loves to read.", emojis: "📚 🐛", clue: "An insect that lives in literature." },
+      { idiom: "Top dog", meaning: "The most important person in an organization or group.", emojis: "🔝 🐕", clue: "The highest elevated canine." },
+      { idiom: "Cold feet", meaning: "To lose courage to do something you had planned.", emojis: "🥶 🦶", clue: "Frigid lower extremities." },
+      { idiom: "Pig out", meaning: "To eat a lot of food at once.", emojis: "🐷 🚪", clue: "Dine like swine." },
+      { idiom: "Bull in a china shop", meaning: "A clumsy person in a delicate situation.", emojis: "🐂 ➡️ 🇨🇳 🏪", clue: "A horned bovine in a fragile store." },
+      { idiom: "Cash cow", meaning: "A business or product that generates a steady flow of income.", emojis: "💵 🐄", clue: "Currency-producing livestock." },
+      { idiom: "Sick as a dog", meaning: "Very ill.", emojis: "🤢 🟰 🐕", clue: "Nauseous like a canine." },
+      { idiom: "Monkey business", meaning: "Silly, mischievous, or deceitful behavior.", emojis: "🐒 💼", clue: "Primate commerce." },
+      { idiom: "Ants in your pants", meaning: "Unable to sit still because of excitement or nervousness.", emojis: "🐜 ➡️ 👖", clue: "Insects inside your trousers." },
+      { idiom: "Cat got your tongue", meaning: "Used when someone has nothing to say or is unusually quiet.", emojis: "🐈 🤲 👅", clue: "Feline captured your tasting organ." },
+      { idiom: "Dark horse", meaning: "A candidate or competitor about whom little is known but who unexpectedly wins.", emojis: "⬛ 🐎", clue: "A shadow-colored steed." },
+      { idiom: "Blind as a bat", meaning: "Having very bad eyesight.", emojis: "🦯 🟰 🦇", clue: "Unable to see like a flying mammal." }
+    ];
+
+    // Helper to shuffle array (Fisher-Yates)
+    const shuffleArray = (array) => {
+      const newArr = [...array];
+      for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+      }
+      return newArr;
+    };
+
+    // --- STATE VARIABLES ---
+    let gameState = 'SETUP'; // SETUP, PLAYING, END
+    let teamA = 'Team A';
+    let teamB = 'Team B';
+    let rounds = 5;
+    let scoreA = 0;
+    let scoreB = 0;
+    let currentTurn = 'A'; // 'A' or 'B'
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let showHint = false;
+    let showAnswer = false;
+
+    // --- ACTIONS ---
+    function triggerStartGame() {
+      // Read values from inputs
+      teamA = document.getElementById('teamAInput').value || 'Team A';
+      teamB = document.getElementById('teamBInput').value || 'Team B';
+      rounds = parseInt(document.getElementById('roundsSelect').value) || 5;
+
+      // We need 2 questions per round (one for each team)
+      const totalQuestionsNeeded = rounds * 2;
+      questions = shuffleArray(IDIOMS_DATA).slice(0, totalQuestionsNeeded);
+      
+      scoreA = 0;
+      scoreB = 0;
+      currentTurn = 'A';
+      currentQuestionIndex = 0;
+      showHint = false;
+      showAnswer = false;
+      gameState = 'PLAYING';
+      
+      renderApp();
+    }
+
+    function triggerShowHint() {
+      showHint = true;
+      renderApp();
+    }
+
+    function triggerShowAnswer() {
+      showAnswer = true;
+      renderApp();
+    }
+
+    function handleScore(isCorrect) {
+      if (isCorrect) {
+        if (currentTurn === 'A') scoreA += 1;
+        if (currentTurn === 'B') scoreB += 1;
+      }
+
+      const nextIndex = currentQuestionIndex + 1;
+      
+      if (nextIndex >= questions.length) {
+        gameState = 'END';
+      } else {
+        currentQuestionIndex = nextIndex;
+        currentTurn = currentTurn === 'A' ? 'B' : 'A';
+        showHint = false;
+        showAnswer = false;
+      }
+      renderApp();
+    }
+
+    function triggerPlayAgain() {
+      gameState = 'SETUP';
+      renderApp();
+    }
+
+    // --- RENDER FUNCTIONS ---
+    function renderSetup() {
+      return `
+        <div class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4 font-sans text-gray-800">
+          <div class="bg-white/95 backdrop-blur rounded-3xl shadow-2xl p-8 w-full max-w-lg">
+            <div class="text-center mb-8">
+              <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600 mb-2">
+                Guess The Idiom
+              </h1>
+              <p class="text-gray-500">The visual phrase-guessing party game!</p>
+            </div>
+
+            <div class="space-y-6">
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-1">Team 1 Name</label>
+                  <input 
+                    id="teamAInput"
+                    type="text" 
+                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
+                    value="${teamA}"
+                    maxlength="20"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-1">Team 2 Name</label>
+                  <input 
+                    id="teamBInput"
+                    type="text" 
+                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 outline-none transition-all"
+                    value="${teamB}"
+                    maxlength="20"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-1">Rounds per Team</label>
+                  <select 
+                    id="roundsSelect"
+                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-400 outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="3" ${rounds === 3 ? 'selected' : ''}>3 Rounds (Short)</option>
+                    <option value="5" ${rounds === 5 ? 'selected' : ''}>5 Rounds (Normal)</option>
+                    <option value="10" ${rounds === 10 ? 'selected' : ''}>10 Rounds (Long)</option>
+                    <option value="20" ${rounds === 20 ? 'selected' : ''}>20 Rounds (40 Idioms)</option>
+                    <option value="40" ${rounds === 40 ? 'selected' : ''}>40 Rounds (All 80 Idioms!)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button 
+                onclick="triggerStartGame()"
+                class="w-full py-4 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+              >
+                Start Game <i data-lucide="arrow-right" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPlaying() {
+      const currentQ = questions[currentQuestionIndex];
+      const activeTeamName = currentTurn === 'A' ? teamA : teamB;
+      const isTeamA = currentTurn === 'A';
+
+      // Convert the idiom into blanks (e.g. "Piece of cake" -> "_ _ _ _ _   _ _   _ _ _ _")
+      // We replace all letters with underscores, keeping spaces and punctuation intact
+      const blanks = currentQ.idiom.replace(/[a-zA-Z]/g, '_');
+
+      return `
+        <div class="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-800">
+          <!-- Header Scoreboard -->
+          <header class="bg-white shadow-sm px-4 py-4 flex justify-between items-center sticky top-0 z-10">
+            <div class="flex items-center gap-3 px-4 py-2 rounded-xl transition-all ${currentTurn === 'A' ? 'bg-indigo-100 ring-2 ring-indigo-400 scale-105' : 'bg-white'}">
+              <div class="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-xl">
+                ${scoreA}
+              </div>
+              <span class="font-bold text-indigo-900 hidden sm:block truncate max-w-[120px]">${teamA}</span>
+            </div>
+            
+            <div class="flex flex-col items-center">
+              <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Question</span>
+              <span class="text-lg font-black text-gray-800">${currentQuestionIndex + 1} / ${questions.length}</span>
+            </div>
+
+            <div class="flex items-center gap-3 px-4 py-2 rounded-xl transition-all ${currentTurn === 'B' ? 'bg-pink-100 ring-2 ring-pink-400 scale-105' : 'bg-white'}">
+              <span class="font-bold text-pink-900 hidden sm:block truncate max-w-[120px]">${teamB}</span>
+              <div class="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold text-xl">
+                ${scoreB}
+              </div>
+            </div>
+          </header>
+
+          <!-- Main Game Area -->
+          <main class="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8 flex flex-col">
+            <div class="text-center mb-6">
+              <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-2 ${isTeamA ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'}">
+                <i data-lucide="users" class="w-4 h-4"></i> ${activeTeamName}'s Turn
+              </div>
+              <h2 class="text-2xl md:text-3xl font-black text-gray-800">Guess the Idiom!</h2>
+            </div>
+
+            <!-- Puzzle Card -->
+            <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6 border border-gray-100 flex-1 flex flex-col relative">
+              <div class="relative w-full flex-1 min-h-[300px] md:min-h-[400px] bg-gradient-to-br from-indigo-50/50 to-pink-50/50 flex flex-col items-center justify-center overflow-hidden p-8">
+                
+                <!-- Emoji Display -->
+                <div class="text-7xl md:text-9xl tracking-[0.1em] md:tracking-[0.2em] drop-shadow-md mb-10 animate-float select-none cursor-default">
+                  ${currentQ.emojis}
+                </div>
+
+                <!-- Word Blanks Hint -->
+                <div class="text-2xl md:text-4xl font-mono font-bold text-gray-400 tracking-[0.2em] md:tracking-[0.4em] text-center select-none">
+                  ${blanks}
+                </div>
+                
+                <!-- Overlay Literal Text Hint if activated -->
+                ${showHint ? `
+                  <div class="absolute inset-x-0 bottom-0 bg-white/95 backdrop-blur-md border-t border-indigo-100 p-6 md:p-8 text-center animate-slide-in-bottom z-30 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                    <p class="text-indigo-600 text-sm font-bold uppercase tracking-widest mb-3">Literal Meaning Hint</p>
+                    <div class="text-xl md:text-3xl font-bold text-gray-800 italic">"${currentQ.clue}"</div>
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- Action Bar -->
+              <div class="p-4 md:p-6 bg-white border-t border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center z-40">
+                ${!showHint && !showAnswer ? `
+                  <button 
+                    onclick="triggerShowHint()"
+                    class="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <i data-lucide="help-circle" class="w-5 h-5"></i> Need a hint?
+                  </button>
+                ` : `
+                  <div class="hidden sm:block"></div>
+                `}
+
+                ${!showAnswer ? `
+                  <button 
+                    onclick="triggerShowAnswer()"
+                    class="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 ${isTeamA ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-pink-600 hover:bg-pink-700 shadow-pink-200'}"
+                  >
+                    <i data-lucide="eye" class="w-5 h-5"></i> Reveal Answer
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Answer Reveal Area -->
+            ${showAnswer ? `
+              <div class="bg-white rounded-3xl shadow-xl p-6 border border-gray-100 animate-slide-in-top animate-fade-in">
+                <div class="text-center mb-6">
+                  <h3 class="text-sm font-bold text-green-500 uppercase tracking-widest mb-2">Answer</h3>
+                  <p class="text-3xl md:text-4xl font-black text-gray-800 mb-3">${currentQ.idiom}</p>
+                  <div class="flex items-center justify-center gap-2 text-gray-500 bg-gray-50 rounded-xl p-4">
+                    <i data-lucide="info" class="w-5 h-5 shrink-0"></i>
+                    <p class="text-sm md:text-base text-left">${currentQ.meaning}</p>
+                  </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-6">
+                  <p class="text-center text-gray-600 font-semibold mb-4">Did ${activeTeamName} guess it correctly?</p>
+                  <div class="grid grid-cols-2 gap-4">
+                    <button 
+                      onclick="handleScore(false)"
+                      class="py-4 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <i data-lucide="x" class="w-5 h-5"></i> Nope (0)
+                    </button>
+                    <button 
+                      onclick="handleScore(true)"
+                      class="py-4 rounded-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <i data-lucide="check" class="w-5 h-5"></i> Correct! (+1)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </main>
+        </div>
+      `;
+    }
+
+    function renderEnd() {
+      const isTie = scoreA === scoreB;
+      const winner = scoreA > scoreB ? teamA : teamB;
+      
+      return `
+        <div class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4 font-sans text-gray-800">
+          <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg text-center animate-zoom-in duration-300">
+            <i data-lucide="trophy" class="w-24 h-24 mx-auto mb-6 ${isTie ? 'text-gray-400' : 'text-yellow-400'}"></i>
+            
+            <h2 class="text-5xl font-black text-gray-800 mb-2">
+              ${isTie ? "It's a Tie!" : `${winner} Wins!`}
+            </h2>
+            <p class="text-xl text-gray-500 mb-8">What a game!</p>
+
+            <div class="grid grid-cols-2 gap-4 mb-8">
+              <div class="p-6 rounded-2xl ${scoreA > scoreB ? 'bg-indigo-50 border-2 border-indigo-200' : 'bg-gray-50'}">
+                <div class="text-indigo-600 font-bold truncate">${teamA}</div>
+                <div class="text-4xl font-black text-gray-800 mt-2">${scoreA}</div>
+                <div class="text-sm text-gray-500">Points</div>
+              </div>
+              <div class="p-6 rounded-2xl ${scoreB > scoreA ? 'bg-pink-50 border-2 border-pink-200' : 'bg-gray-50'}">
+                <div class="text-pink-600 font-bold truncate">${teamB}</div>
+                <div class="text-4xl font-black text-gray-800 mt-2">${scoreB}</div>
+                <div class="text-sm text-gray-500">Points</div>
+              </div>
+            </div>
+
+            <button 
+              onclick="triggerPlayAgain()"
+              class="w-full py-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all"
+            >
+              <i data-lucide="refresh-cw" class="w-5 h-5"></i> Play Again
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Main render function that handles routing
+    function renderApp() {
+      const root = document.getElementById('root');
+      
+      if (gameState === 'SETUP') {
+        root.innerHTML = renderSetup();
+      } else if (gameState === 'PLAYING') {
+        root.innerHTML = renderPlaying();
+      } else if (gameState === 'END') {
+        root.innerHTML = renderEnd();
+      }
+
+      // Initialize Lucide icons on newly injected HTML
+      lucide.createIcons();
+      
+      // Parse the root element to convert native emojis into standardized Twemoji images
+      twemoji.parse(root, {
+        folder: 'svg',
+        ext: '.svg'
+      });
+    }
+
+    // Initial render when the page loads
+    window.onload = renderApp;
+  </script>
+</body>
+</html>
