@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undercover Lingo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #F8FAFC;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Premium Soft Shadows */
+        .shadow-soft {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 3px rgba(0,0,0,0.02);
+        }
+        .shadow-float {
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 5px rgba(0,0,0,0.01);
+        }
+
+        /* Smooth, non-intrusive animations */
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.98) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .anim-view-enter {
+            animation: fadeInScale 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.90); opacity: 0; }
+            50% { transform: scale(1.03); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .anim-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .anim-float {
+            animation: float 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased overflow-x-hidden min-h-screen">
+
+    <!-- App Container -->
+    <div id="app" class="min-h-screen flex flex-col p-4 md:p-8">
+        <!-- Views will be dynamically swapped here by JS -->
+    </div>
+
+    <script>
+        // --- CONSTANTS & DATA ---
+        const PRESET_WORDS = [
+            { category: 'Food (Fruit)', w1: 'Apple', w2: 'Orange' },
+            { category: 'Food (Fruit)', w1: 'Peach', w2: 'Plum' },
+            { category: 'Food (Fruit)', w1: 'Strawberry', w2: 'Raspberry' },
+            { category: 'Food (Vegetables)', w1: 'Potato', w2: 'Sweet Potato' },
+            { category: 'Food (Vegetables)', w1: 'Broccoli', w2: 'Cauliflower' },
+            { category: 'Food (Vegetables)', w1: 'Onion', w2: 'Garlic' },
+            { category: 'Food (Meals)', w1: 'Breakfast', w2: 'Lunch' },
+            { category: 'Food (Dessert)', w1: 'Cake', w2: 'Pie' },
+            { category: 'Food (Dessert)', w1: 'Cookie', w2: 'Biscuit' },
+            { category: 'Food (Drinks)', w1: 'Coffee', w2: 'Tea' },
+            { category: 'Food (Drinks)', w1: 'Juice', w2: 'Soda' },
+            { category: 'Food (Kitchenware)', w1: 'Fork', w2: 'Spoon' },
+            { category: 'Food (Kitchenware)', w1: 'Plate', w2: 'Bowl' },
+            { category: 'Food (Kitchenware)', w1: 'Pot', w2: 'Pan' },
+            { category: 'Food (Kitchenware)', w1: 'Cup', w2: 'Glass' },
+            { category: 'Animals (Pets)', w1: 'Dog', w2: 'Cat' },
+            { category: 'Animals (Pets)', w1: 'Hamster', w2: 'Guinea Pig' },
+            { category: 'Animals (Farm)', w1: 'Sheep', w2: 'Goat' },
+            { category: 'Animals (Farm)', w1: 'Cow', w2: 'Horse' },
+            { category: 'Animals (Wild)', w1: 'Lion', w2: 'Tiger' },
+            { category: 'Animals (Wild)', w1: 'Crocodile', w2: 'Alligator' },
+            { category: 'Animals (Wild)', w1: 'Monkey', w2: 'Ape' },
+            { category: 'Animals (Birds)', w1: 'Pigeon', w2: 'Dove' },
+            { category: 'Animals (Birds)', w1: 'Crow', w2: 'Raven' },
+            { category: 'Animals (Insects)', w1: 'Butterfly', w2: 'Moth' },
+            { category: 'Animals (Insects)', w1: 'Bee', w2: 'Wasp' },
+            { category: 'Animals (Aquatic)', w1: 'Dolphin', w2: 'Whale' },
+            { category: 'Animals (Aquatic)', w1: 'Shark', w2: 'Ray' },
+            { category: 'Animals (Aquatic)', w1: 'Crab', w2: 'Lobster' },
+            { category: 'Animals (Aquatic)', w1: 'Frog', w2: 'Toad' },
+            { category: 'Animals (Aquatic)', w1: 'Squid', w2: 'Octopus' },
+            { category: 'Nature (Water)', w1: 'River', w2: 'Lake' },
+            { category: 'Nature (Water)', w1: 'Sea', w2: 'Ocean' },
+            { category: 'Nature (Water)', w1: 'Pond', w2: 'Pool' },
+            { category: 'Nature (Land)', w1: 'Mountain', w2: 'Hill' },
+            { category: 'Nature (Land)', w1: 'Forest', w2: 'Jungle' },
+            { category: 'Nature (Land)', w1: 'Desert', w2: 'Beach' },
+            { category: 'Nature (Plants)', w1: 'Tree', w2: 'Bush' },
+            { category: 'Nature (Plants)', w1: 'Flower', w2: 'Weed' },
+            { category: 'Nature (Plants)', w1: 'Grass', w2: 'Moss' },
+            { category: 'Nature (Plants)', w1: 'Leaf', w2: 'Branch' },
+            { category: 'Nature (Weather)', w1: 'Rain', w2: 'Snow' },
+            { category: 'Nature (Weather)', w1: 'Hurricane', w2: 'Tornado' },
+            { category: 'Nature (Space)', w1: 'Star', w2: 'Planet' },
+            { category: 'Nature (Space)', w1: 'Meteor', w2: 'Asteroid' },
+            { category: 'Home (Furniture)', w1: 'Sofa', w2: 'Couch' },
+            { category: 'Home (Furniture)', w1: 'Chair', w2: 'Stool' },
+            { category: 'Home (Furniture)', w1: 'Desk', w2: 'Table' },
+            { category: 'Home (Rooms)', w1: 'Kitchen', w2: 'Dining Room' },
+            { category: 'Home (Rooms)', w1: 'Attic', w2: 'Basement' },
+            { category: 'Home (Rooms)', w1: 'Balcony', w2: 'Patio' },
+            { category: 'Home (Buildings)', w1: 'House', w2: 'Apartment' },
+            { category: 'Home (Buildings)', w1: 'Castle', w2: 'Palace' },
+            { category: 'Home (Electronics)', w1: 'Television', w2: 'Monitor' },
+            { category: 'Home (Electronics)', w1: 'Laptop', w2: 'Tablet' },
+            { category: 'Home (Electronics)', w1: 'Fridge', w2: 'Freezer' },
+            { category: 'Home (Bath)', w1: 'Soap', w2: 'Shampoo' },
+            { category: 'Home (Bath)', w1: 'Towel', w2: 'Sponge' },
+            { category: 'Clothing (Outerwear)', w1: 'Jacket', w2: 'Coat' },
+            { category: 'Clothing (Outerwear)', w1: 'Sweater', w2: 'Hoodie' },
+            { category: 'Clothing (Footwear)', w1: 'Shoe', w2: 'Boot' },
+            { category: 'Clothing (Footwear)', w1: 'Sandal', w2: 'Slipper' },
+            { category: 'Clothing (Accessories)', w1: 'Clock', w2: 'Watch' },
+            { category: 'Clothing (Accessories)', w1: 'Hat', w2: 'Cap' },
+            { category: 'Transport (Road)', w1: 'Car', w2: 'Bus' },
+            { category: 'Transport (Road)', w1: 'Motorcycle', w2: 'Bicycle' },
+            { category: 'Transport (Road)', w1: 'Truck', w2: 'Van' },
+            { category: 'Transport (Other)', w1: 'Ship', w2: 'Boat' },
+            { category: 'Transport (Other)', w1: 'Airplane', w2: 'Helicopter' },
+            { category: 'Places (City)', w1: 'Street', w2: 'Avenue' },
+            { category: 'Places (City)', w1: 'Village', w2: 'Town' },
+            { category: 'Places (City)', w1: 'Bridge', w2: 'Tunnel' },
+            { category: 'Places (Institutions)', w1: 'School', w2: 'University' },
+            { category: 'Places (Institutions)', w1: 'Hospital', w2: 'Clinic' },
+            { category: 'Places (Institutions)', w1: 'Library', w2: 'Museum' },
+            { category: 'Places (Entertainment)', w1: 'Cinema', w2: 'Theater' },
+            { category: 'Places (Entertainment)', w1: 'Park', w2: 'Garden' },
+            { category: 'Places (Entertainment)', w1: 'Zoo', w2: 'Aquarium' },
+            { category: 'People (Professions)', w1: 'Doctor', w2: 'Nurse' },
+            { category: 'People (Professions)', w1: 'Teacher', w2: 'Professor' },
+            { category: 'People (Professions)', w1: 'Policeman', w2: 'Firefighter' },
+            { category: 'People (Professions)', w1: 'Chef', w2: 'Waiter' },
+            { category: 'People (Professions)', w1: 'Actor', w2: 'Singer' },
+            { category: 'People (Family)', w1: 'Brother', w2: 'Sister' },
+            { category: 'People (Family)', w1: 'Uncle', w2: 'Aunt' },
+            { category: 'Body (Limbs)', w1: 'Hand', w2: 'Foot' },
+            { category: 'Body (Limbs)', w1: 'Arm', w2: 'Leg' },
+            { category: 'Body (Limbs)', w1: 'Finger', w2: 'Toe' },
+            { category: 'Body (Limbs)', w1: 'Knee', w2: 'Elbow' },
+            { category: 'Body (Face)', w1: 'Eye', w2: 'Ear' },
+            { category: 'Body (Face)', w1: 'Mouth', w2: 'Nose' },
+            { category: 'Time (Periods)', w1: 'Morning', w2: 'Evening' },
+            { category: 'Time (Periods)', w1: 'Day', w2: 'Night' },
+            { category: 'Time (Seasons)', w1: 'Summer', w2: 'Winter' },
+            { category: 'Time (Seasons)', w1: 'Spring', w2: 'Autumn' },
+            { category: 'Time (Units)', w1: 'Month', w2: 'Year' },
+            { category: 'Time (Units)', w1: 'Century', w2: 'Decade' },
+            { category: 'Materials', w1: 'Wood', w2: 'Metal' },
+            { category: 'Materials', w1: 'Plastic', w2: 'Glass' },
+            { category: 'Materials', w1: 'Paper', w2: 'Cardboard' },
+            { category: 'Materials', w1: 'Gold', w2: 'Silver' },
+            { category: 'Tools', w1: 'Hammer', w2: 'Screwdriver' },
+            { category: 'Tools', w1: 'Pen', w2: 'Pencil' },
+            { category: 'Tools', w1: 'Brush', w2: 'Comb' },
+            { category: 'Tools', w1: 'Guitar', w2: 'Piano' }
+        ];
+
+        const UNIQUE_CATEGORIES = ['All Topics', ...new Set(PRESET_WORDS.map(p => p.category))];
+
+        const AVATAR_COLORS = [
+            'bg-[#EF4444]', // Red
+            'bg-[#3B82F6]', // Blue
+            'bg-[#10B981]', // Green
+            'bg-[#F59E0B]', // Yellow
+            'bg-[#8B5CF6]', // Purple
+            'bg-[#EC4899]', // Pink
+            'bg-[#14B8A6]', // Teal
+            'bg-[#F97316]'  // Orange
+        ];
+
+        // --- GLOBAL STATE ---
+        const state = {
+            gameState: 'setup', 
+            players: [],
+            scores: {},
+            wordMode: 'preset',
+            selectedCategory: 'All Topics',
+            customWords: { w1: '', w2: '' },
+            setupError: '',
+            undercoverCount: 1,
+            
+            // Active Game Data
+            activePlayers: [],
+            currentPlayerIndex: 0,
+            showWord: false,
+            eliminatedThisRound: null,
+            pendingVote: null,
+            winner: null,
+            roundWords: { civ: '', und: '' },
+            roundSpeakerOrder: [],
+            currentSpeakerIndex: 0,
+            roundNumber: 1,
+            showHostPeek: false
+        };
+
+        const tracking = {
+            gameState: null,
+            speakerIndex: -1,
+            showWord: false,
+            prevProgress: 0
+        };
+
+        // --- HELPER FUNCTIONS ---
+        function getAvatar(player, size = "md") {
+            const initials = player.name.substring(0, 2).toUpperCase();
+            const sizeClasses = size === "sm" ? "w-8 h-8 md:w-10 md:h-10 text-[10px] md:text-xs" : size === "lg" ? "w-16 h-16 md:w-24 md:h-24 text-xl md:text-3xl" : "w-10 h-10 md:w-12 md:h-12 text-sm md:text-base";
+            return `<div class="${player.color} ${sizeClasses} rounded-full flex items-center justify-center text-white font-black shadow-sm shrink-0 transition-transform duration-300 hover:scale-110">${initials}</div>`;
+        }
+
+        function updateUndercoverCountBounds() {
+            if (state.players.length > 0) {
+                const autoCount = Math.max(1, Math.floor(state.players.length / 4) + (state.players.length <= 4 ? 0 : 1));
+                const maxAllowed = Math.max(1, state.players.length - 2);
+                if (state.undercoverCount > maxAllowed) state.undercoverCount = maxAllowed;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('undercoverPlayers', JSON.stringify(state.players));
+            localStorage.setItem('undercoverScores', JSON.stringify(state.scores));
+        }
+
+        function loadData() {
+            const p = localStorage.getItem('undercoverPlayers');
+            const s = localStorage.getItem('undercoverScores');
+            if (p) state.players = JSON.parse(p);
+            if (s) state.scores = JSON.parse(s);
+            updateUndercoverCountBounds();
+        }
+
+        window.clearScores = function() {
+            if (confirm("Are you sure you want to reset all scores to 0?")) {
+                for (let key in state.scores) state.scores[key] = 0;
+                saveData();
+                renderApp();
+            }
+        };
+
+        // --- TIMER LOGIC ---
+        let timerInt = null;
+        let timerSecs = 90;
+        let timerRunning = false;
+
+        window.toggleTimer = function() {
+            timerRunning = !timerRunning;
+            const btn = document.getElementById('timer-btn-icon');
+            const display = document.getElementById('timer-display');
+            
+            if (timerRunning) {
+                btn.setAttribute('data-lucide', 'pause');
+                lucide.createIcons();
+                timerInt = setInterval(() => {
+                    if (timerSecs > 0) {
+                        timerSecs--;
+                        const m = Math.floor(timerSecs / 60).toString().padStart(2, '0');
+                        const s = (timerSecs % 60).toString().padStart(2, '0');
+                        display.innerText = `${m}:${s}`;
+                    } else {
+                        clearInterval(timerInt);
+                        timerRunning = false;
+                        display.classList.replace('text-slate-800', 'text-red-500');
+                        btn.setAttribute('data-lucide', 'play');
+                        lucide.createIcons();
+                    }
+                }, 1000);
+            } else {
+                btn.setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+                clearInterval(timerInt);
+            }
+        };
+
+        window.resetTimer = function() {
+            clearInterval(timerInt);
+            timerRunning = false;
+            timerSecs = 90;
+            const display = document.getElementById('timer-display');
+            if (display) {
+                display.innerText = "01:30";
+                display.classList.replace('text-red-500', 'text-slate-800');
+            }
+            const btn = document.getElementById('timer-btn-icon');
+            if (btn) {
+                btn.setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+            }
+        };
+
+        // --- ACTION HANDLERS ---
+        window.handleAddPlayer = function(e) {
+            e.preventDefault();
+            const input = document.getElementById('newPlayerName');
+            const name = input.value.trim();
+            if (!name) return;
+            
+            if (state.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                state.setupError = "Player name must be unique!";
+                renderApp();
+                return;
+            }
+
+            const newId = Date.now().toString();
+            const color = AVATAR_COLORS[state.players.length % AVATAR_COLORS.length];
+            
+            state.players.push({ id: newId, name: name, color: color });
+            state.scores[newId] = 0;
+            state.setupError = '';
+            
+            updateUndercoverCountBounds();
+            saveData();
+            renderApp();
+        };
+
+        window.removePlayer = function(id) {
+            state.players = state.players.filter(p => p.id !== id);
+            delete state.scores[id];
+            updateUndercoverCountBounds();
+            saveData();
+            renderApp();
+        };
+
+        window.setWordMode = function(mode) {
+            state.wordMode = mode;
+            renderApp();
+        };
+
+        window.setCategory = function(category) {
+            state.selectedCategory = category;
+            renderApp();
+        };
+
+        window.updateCustomWord = function(num, value) {
+            if (num === 1) state.customWords.w1 = value;
+            if (num === 2) state.customWords.w2 = value;
+        };
+
+        window.changeUndercoverCount = function(delta) {
+            const min = 1;
+            const max = Math.max(1, state.players.length - 2);
+            state.undercoverCount = Math.min(max, Math.max(min, state.undercoverCount + delta));
+            renderApp();
+        };
+
+        window.startGame = function() {
+            if (state.players.length < 3) {
+                state.setupError = "You need at least 3 players to start!";
+                renderApp(); return;
+            }
+            if (state.undercoverCount >= state.players.length - 1) {
+                state.setupError = "Too many Undercovers! You need at least 2 Civilians.";
+                renderApp(); return;
+            }
+
+            let w1, w2;
+            if (state.wordMode === 'preset') {
+                let availableWords = PRESET_WORDS;
+                if (state.selectedCategory !== 'All Topics') {
+                    availableWords = PRESET_WORDS.filter(p => p.category === state.selectedCategory);
+                }
+                const randomIdx = Math.floor(Math.random() * availableWords.length);
+                w1 = availableWords[randomIdx].w1;
+                w2 = availableWords[randomIdx].w2;
+            } else {
+                if (!state.customWords.w1.trim() || !state.customWords.w2.trim()) {
+                    state.setupError = "Please enter both custom words!";
+                    renderApp(); return;
+                }
+                w1 = state.customWords.w1.trim();
+                w2 = state.customWords.w2.trim();
+            }
+
+            const isW1Civ = Math.random() > 0.5;
+            const civWord = isW1Civ ? w1 : w2;
+            const undWord = isW1Civ ? w2 : w1;
+            state.roundWords = { civ: civWord, und: undWord };
+
+            let shuffled = [...state.players].sort(() => 0.5 - Math.random());
+            state.activePlayers = shuffled.map((p, idx) => ({
+                ...p,
+                role: idx < state.undercoverCount ? 'undercover' : 'civilian',
+                word: idx < state.undercoverCount ? undWord : civWord,
+                isAlive: true
+            }));
+
+            state.gameState = 'reveal';
+            state.currentPlayerIndex = 0;
+            state.showWord = false;
+            state.setupError = '';
+            state.roundNumber = 1;
+            
+            window.resetTimer();
+            renderApp();
+        };
+
+        window.setShowWord = function(show) {
+            state.showWord = show;
+            renderApp();
+        };
+
+        window.handleNextReveal = function() {
+            state.showWord = false;
+            if (state.currentPlayerIndex + 1 < state.activePlayers.length) {
+                state.currentPlayerIndex += 1;
+                renderApp();
+            } else {
+                state.gameState = 'round';
+                const alivePlayers = state.activePlayers.filter(p => p.isAlive);
+                const startIndex = Math.floor(Math.random() * alivePlayers.length);
+                state.roundSpeakerOrder = [...alivePlayers.slice(startIndex), ...alivePlayers.slice(0, startIndex)];
+                state.currentSpeakerIndex = 0;
+                state.showHostPeek = false;
+                renderApp();
+            }
+        };
+
+        window.nextSpeaker = function() {
+            if (state.currentSpeakerIndex < state.roundSpeakerOrder.length) {
+                state.currentSpeakerIndex++;
+                renderApp();
+            }
+        };
+
+        window.prevSpeaker = function() {
+            if (state.currentSpeakerIndex > 0) {
+                state.currentSpeakerIndex--;
+                renderApp();
+            }
+        };
+
+        window.toggleHostPeek = function() {
+            state.showHostPeek = !state.showHostPeek;
+            renderApp();
+        };
+
+        window.setPendingVote = function(id) {
+            state.pendingVote = state.pendingVote === id ? null : id;
+            renderApp();
+        };
+
+        window.confirmElimination = function() {
+            if (!state.pendingVote) return;
+
+            const targetId = state.pendingVote;
+            state.activePlayers = state.activePlayers.map(p => 
+                p.id === targetId ? { ...p, isAlive: false } : p
+            );
+            
+            state.eliminatedThisRound = state.activePlayers.find(p => p.id === targetId);
+            state.pendingVote = null;
+
+            const alivePlayers = state.activePlayers.filter(p => p.isAlive);
+            const aliveUndercovers = alivePlayers.filter(p => p.role === 'undercover').length;
+            const aliveCivilians = alivePlayers.filter(p => p.role === 'civilian').length;
+
+            let matchWinner = null;
+            if (aliveUndercovers === 0) matchWinner = 'civilians';
+            else if (aliveUndercovers >= aliveCivilians) matchWinner = 'undercovers';
+
+            if (matchWinner) {
+                state.winner = matchWinner;
+                state.activePlayers.forEach(p => {
+                    if (p.role === matchWinner) {
+                        state.scores[p.id] += (matchWinner === 'civilians' ? 2 : 10);
+                    }
+                });
+                saveData();
+                state.gameState = 'gameover';
+                setTimeout(() => {
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                }, 300);
+            } else {
+                state.gameState = 'result';
+            }
+            renderApp();
+        };
+
+        window.nextRound = function() {
+            const alivePlayers = state.activePlayers.filter(p => p.isAlive);
+            const startIndex = Math.floor(Math.random() * alivePlayers.length);
+            state.roundSpeakerOrder = [...alivePlayers.slice(startIndex), ...alivePlayers.slice(0, startIndex)];
+            state.currentSpeakerIndex = 0;
+            state.gameState = 'round';
+            state.roundNumber++;
+            state.showHostPeek = false;
+            window.resetTimer();
+            renderApp();
+        };
+
+        window.resetGame = function() {
+            state.gameState = 'setup';
+            state.winner = null;
+            state.eliminatedThisRound = null;
+            state.pendingVote = null;
+            state.roundSpeakerOrder = [];
+            state.currentSpeakerIndex = 0;
+            state.roundNumber = 1;
+            renderApp();
+        };
+
+        window.goToVote = function() {
+            state.gameState = 'vote';
+            renderApp();
+        };
+
+        // --- RENDERERS ---
+        function renderSetup() {
+            const categoryOptions = UNIQUE_CATEGORIES.map(cat => 
+                `<option value="${cat}" ${state.selectedCategory === cat ? 'selected' : ''}>${cat}</option>`
+            ).join('');
+
+            const playerListHtml = state.players.map(p => `
+                <div class="bg-white p-3 md:p-4 rounded-2xl flex items-center gap-3 md:gap-4 border border-slate-100 shadow-soft transition-all hover:-translate-y-0.5">
+                    ${getAvatar(p)}
+                    <span class="font-bold flex-1 text-slate-700 text-sm md:text-base truncate">${p.name}</span>
+                    <div class="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-bold border border-slate-100">
+                        <i data-lucide="trophy" class="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-500"></i> ${state.scores[p.id]}
+                    </div>
+                    <button onclick="window.removePlayer('${p.id}')" class="text-slate-300 hover:text-red-500 ml-1 transition p-1 shrink-0">
+                        <i data-lucide="x" class="w-4 h-4 md:w-5 md:h-5"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-5xl bg-white rounded-3xl md:rounded-[2.5rem] shadow-float border border-slate-100/50 p-5 sm:p-8 md:p-12">
+                    
+                    <div class="text-center mb-8 md:mb-10">
+                        <div class="inline-flex items-center justify-center p-3 md:p-4 bg-[#EEF2FF] text-[#4F46E5] rounded-2xl md:rounded-3xl mb-4 shadow-sm">
+                            <i data-lucide="users" class="w-6 h-6 md:w-8 md:h-8"></i>
+                        </div>
+                        <h1 class="text-3xl md:text-5xl font-black text-slate-800 tracking-tight mb-2">
+                            Undercover
+                        </h1>
+                        <p class="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-sm">Language Learning Edition</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+                        
+                        <!-- Left: Players -->
+                        <div class="flex flex-col">
+                            <div class="flex items-center justify-between mb-4 md:mb-5">
+                                <h2 class="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-400">
+                                    Roster (${state.players.length})
+                                </h2>
+                                ${state.players.length > 0 ? `
+                                    <button onclick="window.clearScores()" class="text-[10px] md:text-xs font-bold text-slate-400 hover:text-red-500 transition active:scale-95 flex items-center gap-1 bg-slate-50 md:bg-transparent px-2 py-1 md:p-0 rounded-md md:rounded-none">
+                                        <i data-lucide="rotate-ccw" class="w-3 h-3 md:w-3.5 md:h-3.5"></i> Reset Scores
+                                    </button>
+                                ` : ''}
+                            </div>
+                            
+                            <form onsubmit="window.handleAddPlayer(event)" class="flex gap-2 md:gap-3 mb-5 md:mb-6">
+                                <input type="text" id="newPlayerName" placeholder="Enter player name" class="flex-1 px-4 py-3 md:px-5 md:py-4 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 focus:bg-white transition-all font-semibold text-slate-700 text-sm md:text-base placeholder:font-normal" />
+                                <button type="submit" class="bg-slate-800 text-white px-5 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl hover:bg-slate-900 transition shadow-md active:scale-95 flex items-center justify-center">
+                                    <i data-lucide="plus" class="w-5 h-5 md:w-6 md:h-6"></i>
+                                </button>
+                            </form>
+                            
+                            <div class="flex flex-col gap-2 md:gap-3 max-h-[35vh] md:max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar">
+                                ${playerListHtml}
+                                ${state.players.length === 0 ? `
+                                    <div class="text-center py-10 md:py-12 text-slate-300 border-2 border-dashed border-slate-100 rounded-2xl md:rounded-3xl">
+                                        <i data-lucide="user-plus" class="w-8 h-8 md:w-10 md:h-10 mx-auto mb-3 opacity-50"></i>
+                                        <p class="font-bold text-slate-400 text-sm md:text-base">No players yet</p>
+                                        <p class="text-xs md:text-sm mt-1">Add 3+ players to begin.</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Right: Settings -->
+                        <div class="flex flex-col">
+                            
+                            <div class="mb-6 md:mb-8">
+                                <h2 class="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 md:mb-4">
+                                    Vocabulary Matchup
+                                </h2>
+                                
+                                <div class="flex bg-slate-100 p-1 md:p-1.5 rounded-xl md:rounded-2xl mb-4 md:mb-5">
+                                    <button onclick="window.setWordMode('preset')" class="flex-1 py-2 md:py-3 text-xs md:text-sm font-bold rounded-lg md:rounded-xl transition-all ${state.wordMode === 'preset' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}">Presets</button>
+                                    <button onclick="window.setWordMode('custom')" class="flex-1 py-2 md:py-3 text-xs md:text-sm font-bold rounded-lg md:rounded-xl transition-all ${state.wordMode === 'custom' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}">Custom</button>
+                                </div>
+
+                                ${state.wordMode === 'preset' ? `
+                                    <div class="flex flex-col gap-3">
+                                        <div class="relative">
+                                            <select onchange="window.setCategory(this.value)" class="w-full pl-4 pr-10 py-3 md:pl-5 md:pr-12 md:py-4 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 font-bold text-slate-700 cursor-pointer appearance-none text-sm md:text-base transition-colors hover:bg-slate-100">
+                                                ${categoryOptions}
+                                            </select>
+                                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-center gap-2 md:gap-3 p-3 md:p-4 bg-[#EEF2FF] border-2 border-indigo-100 rounded-xl md:rounded-2xl text-[#4F46E5]">
+                                            <i data-lucide="sparkles" class="w-4 h-4 md:w-5 md:h-5 shrink-0"></i>
+                                            <span class="font-bold text-xs md:text-sm text-center">A random pair from this topic will be secretly chosen!</span>
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full">
+                                        <input type="text" placeholder="Word 1" value="${state.customWords.w1}" onchange="window.updateCustomWord(1, this.value)" class="w-full sm:flex-1 min-w-0 px-4 py-3 md:px-5 md:py-4 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 focus:bg-white font-bold text-slate-700 transition-colors text-sm md:text-base" />
+                                        <div class="text-slate-300 font-black italic text-xs md:text-sm shrink-0">VS</div>
+                                        <input type="text" placeholder="Word 2" value="${state.customWords.w2}" onchange="window.updateCustomWord(2, this.value)" class="w-full sm:flex-1 min-w-0 px-4 py-3 md:px-5 md:py-4 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 focus:bg-white font-bold text-slate-700 transition-colors text-sm md:text-base" />
+                                    </div>
+                                `}
+                            </div>
+
+                            <div class="mb-6 md:mb-8">
+                                <div class="flex items-center justify-between bg-slate-50 rounded-2xl md:rounded-3xl p-4 md:p-5 border border-slate-100">
+                                    <div>
+                                        <h2 class="text-sm md:text-base font-bold text-slate-800 flex items-center gap-2">
+                                            <i data-lucide="eye-off" class="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0"></i> Undercovers
+                                        </h2>
+                                        <p class="text-[10px] md:text-xs text-slate-400 mt-1 font-semibold tracking-wide uppercase">1 per 4 players recommended</p>
+                                    </div>
+                                    <div class="flex items-center gap-2 md:gap-4 bg-white shadow-sm border border-slate-100 rounded-xl md:rounded-2xl p-1 md:p-1.5 shrink-0">
+                                        <button onclick="window.changeUndercoverCount(-1)" class="p-2 md:p-3 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg md:rounded-xl transition active:scale-95"><i data-lucide="minus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
+                                        <span class="font-black text-slate-800 text-lg md:text-xl w-6 text-center">${state.undercoverCount}</span>
+                                        <button onclick="window.changeUndercoverCount(1)" class="p-2 md:p-3 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg md:rounded-xl transition active:scale-95"><i data-lucide="plus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${state.setupError ? `
+                                <div class="bg-red-50 border border-red-100 text-red-600 p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold flex items-center gap-3 anim-pop mb-5 md:mb-6">
+                                    <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i> ${state.setupError}
+                                </div>
+                            ` : ''}
+
+                            <div class="mt-auto">
+                                <button onclick="window.startGame()" class="w-full bg-[#4F46E5] text-white font-black text-base md:text-lg py-4 md:py-5 rounded-full shadow-lg shadow-indigo-200 hover:shadow-xl hover:bg-[#4338CA] hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 md:gap-3">
+                                    BEGIN GAME <i data-lucide="arrow-right" class="w-5 h-5 md:w-6 md:h-6"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderReveal() {
+            const currentPlayer = state.activePlayers[state.currentPlayerIndex];
+            const prevProgress = tracking.prevProgress || 0;
+            const isNewReveal = tracking.showWord !== state.showWord && state.showWord;
+            const revealAnim = isNewReveal ? 'anim-pop' : '';
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-lg bg-white rounded-3xl md:rounded-[3rem] shadow-float border border-slate-100 relative overflow-hidden flex flex-col">
+                    <!-- Progress Bar -->
+                    <div class="absolute top-0 left-0 w-full h-2 md:h-3 bg-slate-50">
+                        <div id="reveal-progress-bar" class="h-full bg-[#4F46E5] transition-all duration-700 ease-out" style="width: ${prevProgress}%"></div>
+                    </div>
+                    
+                    <div class="p-8 sm:p-10 md:p-16 mt-2 md:mt-4 text-center">
+                        <div class="flex justify-center mb-6 md:mb-8">
+                            ${getAvatar(currentPlayer, 'lg')}
+                        </div>
+                        <h3 class="text-3xl md:text-4xl font-black text-slate-800 mb-8 md:mb-10 tracking-tight">${currentPlayer.name}</h3>
+                        
+                        ${state.showWord ? `
+                            <div class="${revealAnim}">
+                                <p class="text-slate-400 mb-3 md:mb-4 font-bold uppercase tracking-widest text-xs md:text-sm">Your secret word is:</p>
+                                <div class="bg-[#EEF2FF] border border-indigo-100 rounded-2xl md:rounded-3xl p-6 md:p-8 mb-8 md:mb-10 shadow-inner break-words">
+                                    <div class="text-3xl md:text-5xl font-black text-[#4F46E5] tracking-tight">${currentPlayer.word}</div>
+                                </div>
+                                <button onclick="window.handleNextReveal()" class="w-full bg-slate-800 text-white py-4 md:py-5 rounded-full font-black text-base md:text-lg hover:bg-slate-900 transition shadow-lg active:scale-95">
+                                    Hide & Pass
+                                </button>
+                            </div>
+                        ` : `
+                            <div>
+                                <p class="text-slate-500 mb-8 md:mb-10 font-bold leading-relaxed text-sm md:text-base px-2">Ensure no one else is looking<br>before you reveal your word.</p>
+                                <button onclick="window.setShowWord(true)" class="w-full bg-[#4F46E5] text-white py-4 md:py-5 rounded-full font-black text-base md:text-lg shadow-lg shadow-indigo-200 hover:bg-[#4338CA] transition active:scale-95 flex items-center justify-center gap-2 md:gap-3">
+                                    <i data-lucide="eye" class="w-5 h-5 md:w-6 md:h-6"></i> Show Word
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                    <div class="bg-slate-50 py-4 md:py-5 text-center font-bold tracking-widest uppercase text-[10px] md:text-xs text-slate-400 border-t border-slate-100">
+                        Player ${state.currentPlayerIndex + 1} of ${state.activePlayers.length}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderRound() {
+            const aliveCount = state.activePlayers.filter(p => p.isAlive).length;
+            
+            const playersHtml = state.activePlayers.map(p => {
+                if (!p.isAlive) {
+                    return `
+                        <div class="bg-slate-100 border border-slate-200 p-3 md:p-4 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center gap-2 md:gap-3 opacity-50 grayscale shadow-inner min-h-[100px] md:min-h-[120px]">
+                            <div class="relative">
+                                ${getAvatar(p, window.innerWidth < 640 ? "sm" : "md")}
+                                <div class="absolute inset-0 flex items-center justify-center bg-slate-900/60 rounded-full text-white"><i data-lucide="skull" class="w-4 h-4 md:w-5 md:h-5"></i></div>
+                            </div>
+                            <span class="font-bold line-through text-slate-500 truncate w-full text-center text-xs md:text-sm">${p.name}</span>
+                        </div>
+                    `;
+                }
+
+                const hasSpoken = state.roundSpeakerOrder && 
+                                  state.roundSpeakerOrder.findIndex(sp => sp.id === p.id) < state.currentSpeakerIndex;
+                
+                const containerClasses = hasSpoken ? "opacity-50 bg-slate-50 border-slate-100" : "bg-white hover:border-[#4F46E5]/30 hover:-translate-y-1 hover:shadow-md border-white";
+                const textClasses = hasSpoken ? "text-slate-400" : "text-slate-800";
+
+                return `
+                    <div class="p-3 md:p-4 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-soft transition-all duration-300 min-h-[100px] md:min-h-[120px] ${containerClasses}">
+                        ${getAvatar(p, window.innerWidth < 640 ? "sm" : "md")}
+                        <span class="font-bold truncate w-full text-center text-xs md:text-sm ${textClasses}">${p.name}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const isNewSpeaker = tracking.speakerIndex !== state.currentSpeakerIndex;
+            const speakerAnim = isNewSpeaker ? 'anim-pop' : '';
+
+            return `
+            <div class="flex-1 flex flex-col w-full max-w-5xl mx-auto relative pb-6 md:pb-10">
+                
+                <!-- Top Header Bar -->
+                <div class="flex justify-between items-center mb-6 md:mb-8 relative z-10">
+                    <span class="bg-white px-4 md:px-5 py-2 md:py-2.5 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase text-slate-400 shadow-sm border border-slate-100">
+                        Round ${state.roundNumber} <span class="hidden sm:inline">&bull; ${aliveCount} Players Left</span>
+                    </span>
+                    
+                    <div class="relative">
+                        <button onclick="window.toggleHostPeek()" class="bg-white hover:bg-slate-50 text-slate-400 hover:text-[#4F46E5] p-2.5 md:p-3 rounded-full transition shadow-sm border border-slate-100" title="Host Word Peek">
+                            ${state.showHostPeek ? '<i data-lucide="eye-off" class="w-4 h-4 md:w-5 md:h-5"></i>' : '<i data-lucide="eye" class="w-4 h-4 md:w-5 md:h-5"></i>'}
+                        </button>
+                        ${state.showHostPeek ? `
+                            <div class="absolute right-0 top-full mt-2 bg-slate-800 text-white p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-xl anim-pop border border-slate-700 w-48 md:w-56 z-50">
+                                <p class="text-slate-400 font-bold mb-1 uppercase tracking-widest text-[10px] md:text-xs">Civilians</p>
+                                <p class="font-black text-lg md:text-xl mb-3 md:mb-4 text-[#818cf8] truncate">${state.roundWords.civ}</p>
+                                <p class="text-slate-400 font-bold mb-1 uppercase tracking-widest text-[10px] md:text-xs">Undercovers</p>
+                                <p class="font-black text-lg md:text-xl text-[#c084fc] truncate">${state.roundWords.und}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Speaker Card -->
+                ${(() => {
+                    if (state.roundSpeakerOrder && state.currentSpeakerIndex < state.roundSpeakerOrder.length) {
+                        const currentSpeaker = state.roundSpeakerOrder[state.currentSpeakerIndex];
+                        return `
+                            <div class="bg-[#EEF2FF] rounded-3xl md:rounded-[2.5rem] p-6 sm:p-10 md:p-14 mb-8 md:mb-10 relative flex flex-col items-center text-center shadow-sm overflow-hidden ${speakerAnim}">
+                                <div class="absolute top-4 right-4 md:top-6 md:right-6 text-indigo-300/40"><i data-lucide="sparkles" class="w-10 h-10 md:w-16 md:h-16 anim-float"></i></div>
+                                <p class="text-[#4F46E5] font-black uppercase tracking-widest text-xs md:text-sm mb-4 md:mb-6 relative z-10">
+                                    Speaker ${state.currentSpeakerIndex + 1} of ${state.roundSpeakerOrder.length}
+                                </p>
+                                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 relative z-10 mb-6 md:mb-8">
+                                    ${getAvatar(currentSpeaker, "lg")}
+                                    <h2 class="text-3xl md:text-6xl font-black text-indigo-950 tracking-tight">${currentSpeaker.name}</h2>
+                                </div>
+                                <div class="flex gap-2 md:gap-4 z-10 w-full sm:w-auto justify-center">
+                                    <button onclick="window.prevSpeaker()" class="${state.currentSpeakerIndex === 0 ? 'opacity-0 pointer-events-none w-0 md:w-auto overflow-hidden' : 'hover:bg-white hover:shadow-sm'} text-[#4F46E5] font-bold p-3 md:p-4 rounded-xl md:rounded-2xl transition flex items-center justify-center shrink-0">
+                                        <i data-lucide="arrow-left" class="w-5 h-5 md:w-6 md:h-6"></i>
+                                    </button>
+                                    <button onclick="window.nextSpeaker()" class="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-black py-3 md:py-4 px-6 md:px-10 rounded-xl md:rounded-2xl transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 md:gap-3 active:scale-95 text-base md:text-lg flex-1 sm:flex-none">
+                                        Next Player <i data-lucide="arrow-right" class="w-5 h-5 md:w-6 md:h-6"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else if (state.roundSpeakerOrder) {
+                        return `
+                            <div class="bg-emerald-50 rounded-3xl md:rounded-[2.5rem] p-8 sm:p-10 md:p-14 mb-8 md:mb-10 text-center shadow-sm relative overflow-hidden ${speakerAnim}">
+                                <div class="absolute top-4 right-4 md:top-6 md:right-6 text-emerald-200/50"><i data-lucide="check-circle-2" class="w-12 h-12 md:w-16 md:h-16 anim-float"></i></div>
+                                <p class="text-emerald-700 font-black uppercase tracking-widest text-base md:text-xl relative z-10 mb-2">
+                                    Everyone has spoken!
+                                </p>
+                                <p class="text-emerald-600 font-bold relative z-10 mb-6 md:mb-8 text-sm md:text-base px-4">
+                                    Use the timer below to begin the open discussion.
+                                </p>
+                                <button onclick="window.prevSpeaker()" class="text-emerald-700 font-bold hover:bg-white/60 px-5 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl transition relative z-10 text-xs md:text-sm flex items-center justify-center mx-auto gap-2">
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Wait, go back
+                                </button>
+                            </div>
+                        `;
+                    }
+                    return '';
+                })()}
+
+                <!-- Players Grid -->
+                <div class="mb-10 md:mb-12">
+                    <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px] md:text-xs mb-4 md:mb-5 px-2">Players still in the game:</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                        ${playersHtml}
+                    </div>
+                </div>
+
+                <!-- Footer Tools (Timer & Vote) -->
+                <div class="flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8 bg-white p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] shadow-soft border border-slate-100 mt-auto">
+                    
+                    <div class="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full lg:w-auto">
+                        <div id="timer-display" class="bg-slate-100 rounded-2xl md:rounded-2xl px-6 md:px-8 py-3 md:py-4 font-mono text-3xl font-black text-slate-800 tracking-widest text-center w-full sm:w-48 shadow-inner">
+                            01:30
+                        </div>
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <button onclick="window.toggleTimer()" class="flex-1 sm:flex-none flex justify-center bg-[#EEF2FF] hover:bg-indigo-100 text-[#4F46E5] p-3 md:p-4 rounded-xl md:rounded-2xl transition active:scale-95">
+                                <i id="timer-btn-icon" data-lucide="play" class="w-6 h-6 md:w-8 md:h-8 fill-current"></i>
+                            </button>
+                            <button onclick="window.resetTimer()" class="flex-1 sm:flex-none flex justify-center bg-white border-2 border-slate-800 hover:bg-slate-50 text-slate-800 p-3 md:p-4 rounded-xl md:rounded-2xl transition active:scale-95">
+                                <i data-lucide="rotate-ccw" class="w-6 h-6 md:w-8 md:h-8"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button onclick="window.goToVote()" class="w-full lg:w-auto bg-[#EF4444] text-white font-black py-4 md:py-5 px-6 md:px-10 rounded-full md:rounded-[2rem] shadow-lg shadow-red-200 hover:bg-red-600 hover:-translate-y-0.5 active:scale-95 transition-all text-base md:text-lg flex items-center justify-center gap-2 md:gap-3 shrink-0">
+                        <i data-lucide="vote" class="w-5 h-5 md:w-6 h-6"></i> TO VOTING
+                    </button>
+                </div>
+
+            </div>`;
+        }
+
+        function renderVote() {
+            const aliveCount = state.activePlayers.filter(p => p.isAlive).length;
+            
+            const optionsHtml = state.activePlayers.map(p => {
+                if (!p.isAlive) {
+                    return `
+                        <div class="p-4 md:p-5 rounded-2xl md:rounded-3xl bg-slate-100 border border-slate-200 opacity-50 grayscale flex items-center gap-3 md:gap-4 cursor-not-allowed">
+                            <div class="relative shrink-0">
+                                ${getAvatar(p)}
+                                <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full text-white text-[10px] md:text-xs"><i data-lucide="skull" class="w-3 h-3 md:w-4 md:h-4"></i></div>
+                            </div>
+                            <span class="line-through text-slate-500 font-bold text-base md:text-lg truncate">${p.name}</span>
+                        </div>
+                    `;
+                }
+
+                const isSelected = state.pendingVote === p.id;
+                const baseClasses = isSelected 
+                    ? 'border-[#EF4444] bg-red-50 text-[#EF4444] shadow-md ring-4 ring-red-500/10 md:scale-[1.02] scale-[1.01]' 
+                    : 'border-white bg-white text-slate-700 hover:border-slate-200 hover:shadow-md';
+                const circleClasses = isSelected ? 'border-[#EF4444] bg-[#EF4444] text-white' : 'border-slate-200 bg-slate-50';
+                
+                return `
+                    <button onclick="window.setPendingVote('${p.id}')" class="p-4 md:p-5 rounded-2xl md:rounded-3xl text-left font-black text-lg md:text-xl transition-all duration-300 flex justify-between items-center border-2 shadow-soft ${baseClasses}">
+                        <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
+                            ${getAvatar(p)}
+                            <span class="truncate">${p.name}</span>
+                        </div>
+                        <div class="h-6 w-6 md:h-8 md:w-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-300 ${circleClasses}">
+                            ${isSelected ? '<i data-lucide="check" class="w-4 h-4 md:w-5 md:h-5 anim-pop font-bold"></i>' : ''}
+                        </div>
+                    </button>
+                `;
+            }).join('');
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-3xl flex flex-col">
+                    <div class="text-center mb-8 md:mb-10">
+                        <span class="bg-white/80 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase text-slate-500 shadow-sm border border-slate-100 mb-4 md:mb-6 inline-block">
+                            Round ${state.roundNumber} &bull; ${aliveCount} Players Remaining
+                        </span>
+                        <h1 class="text-3xl md:text-5xl font-black text-slate-800 tracking-tight mb-2 md:mb-4 flex items-center justify-center gap-2 md:gap-3">
+                            Elimination
+                        </h1>
+                        <p class="text-slate-500 font-bold text-sm md:text-lg">Who do you think is the Undercover?</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 mb-8 md:mb-12">
+                        ${optionsHtml}
+                    </div>
+                    
+                    <div class="flex flex-col items-center gap-3 md:gap-4 w-full max-w-md mx-auto mt-auto sm:mt-0">
+                        ${state.pendingVote ? `
+                            <button onclick="window.confirmElimination()" class="w-full bg-[#EF4444] text-white font-black py-4 md:py-5 rounded-full md:rounded-[2rem] shadow-lg shadow-red-200 hover:bg-red-600 transition-all text-lg md:text-xl active:scale-95 anim-pop hover:-translate-y-1">
+                                Confirm Elimination
+                            </button>
+                        ` : `
+                            <div class="w-full bg-slate-200/50 text-slate-400 font-black py-4 md:py-5 rounded-full md:rounded-[2rem] text-center text-lg md:text-xl border-2 border-dashed border-slate-300">
+                                Select a target
+                            </div>
+                        `}
+                        <button onclick="window.nextRound()" class="text-slate-500 font-bold py-3 px-6 hover:bg-white rounded-full transition flex items-center justify-center gap-2 text-sm md:text-base">
+                            <i data-lucide="x" class="w-4 h-4 md:w-5 md:h-5"></i> Cancel Voting
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderResult() {
+            const isUndercover = state.eliminatedThisRound?.role === 'undercover';
+            const bgClass = isUndercover ? 'bg-purple-50 border-purple-100' : 'bg-blue-50 border-blue-100';
+            const lblClass = isUndercover ? 'text-purple-400' : 'text-blue-400';
+            const txtClass = isUndercover ? 'text-purple-600' : 'text-blue-600';
+            const roleTxt = isUndercover ? 'UNDERCOVER' : 'CIVILIAN';
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-md bg-white rounded-3xl md:rounded-[3rem] shadow-float border border-slate-100 text-center relative overflow-hidden flex flex-col">
+                    <div class="bg-slate-800 p-6 md:p-8 text-white relative">
+                        <span class="bg-white/10 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase text-slate-300 inline-block mb-1 md:mb-2">
+                            Round ${state.roundNumber} Result
+                        </span>
+                    </div>
+                    <div class="p-8 md:p-14 relative z-10 bg-white">
+                        ${isUndercover ? '<div class="absolute top-0 right-0 -mt-6 -mr-6 md:-mt-10 md:-mr-10 text-purple-100 opacity-50"><i data-lucide="sparkles" class="w-32 h-32 md:w-48 md:h-48 anim-float"></i></div>' : ''}
+                        
+                        <div class="flex justify-center mb-6 md:mb-8 relative z-10">
+                            ${getAvatar(state.eliminatedThisRound, 'lg')}
+                        </div>
+                        <h2 class="text-3xl md:text-5xl font-black text-slate-800 mb-2 md:mb-3 relative z-10 tracking-tight">${state.eliminatedThisRound?.name}</h2>
+                        <p class="text-slate-500 mb-8 md:mb-10 font-bold text-sm md:text-lg">was eliminated from the game.</p>
+                        
+                        <div class="p-6 md:p-8 rounded-2xl md:rounded-3xl mb-8 md:mb-12 border relative z-10 ${bgClass} anim-pop shadow-inner">
+                            <p class="text-[10px] md:text-sm font-black uppercase tracking-widest mb-2 md:mb-3 ${lblClass}">Their identity was...</p>
+                            <p class="text-3xl md:text-5xl font-black tracking-tight break-words ${txtClass}">
+                                ${roleTxt}
+                            </p>
+                        </div>
+
+                        <button onclick="window.nextRound()" class="w-full bg-slate-900 text-white font-black py-4 md:py-5 rounded-full md:rounded-[2rem] shadow-lg hover:bg-slate-800 hover:-translate-y-0.5 transition-all text-base md:text-lg active:scale-95 relative z-10">
+                            Continue Game
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderGameover() {
+            const isCivWin = state.winner === 'civilians';
+            const headerBg = isCivWin ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'bg-[#FAF5FF] text-[#9333EA]';
+            const headerTitle = isCivWin ? 'Civilians Win!' : 'Undercovers Win!';
+            const headerSub = isCivWin ? '+2 Points to all Civilians' : '+10 Points to all Undercovers';
+            const iconColor = isCivWin ? 'text-[#818CF8]' : 'text-[#C084FC]';
+            
+            const sortedPlayers = [...state.activePlayers].sort((a, b) => state.scores[b.id] - state.scores[a.id]);
+            const leaderboardHtml = sortedPlayers.map((p, index) => {
+                const roleBadgeClass = p.role === 'undercover' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+                return `
+                <li class="flex justify-between items-center text-sm md:text-base bg-white p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div class="flex items-center gap-3 md:gap-4 overflow-hidden pr-2">
+                        <div class="w-5 md:w-6 text-slate-300 font-black text-center text-sm md:text-lg shrink-0">#${index + 1}</div>
+                        ${getAvatar(p, 'sm')}
+                        <span class="font-bold text-slate-700 truncate">
+                            ${p.name} ${!p.isAlive ? '<span class="text-slate-300 ml-1 md:ml-2 shrink-0"><i data-lucide="skull" class="w-3 h-3 md:w-4 md:h-4 inline"></i></span>' : ''}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 md:gap-4 shrink-0">
+                        <span class="px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[9px] md:text-xs font-black uppercase tracking-widest ${roleBadgeClass}">
+                            ${p.role.substring(0, 3)}
+                        </span>
+                        <span class="font-black text-lg md:text-2xl text-slate-800 w-6 md:w-8 text-right">${state.scores[p.id]}</span>
+                    </div>
+                </li>
+                `;
+            }).join('');
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-5xl bg-white rounded-3xl md:rounded-[3rem] shadow-float border border-slate-100/50 overflow-hidden flex flex-col">
+                    
+                    <div class="p-8 md:p-16 text-center relative ${headerBg}">
+                        <h1 class="text-4xl md:text-7xl font-black mb-3 md:mb-4 flex justify-center items-center gap-4 md:gap-6 tracking-tight relative z-10">
+                            <i data-lucide="trophy" class="w-10 h-10 md:w-20 md:h-20 ${iconColor} anim-float"></i> 
+                            ${headerTitle}
+                        </h1>
+                        <p class="font-bold uppercase tracking-widest text-[10px] md:text-sm relative z-10 opacity-80">${headerSub}</p>
+                    </div>
+
+                    <div class="p-6 md:p-12">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-8 md:mb-12">
+                            
+                            <!-- Review -->
+                            <div class="flex flex-col">
+                                <h2 class="text-slate-800 font-black text-xl md:text-2xl mb-4 md:mb-6 flex items-center gap-3">
+                                    <div class="bg-amber-100 text-amber-600 p-2 md:p-2.5 rounded-lg md:rounded-xl"><i data-lucide="book-open" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                                    Language Review
+                                </h2>
+                                <div class="bg-amber-50 rounded-3xl md:rounded-[2rem] p-5 md:p-8 border border-amber-100/50 flex-1 flex flex-col">
+                                    <div class="grid grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8 text-center flex-1">
+                                        <div class="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm flex flex-col justify-center overflow-hidden">
+                                            <p class="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-2 md:mb-3">Civilians</p>
+                                            <p class="text-xl md:text-3xl font-black text-[#4F46E5] tracking-tight truncate">${state.roundWords.civ}</p>
+                                        </div>
+                                        <div class="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm flex flex-col justify-center overflow-hidden">
+                                            <p class="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-2 md:mb-3">Undercovers</p>
+                                            <p class="text-xl md:text-3xl font-black text-[#9333EA] tracking-tight truncate">${state.roundWords.und}</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-amber-700 font-bold leading-relaxed text-center text-sm md:text-base">
+                                        Discuss: What is the main difference in meaning or usage between these two words?
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Leaderboard -->
+                            <div class="flex flex-col h-full max-h-[400px] md:max-h-[500px]">
+                                <h3 class="text-slate-800 font-black text-xl md:text-2xl mb-4 md:mb-6 flex items-center gap-3">
+                                    <div class="bg-slate-100 text-slate-600 p-2 md:p-2.5 rounded-lg md:rounded-xl"><i data-lucide="bar-chart-2" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                                    Leaderboard
+                                </h3>
+                                <ul class="space-y-3 md:space-y-4 overflow-y-auto custom-scrollbar pr-1 md:pr-2 flex-1 bg-slate-50 p-4 md:p-6 rounded-3xl md:rounded-[2rem] border border-slate-100/50">
+                                    ${leaderboardHtml}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <button onclick="window.resetGame()" class="w-full bg-slate-900 text-white font-black py-4 md:py-6 rounded-full md:rounded-[2rem] shadow-xl hover:bg-slate-800 hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4 text-base md:text-xl tracking-wide">
+                            <i data-lucide="refresh-cw" class="w-5 h-5 md:w-6 md:h-6"></i> START NEW MATCH
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        // --- CORE APP RENDERER ---
+        function renderApp() {
+            const app = document.getElementById('app');
+            let html = '';
+
+            switch (state.gameState) {
+                case 'setup': html = renderSetup(); break;
+                case 'reveal': html = renderReveal(); break;
+                case 'round': html = renderRound(); break;
+                case 'vote': html = renderVote(); break;
+                case 'result': html = renderResult(); break;
+                case 'gameover': html = renderGameover(); break;
+            }
+
+            app.innerHTML = html;
+            
+            // Only apply entrance animation if navigating to a new phase
+            if (tracking.gameState !== state.gameState) {
+                const view = app.firstElementChild;
+                if (view) view.classList.add('anim-view-enter');
+                tracking.gameState = state.gameState;
+            }
+
+            // Animate progress bar in reveal phase
+            if (state.gameState === 'reveal') {
+                setTimeout(() => {
+                    const bar = document.getElementById('reveal-progress-bar');
+                    const currentProgress = ((state.currentPlayerIndex + (state.showWord ? 1 : 0)) / state.activePlayers.length) * 100;
+                    if (bar) bar.style.width = currentProgress + '%';
+                    tracking.prevProgress = currentProgress;
+                }, 50);
+            } else {
+                tracking.prevProgress = 0;
+            }
+
+            // Sync tracker state
+            tracking.speakerIndex = state.currentSpeakerIndex;
+            tracking.showWord = state.showWord;
+            
+            // Re-initialize Lucide Icons after DOM update
+            lucide.createIcons();
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            renderApp();
+        });
+
+    </script>
+</body>
+</html>
