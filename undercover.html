@@ -56,6 +56,9 @@
         .anim-float {
             animation: float 4s ease-in-out infinite;
         }
+
+        /* Toggle switch transition */
+        .toggle-switch { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="text-slate-800 antialiased overflow-x-hidden min-h-screen">
@@ -198,6 +201,7 @@
             customWords: { w1: '', w2: '' },
             setupError: '',
             undercoverCount: 1,
+            includeMrWhite: false, // NEW: Mr. White role flag
             
             // Active Game Data
             activePlayers: [],
@@ -227,30 +231,58 @@
             return `<div class="${player.color} ${sizeClasses} rounded-full flex items-center justify-center text-white font-black shadow-sm shrink-0 transition-transform duration-300 hover:scale-110">${initials}</div>`;
         }
 
-        function updateUndercoverCountBounds() {
+        function updateRoleBounds() {
             if (state.players.length > 0) {
-                const autoCount = Math.max(1, Math.floor(state.players.length / 4) + (state.players.length <= 4 ? 0 : 1));
-                const maxAllowed = Math.max(1, state.players.length - 2);
-                if (state.undercoverCount > maxAllowed) state.undercoverCount = maxAllowed;
+                const maxBadGuys = Math.max(1, state.players.length - 2);
+                let currentBadGuys = state.undercoverCount + (state.includeMrWhite ? 1 : 0);
+                
+                if (currentBadGuys > maxBadGuys) {
+                    // Reduce undercover count to make room for Mr White if needed
+                    state.undercoverCount = Math.max(1, maxBadGuys - (state.includeMrWhite ? 1 : 0));
+                    // If still too high (e.g., 3 players total, max 1 bad guy, but trying to have 1 und + 1 white)
+                    if (state.undercoverCount + (state.includeMrWhite ? 1 : 0) > maxBadGuys) {
+                        state.includeMrWhite = false;
+                    }
+                }
             }
         }
 
         function saveData() {
             localStorage.setItem('undercoverPlayers', JSON.stringify(state.players));
             localStorage.setItem('undercoverScores', JSON.stringify(state.scores));
+            localStorage.setItem('undercoverSettings', JSON.stringify({
+                includeMrWhite: state.includeMrWhite,
+                undercoverCount: state.undercoverCount
+            }));
         }
 
         function loadData() {
             const p = localStorage.getItem('undercoverPlayers');
             const s = localStorage.getItem('undercoverScores');
+            const set = localStorage.getItem('undercoverSettings');
             if (p) state.players = JSON.parse(p);
             if (s) state.scores = JSON.parse(s);
-            updateUndercoverCountBounds();
+            if (set) {
+                const parsedSettings = JSON.parse(set);
+                state.includeMrWhite = parsedSettings.includeMrWhite || false;
+                state.undercoverCount = parsedSettings.undercoverCount || 1;
+            }
+            updateRoleBounds();
         }
 
         window.clearScores = function() {
             if (confirm("Are you sure you want to reset all scores to 0?")) {
                 for (let key in state.scores) state.scores[key] = 0;
+                saveData();
+                renderApp();
+            }
+        };
+
+        window.clearAllPlayers = function() {
+            if (confirm("Are you sure you want to remove all players from the roster?")) {
+                state.players = [];
+                state.scores = {};
+                updateRoleBounds();
                 saveData();
                 renderApp();
             }
@@ -326,7 +358,7 @@
             state.scores[newId] = 0;
             state.setupError = '';
             
-            updateUndercoverCountBounds();
+            updateRoleBounds();
             saveData();
             renderApp();
         };
@@ -334,7 +366,7 @@
         window.removePlayer = function(id) {
             state.players = state.players.filter(p => p.id !== id);
             delete state.scores[id];
-            updateUndercoverCountBounds();
+            updateRoleBounds();
             saveData();
             renderApp();
         };
@@ -356,8 +388,16 @@
 
         window.changeUndercoverCount = function(delta) {
             const min = 1;
-            const max = Math.max(1, state.players.length - 2);
+            const max = Math.max(1, state.players.length - 2 - (state.includeMrWhite ? 1 : 0));
             state.undercoverCount = Math.min(max, Math.max(min, state.undercoverCount + delta));
+            saveData();
+            renderApp();
+        };
+
+        window.toggleMrWhite = function() {
+            state.includeMrWhite = !state.includeMrWhite;
+            updateRoleBounds();
+            saveData();
             renderApp();
         };
 
@@ -366,8 +406,10 @@
                 state.setupError = "You need at least 3 players to start!";
                 renderApp(); return;
             }
-            if (state.undercoverCount >= state.players.length - 1) {
-                state.setupError = "Too many Undercovers! You need at least 2 Civilians.";
+            
+            const totalBadGuys = state.undercoverCount + (state.includeMrWhite ? 1 : 0);
+            if (totalBadGuys >= state.players.length - 1) {
+                state.setupError = "Too many bad guys! You need at least 2 Civilians.";
                 renderApp(); return;
             }
 
@@ -394,13 +436,35 @@
             const undWord = isW1Civ ? w2 : w1;
             state.roundWords = { civ: civWord, und: undWord };
 
-            let shuffled = [...state.players].sort(() => 0.5 - Math.random());
-            state.activePlayers = shuffled.map((p, idx) => ({
-                ...p,
-                role: idx < state.undercoverCount ? 'undercover' : 'civilian',
-                word: idx < state.undercoverCount ? undWord : civWord,
-                isAlive: true
-            }));
+            // 1. Assign roles based on the index
+            let assignedPlayers = state.players.map((p, idx) => {
+                let role = 'civilian';
+                let word = civWord;
+                
+                if (idx < state.undercoverCount) {
+                    role = 'undercover';
+                    word = undWord;
+                } else if (state.includeMrWhite && idx === state.undercoverCount) {
+                    role = 'mrwhite';
+                    word = 'You are Mr. White! You have no word. Blend in!';
+                }
+                
+                return {
+                    ...p,
+                    role: role,
+                    word: word,
+                    isAlive: true
+                };
+            });
+
+            // 2. Randomly shuffle the active players array so the reveal order is completely mixed.
+            // (Fisher-Yates shuffle algorithm)
+            for (let i = assignedPlayers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [assignedPlayers[i], assignedPlayers[j]] = [assignedPlayers[j], assignedPlayers[i]];
+            }
+
+            state.activePlayers = assignedPlayers;
 
             state.gameState = 'reveal';
             state.currentPlayerIndex = 0;
@@ -470,17 +534,28 @@
 
             const alivePlayers = state.activePlayers.filter(p => p.isAlive);
             const aliveUndercovers = alivePlayers.filter(p => p.role === 'undercover').length;
+            const aliveMrWhites = alivePlayers.filter(p => p.role === 'mrwhite').length;
             const aliveCivilians = alivePlayers.filter(p => p.role === 'civilian').length;
+            const aliveBadGuys = aliveUndercovers + aliveMrWhites;
 
             let matchWinner = null;
-            if (aliveUndercovers === 0) matchWinner = 'civilians';
-            else if (aliveUndercovers >= aliveCivilians) matchWinner = 'undercovers';
+            if (aliveBadGuys === 0) {
+                matchWinner = 'civilians';
+            } else if (aliveBadGuys >= aliveCivilians) {
+                matchWinner = 'badguys';
+            }
 
             if (matchWinner) {
                 state.winner = matchWinner;
                 state.activePlayers.forEach(p => {
-                    if (p.role === matchWinner) {
-                        state.scores[p.id] += (matchWinner === 'civilians' ? 2 : 10);
+                    if (matchWinner === 'civilians' && p.role === 'civilian') {
+                        state.scores[p.id] += 2;
+                    } else if (matchWinner === 'badguys') {
+                        if (p.role === 'undercover') state.scores[p.id] += 10;
+                        // Mr White gets even more points for surviving to a win!
+                        if (p.role === 'mrwhite' && p.isAlive) state.scores[p.id] += 15;
+                        // Minor points if Mr White died but his team still won
+                        if (p.role === 'mrwhite' && !p.isAlive) state.scores[p.id] += 5; 
                     }
                 });
                 saveData();
@@ -563,11 +638,16 @@
                                 <h2 class="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-400">
                                     Roster (${state.players.length})
                                 </h2>
-                                ${state.players.length > 0 ? `
-                                    <button onclick="window.clearScores()" class="text-[10px] md:text-xs font-bold text-slate-400 hover:text-red-500 transition active:scale-95 flex items-center gap-1 bg-slate-50 md:bg-transparent px-2 py-1 md:p-0 rounded-md md:rounded-none">
-                                        <i data-lucide="rotate-ccw" class="w-3 h-3 md:w-3.5 md:h-3.5"></i> Reset Scores
-                                    </button>
-                                ` : ''}
+                                <div class="flex gap-2">
+                                    ${state.players.length > 0 ? `
+                                        <button onclick="window.clearScores()" title="Reset all scores to 0" class="text-[10px] md:text-xs font-bold text-slate-400 hover:text-[#4F46E5] transition active:scale-95 flex items-center justify-center w-8 h-8 bg-slate-50 md:bg-transparent rounded-md md:rounded-none">
+                                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                        </button>
+                                        <button onclick="window.clearAllPlayers()" title="Clear all players" class="text-[10px] md:text-xs font-bold text-slate-400 hover:text-red-500 transition active:scale-95 flex items-center justify-center w-8 h-8 bg-slate-50 md:bg-transparent rounded-md md:rounded-none">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                             
                             <form onsubmit="window.handleAddPlayer(event)" class="flex gap-2 md:gap-3 mb-5 md:mb-6">
@@ -627,17 +707,31 @@
                             </div>
 
                             <div class="mb-6 md:mb-8">
-                                <div class="flex items-center justify-between bg-slate-50 rounded-2xl md:rounded-3xl p-4 md:p-5 border border-slate-100">
-                                    <div>
-                                        <h2 class="text-sm md:text-base font-bold text-slate-800 flex items-center gap-2">
-                                            <i data-lucide="eye-off" class="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0"></i> Undercovers
-                                        </h2>
-                                        <p class="text-[10px] md:text-xs text-slate-400 mt-1 font-semibold tracking-wide uppercase">1 per 4 players recommended</p>
+                                <div class="bg-slate-50 rounded-2xl md:rounded-3xl p-4 md:p-5 border border-slate-100">
+                                    <!-- Undercover Count -->
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h2 class="text-sm md:text-base font-bold text-slate-800 flex items-center gap-2">
+                                                <i data-lucide="eye-off" class="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0"></i> Undercovers
+                                            </h2>
+                                        </div>
+                                        <div class="flex items-center gap-2 md:gap-4 bg-white shadow-sm border border-slate-100 rounded-xl md:rounded-2xl p-1 md:p-1.5 shrink-0">
+                                            <button onclick="window.changeUndercoverCount(-1)" class="p-2 md:p-3 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg md:rounded-xl transition active:scale-95"><i data-lucide="minus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
+                                            <span class="font-black text-slate-800 text-lg md:text-xl w-6 text-center">${state.undercoverCount}</span>
+                                            <button onclick="window.changeUndercoverCount(1)" class="p-2 md:p-3 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg md:rounded-xl transition active:scale-95"><i data-lucide="plus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center gap-2 md:gap-4 bg-white shadow-sm border border-slate-100 rounded-xl md:rounded-2xl p-1 md:p-1.5 shrink-0">
-                                        <button onclick="window.changeUndercoverCount(-1)" class="p-2 md:p-3 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg md:rounded-xl transition active:scale-95"><i data-lucide="minus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
-                                        <span class="font-black text-slate-800 text-lg md:text-xl w-6 text-center">${state.undercoverCount}</span>
-                                        <button onclick="window.changeUndercoverCount(1)" class="p-2 md:p-3 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg md:rounded-xl transition active:scale-95"><i data-lucide="plus" class="w-4 h-4 md:w-5 md:h-5"></i></button>
+                                    <!-- Mr. White Toggle -->
+                                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
+                                        <div>
+                                            <h2 class="text-sm md:text-base font-bold text-slate-800 flex items-center gap-2">
+                                                <i data-lucide="ghost" class="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0"></i> Mr. White (Blank)
+                                            </h2>
+                                            <p class="text-[9px] md:text-[11px] text-slate-400 mt-1 font-semibold tracking-wide uppercase leading-tight">1 player gets NO word.</p>
+                                        </div>
+                                        <button onclick="window.toggleMrWhite()" class="relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full toggle-switch border-2 border-transparent ${state.includeMrWhite ? 'bg-[#4F46E5]' : 'bg-slate-300'}" role="switch">
+                                            <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 toggle-switch ${state.includeMrWhite ? 'translate-x-5' : 'translate-x-0'}"></span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -664,6 +758,10 @@
             const prevProgress = tracking.prevProgress || 0;
             const isNewReveal = tracking.showWord !== state.showWord && state.showWord;
             const revealAnim = isNewReveal ? 'anim-pop' : '';
+            
+            const isMrWhite = currentPlayer.role === 'mrwhite';
+            const wordColorClass = isMrWhite ? 'text-slate-800' : 'text-[#4F46E5]';
+            const boxClass = isMrWhite ? 'bg-slate-100 border-slate-300' : 'bg-[#EEF2FF] border-indigo-100';
 
             return `
             <div class="flex-1 flex flex-col items-center justify-center w-full">
@@ -682,8 +780,8 @@
                         ${state.showWord ? `
                             <div class="${revealAnim}">
                                 <p class="text-slate-400 mb-3 md:mb-4 font-bold uppercase tracking-widest text-xs md:text-sm">Your secret word is:</p>
-                                <div class="bg-[#EEF2FF] border border-indigo-100 rounded-2xl md:rounded-3xl p-6 md:p-8 mb-8 md:mb-10 shadow-inner break-words">
-                                    <div class="text-3xl md:text-5xl font-black text-[#4F46E5] tracking-tight">${currentPlayer.word}</div>
+                                <div class="${boxClass} border rounded-2xl md:rounded-3xl p-6 md:p-8 mb-8 md:mb-10 shadow-inner break-words">
+                                    <div class="${isMrWhite ? 'text-xl md:text-2xl' : 'text-3xl md:text-5xl'} font-black ${wordColorClass} tracking-tight leading-snug">${currentPlayer.word}</div>
                                 </div>
                                 <button onclick="window.handleNextReveal()" class="w-full bg-slate-800 text-white py-4 md:py-5 rounded-full font-black text-base md:text-lg hover:bg-slate-900 transition shadow-lg active:scale-95">
                                     Hide & Pass
@@ -909,11 +1007,24 @@
         }
 
         function renderResult() {
-            const isUndercover = state.eliminatedThisRound?.role === 'undercover';
-            const bgClass = isUndercover ? 'bg-purple-50 border-purple-100' : 'bg-blue-50 border-blue-100';
-            const lblClass = isUndercover ? 'text-purple-400' : 'text-blue-400';
-            const txtClass = isUndercover ? 'text-purple-600' : 'text-blue-600';
-            const roleTxt = isUndercover ? 'UNDERCOVER' : 'CIVILIAN';
+            const eliminated = state.eliminatedThisRound;
+            
+            let bgClass = 'bg-blue-50 border-blue-100';
+            let lblClass = 'text-blue-400';
+            let txtClass = 'text-blue-600';
+            let roleTxt = 'CIVILIAN';
+            
+            if (eliminated?.role === 'undercover') {
+                bgClass = 'bg-purple-50 border-purple-100';
+                lblClass = 'text-purple-400';
+                txtClass = 'text-purple-600';
+                roleTxt = 'UNDERCOVER';
+            } else if (eliminated?.role === 'mrwhite') {
+                bgClass = 'bg-slate-100 border-slate-200';
+                lblClass = 'text-slate-500';
+                txtClass = 'text-slate-800';
+                roleTxt = 'MR. WHITE';
+            }
 
             return `
             <div class="flex-1 flex flex-col items-center justify-center w-full">
@@ -924,7 +1035,7 @@
                         </span>
                     </div>
                     <div class="p-8 md:p-14 relative z-10 bg-white">
-                        ${isUndercover ? '<div class="absolute top-0 right-0 -mt-6 -mr-6 md:-mt-10 md:-mr-10 text-purple-100 opacity-50"><i data-lucide="sparkles" class="w-32 h-32 md:w-48 md:h-48 anim-float"></i></div>' : ''}
+                        ${eliminated?.role !== 'civilian' ? '<div class="absolute top-0 right-0 -mt-6 -mr-6 md:-mt-10 md:-mr-10 text-slate-200 opacity-50"><i data-lucide="sparkles" class="w-32 h-32 md:w-48 md:h-48 anim-float"></i></div>' : ''}
                         
                         <div class="flex justify-center mb-6 md:mb-8 relative z-10">
                             ${getAvatar(state.eliminatedThisRound, 'lg')}
@@ -950,26 +1061,39 @@
         function renderGameover() {
             const isCivWin = state.winner === 'civilians';
             const headerBg = isCivWin ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'bg-[#FAF5FF] text-[#9333EA]';
-            const headerTitle = isCivWin ? 'Civilians Win!' : 'Undercovers Win!';
-            const headerSub = isCivWin ? '+2 Points to all Civilians' : '+10 Points to all Undercovers';
+            const headerTitle = isCivWin ? 'Civilians Win!' : 'Bad Guys Win!';
+            const headerSub = isCivWin ? '+2 Points to all Civilians' : '+10 Pts to Undercovers / +15 Pts if Mr. White Survived';
             const iconColor = isCivWin ? 'text-[#818CF8]' : 'text-[#C084FC]';
             
             const sortedPlayers = [...state.activePlayers].sort((a, b) => state.scores[b.id] - state.scores[a.id]);
+            
+            const recapHtml = state.activePlayers.map(p => {
+                let rBadge = p.role === 'undercover' ? 'bg-purple-100 text-purple-700' : 
+                             p.role === 'mrwhite' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700';
+                return `
+                <div class="flex items-center justify-between p-2 md:p-3 bg-white border border-slate-100 rounded-xl mb-2 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        ${getAvatar(p, 'sm')}
+                        <span class="font-bold text-slate-700 text-sm md:text-base">${p.name}</span>
+                    </div>
+                    <span class="px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest ${rBadge}">
+                        ${p.role}
+                    </span>
+                </div>
+                `;
+            }).join('');
+
             const leaderboardHtml = sortedPlayers.map((p, index) => {
-                const roleBadgeClass = p.role === 'undercover' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
                 return `
                 <li class="flex justify-between items-center text-sm md:text-base bg-white p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm transition-transform hover:-translate-y-0.5">
                     <div class="flex items-center gap-3 md:gap-4 overflow-hidden pr-2">
                         <div class="w-5 md:w-6 text-slate-300 font-black text-center text-sm md:text-lg shrink-0">#${index + 1}</div>
                         ${getAvatar(p, 'sm')}
                         <span class="font-bold text-slate-700 truncate">
-                            ${p.name} ${!p.isAlive ? '<span class="text-slate-300 ml-1 md:ml-2 shrink-0"><i data-lucide="skull" class="w-3 h-3 md:w-4 md:h-4 inline"></i></span>' : ''}
+                            ${p.name}
                         </span>
                     </div>
                     <div class="flex items-center gap-2 md:gap-4 shrink-0">
-                        <span class="px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[9px] md:text-xs font-black uppercase tracking-widest ${roleBadgeClass}">
-                            ${p.role.substring(0, 3)}
-                        </span>
                         <span class="font-black text-lg md:text-2xl text-slate-800 w-6 md:w-8 text-right">${state.scores[p.id]}</span>
                     </div>
                 </li>
@@ -991,26 +1115,27 @@
                     <div class="p-6 md:p-12">
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-8 md:mb-12">
                             
-                            <!-- Review -->
+                            <!-- Words & Match Recap -->
                             <div class="flex flex-col">
                                 <h2 class="text-slate-800 font-black text-xl md:text-2xl mb-4 md:mb-6 flex items-center gap-3">
                                     <div class="bg-amber-100 text-amber-600 p-2 md:p-2.5 rounded-lg md:rounded-xl"><i data-lucide="book-open" class="w-5 h-5 md:w-6 md:h-6"></i></div>
-                                    Language Review
+                                    Match Recap
                                 </h2>
                                 <div class="bg-amber-50 rounded-3xl md:rounded-[2rem] p-5 md:p-8 border border-amber-100/50 flex-1 flex flex-col">
-                                    <div class="grid grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8 text-center flex-1">
-                                        <div class="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm flex flex-col justify-center overflow-hidden">
-                                            <p class="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-2 md:mb-3">Civilians</p>
-                                            <p class="text-xl md:text-3xl font-black text-[#4F46E5] tracking-tight truncate">${state.roundWords.civ}</p>
+                                    <div class="grid grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8 text-center">
+                                        <div class="bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl shadow-sm flex flex-col justify-center overflow-hidden">
+                                            <p class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Civilians</p>
+                                            <p class="text-lg md:text-2xl font-black text-[#4F46E5] tracking-tight truncate">${state.roundWords.civ}</p>
                                         </div>
-                                        <div class="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm flex flex-col justify-center overflow-hidden">
-                                            <p class="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-2 md:mb-3">Undercovers</p>
-                                            <p class="text-xl md:text-3xl font-black text-[#9333EA] tracking-tight truncate">${state.roundWords.und}</p>
+                                        <div class="bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl shadow-sm flex flex-col justify-center overflow-hidden">
+                                            <p class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Undercovers</p>
+                                            <p class="text-lg md:text-2xl font-black text-[#9333EA] tracking-tight truncate">${state.roundWords.und}</p>
                                         </div>
                                     </div>
-                                    <p class="text-amber-700 font-bold leading-relaxed text-center text-sm md:text-base">
-                                        Discuss: What is the main difference in meaning or usage between these two words?
-                                    </p>
+                                    <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-3">Player Roles this match:</p>
+                                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-[200px]">
+                                        ${recapHtml}
+                                    </div>
                                 </div>
                             </div>
 
@@ -1018,7 +1143,7 @@
                             <div class="flex flex-col h-full max-h-[400px] md:max-h-[500px]">
                                 <h3 class="text-slate-800 font-black text-xl md:text-2xl mb-4 md:mb-6 flex items-center gap-3">
                                     <div class="bg-slate-100 text-slate-600 p-2 md:p-2.5 rounded-lg md:rounded-xl"><i data-lucide="bar-chart-2" class="w-5 h-5 md:w-6 md:h-6"></i></div>
-                                    Leaderboard
+                                    Overall Leaderboard
                                 </h3>
                                 <ul class="space-y-3 md:space-y-4 overflow-y-auto custom-scrollbar pr-1 md:pr-2 flex-1 bg-slate-50 p-4 md:p-6 rounded-3xl md:rounded-[2rem] border border-slate-100/50">
                                     ${leaderboardHtml}
