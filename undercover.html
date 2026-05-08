@@ -1206,6 +1206,19 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             renderApp();
+
+            // Prevent accidental page refresh during an active game
+            window.addEventListener('beforeunload', function (e) {
+                // Only show warning if a match is actively being played
+                if (state.gameState !== 'setup' && state.gameState !== 'gameover') {
+                    // Modern browsers need preventDefault
+                    e.preventDefault();
+                    // Legacy browsers need returnValue
+                    e.returnValue = 'A game is in progress. Are you sure you want to leave?';
+                    // Some older browsers need return string
+                    return 'A game is in progress. Are you sure you want to leave?';
+                }
+            });
         });
 
     </script>
