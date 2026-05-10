@@ -246,7 +246,7 @@
       { idiom: "Barking up the wrong tree", meaning: "Pursuing a false lead or making a mistake in someone's line of thought.", emojis: "🐕 🆙 ❌ 🌲" },
       { idiom: "Cry over spilled milk", meaning: "To complain about a loss from the past.", emojis: "😭 🌉 💦 🥛" },
       { idiom: "Elephant in the room", meaning: "An obvious problem or issue that people avoid discussing.", emojis: "🐘 📥 🛋️" },
-      { idiom: "Burn the midnight oil", meaning: "To work late into the night.", emojis: "🔥 🕛 🛢️" },
+      { idiom: "Burn the midnight oil", meaning: "To work late into the night.", emojis: "🔥 🕛 ⛽" },
       { idiom: "Out of the woods", meaning: "To be out of danger or past the hardest part of a situation.", emojis: "📤 🌲" },
       { idiom: "Bite off more than you can chew", meaning: "To take on a task that is way too big.", emojis: "🫦 📴 ➕ 👄" },
       { idiom: "Judge a book by its cover", meaning: "To judge someone or something based solely on appearance.", emojis: "⚖️ 📖 📘" },
@@ -257,7 +257,7 @@
       { idiom: "Up in the air", meaning: "Unresolved, undecided, or uncertain.", emojis: "🆙 📥 💨" },
       { idiom: "A penny for your thoughts", meaning: "A way of asking what someone is thinking.", emojis: "🪙 4️⃣ 💭" },
       { idiom: "Cut corners", meaning: "To do something poorly in order to save time or money.", emojis: "✂️ 📐" },
-      { idiom: "Early bird catches the worm", meaning: "Being early gives you an advantage over others.", emojis: "⏰ 🐦 🤲 🐛" },
+      { idiom: "Early bird catches the worm", meaning: "Being early gives you an advantage over others.", emojis: "🌅 🐦 🤲 🐛" },
       { idiom: "A needle in a haystack", meaning: "Something that is almost impossible to find.", emojis: "🪡 📥 🌾" },
       { idiom: "Walking on eggshells", meaning: "Being very careful not to offend someone.", emojis: "🚶 🔛 🥚" },
       { idiom: "Zip your lip", meaning: "To stop talking or keep a secret.", emojis: "🤐 👄" },
@@ -323,12 +323,21 @@
     };
 
     // --- STATE VARIABLES ---
+    let gameMode = 'time'; // 'time' or 'questions'
     let gameState = 'SETUP'; // SETUP, COUNTDOWN, PLAYING, PAUSED, END
     let teamA = 'Team A';
     let teamB = 'Team B';
+    
+    // Time Mode variables
     let timeLimit = 60; // in seconds
     let teamATime = 0;
     let teamBTime = 0;
+    
+    // Questions Mode variables
+    let qLimit = 10;
+    let qCountA = 0;
+    let qCountB = 0;
+
     let scoreA = 0;
     let scoreB = 0;
     let currentTurn = 'A'; // 'A' or 'B'
@@ -338,12 +347,24 @@
     let gameTimer = null;
     let cdTimer = null;
     let winner = '';
+    let endedEarly = false;
     
     // Variables for reveal phase
     let showAnswer = false; 
     let lastAnswerStatus = ''; // 'correct' or 'pass'
 
     // --- ACTIONS ---
+    function setGameMode(mode) {
+      gameMode = mode;
+      renderApp();
+    }
+
+    function determineWinner() {
+      if (scoreA > scoreB) return teamA;
+      if (scoreB > scoreA) return teamB;
+      return "Tie";
+    }
+
     function triggerStartGame() {
       // Initialize Audio Context on first user interaction
       initAudio();
@@ -351,13 +372,21 @@
       // Read values from inputs
       teamA = document.getElementById('teamAInput').value || 'Team A';
       teamB = document.getElementById('teamBInput').value || 'Team B';
-      timeLimit = parseInt(document.getElementById('timeSelect').value) || 60;
+      
+      if (gameMode === 'time') {
+        timeLimit = parseInt(document.getElementById('timeSelect').value) || 60;
+        teamATime = timeLimit;
+        teamBTime = timeLimit;
+      } else {
+        qLimit = parseInt(document.getElementById('questionsSelect').value) || 10;
+        qCountA = 0;
+        qCountB = 0;
+      }
 
-      teamATime = timeLimit;
-      teamBTime = timeLimit;
       scoreA = 0;
       scoreB = 0;
       currentTurn = 'A';
+      endedEarly = false;
       
       questions = shuffleArray(IDIOMS_DATA);
       currentQuestionIndex = 0;
@@ -378,7 +407,7 @@
           playCountdownStart(); // Play high pitched beep for "Start"
           gameState = 'PLAYING';
           renderApp();
-          startGameTimer();
+          if (gameMode === 'time') startGameTimer();
         } else {
           playCountdownBeep(); // Play normal beep for "2" and "1"
           // Update DOM directly to prevent re-rendering during countdown
@@ -389,6 +418,8 @@
     }
 
     function startGameTimer() {
+      if (gameMode !== 'time') return;
+      
       clearInterval(gameTimer);
       gameTimer = setInterval(() => {
         if (currentTurn === 'A') {
@@ -440,13 +471,19 @@
       } else if (gameState === 'PAUSED') {
         gameState = 'PLAYING';
         renderApp();
-        startGameTimer();
+        if (gameMode === 'time') startGameTimer();
       }
     }
 
     function handlePass() {
       playBuzz();
-      clearInterval(gameTimer); // Pause the timer while viewing the answer
+      if (gameMode === 'time') clearInterval(gameTimer); // Pause the timer while viewing the answer
+      
+      if (gameMode === 'questions') {
+          if (currentTurn === 'A') qCountA++;
+          else qCountB++;
+      }
+
       lastAnswerStatus = 'pass';
       showAnswer = true;
       renderApp();
@@ -454,10 +491,15 @@
 
     function handleCorrect() {
       playDing();
-      clearInterval(gameTimer); // Pause the timer while viewing the answer
+      if (gameMode === 'time') clearInterval(gameTimer); // Pause the timer while viewing the answer
       
-      if (currentTurn === 'A') scoreA++;
-      else scoreB++;
+      if (currentTurn === 'A') {
+          scoreA++;
+          if (gameMode === 'questions') qCountA++;
+      } else {
+          scoreB++;
+          if (gameMode === 'questions') qCountB++;
+      }
       
       lastAnswerStatus = 'correct';
       showAnswer = true;
@@ -465,9 +507,20 @@
     }
 
     function handleNext() {
-      // If it was correct, we officially switch turns now
-      if (lastAnswerStatus === 'correct') {
+      // Check if we've reached the end in questions mode
+      if (gameMode === 'questions' && qCountA >= qLimit && qCountB >= qLimit) {
+          triggerEndGame();
+          return;
+      }
+
+      if (gameMode === 'questions') {
+          // In questions mode, always alternate turns
           currentTurn = currentTurn === 'A' ? 'B' : 'A';
+      } else {
+          // In time mode, only pass turn if correct
+          if (lastAnswerStatus === 'correct') {
+              currentTurn = currentTurn === 'A' ? 'B' : 'A';
+          }
       }
       
       // Move to the next question
@@ -479,22 +532,28 @@
       
       showAnswer = false;
       renderApp();
-      startGameTimer(); // Resume the timer
+      if (gameMode === 'time') startGameTimer(); // Resume the timer
     }
 
     function triggerEndGame() {
-      playGameOver(); // Play time's up sound
-      clearInterval(gameTimer);
+      playGameOver(); // Play time's up/game over sound
+      if (gameMode === 'time') clearInterval(gameTimer);
+      
+      if (gameMode === 'questions') {
+          winner = determineWinner();
+      }
+      
       gameState = 'END';
       renderApp();
     }
 
     function triggerEndGameEarly() {
       if(confirm("Are you sure you want to end the game early?")) {
-          playGameOver(); // Play time's up sound
-          clearInterval(gameTimer);
+          playGameOver();
+          if (gameMode === 'time') clearInterval(gameTimer);
           clearInterval(cdTimer);
-          winner = "Tie"; // Generic early end state
+          endedEarly = true;
+          winner = gameMode === 'questions' ? determineWinner() : "Tie";
           gameState = 'END';
           renderApp();
       }
@@ -507,56 +566,114 @@
 
     // --- RENDER FUNCTIONS ---
     function renderSetup() {
+      const timeInstructions = `
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> Read the emojis word-for-word to guess the idiom.</li>
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> <strong class="text-indigo-900">Correct:</strong> Earns a point and passes the turn (and the ticking clock) to the other team!</li>
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> <strong class="text-indigo-900">Pass:</strong> Skips the puzzle, but your clock keeps ticking!</li>
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> The game ends when a team's clock hits 00:00. The surviving team wins!</li>
+      `;
+
+      const questionsInstructions = `
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> Read the emojis word-for-word to guess the idiom.</li>
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> <strong class="text-indigo-900">Alternate Turns:</strong> Teams take turns answering one idiom at a time.</li>
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> <strong class="text-indigo-900">Correct / Pass:</strong> Earns 1 pt for correct, 0 for pass. Turn switches either way.</li>
+        <li class="flex items-start gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4 mt-0.5 shrink-0 text-indigo-400"></i> Game ends when both teams have played all questions. Most points wins!</li>
+      `;
+
       return `
-        <div class="flex-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-          <div class="bg-white/95 backdrop-blur rounded-3xl shadow-2xl p-8 w-full max-w-lg animate-zoom-in">
-            <div class="text-center mb-8">
+        <div class="flex-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4 py-8">
+          <div class="bg-white/95 backdrop-blur rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-lg animate-zoom-in">
+            <div class="text-center mb-6">
               <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600 mb-2 drop-shadow-sm">
                 Guess The Idiom
               </h1>
               <p class="text-gray-500 font-medium">The fast-paced visual guessing game!</p>
             </div>
 
+            <!-- Game Mode Toggle -->
+            <div class="mb-5">
+              <label class="block text-sm font-semibold text-gray-700 mb-2 text-center uppercase tracking-wider">Select Game Mode</label>
+              <div class="flex gap-2 p-1.5 bg-gray-100 rounded-xl shadow-inner">
+                <button 
+                  onclick="setGameMode('time')" 
+                  class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${gameMode === 'time' ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}"
+                >
+                  <i data-lucide="timer" class="w-4 h-4"></i> Timer
+                </button>
+                <button 
+                  onclick="setGameMode('questions')" 
+                  class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${gameMode === 'questions' ? 'bg-white shadow-sm text-pink-600 ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}"
+                >
+                  <i data-lucide="list-todo" class="w-4 h-4"></i> Questions
+                </button>
+              </div>
+            </div>
+
+            <!-- Instructions Section -->
+            <div class="bg-indigo-50/80 rounded-2xl p-5 mb-6 border border-indigo-100 text-left shadow-sm">
+              <h3 class="text-sm font-bold text-indigo-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4"></i> How to Play
+              </h3>
+              <ul class="text-sm text-indigo-700/90 space-y-2 font-medium">
+                ${gameMode === 'time' ? timeInstructions : questionsInstructions}
+              </ul>
+            </div>
+
             <div class="space-y-6">
               <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-1" for="teamAInput">Team 1 Name</label>
-                  <input 
-                    id="teamAInput"
-                    type="text" 
-                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all shadow-sm"
-                    value="${teamA}"
-                    maxlength="20"
-                    onkeypress="if(event.key === 'Enter') triggerStartGame()"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-1" for="teamBInput">Team 2 Name</label>
-                  <input 
-                    id="teamBInput"
-                    type="text" 
-                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 outline-none transition-all shadow-sm"
-                    value="${teamB}"
-                    maxlength="20"
-                    onkeypress="if(event.key === 'Enter') triggerStartGame()"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-1" for="timeSelect">Time per Team</label>
-                  <div class="relative">
-                    <select 
-                      id="timeSelect"
-                      class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-400 outline-none appearance-none cursor-pointer shadow-sm bg-white font-medium"
-                    >
-                      <option value="30">30 Seconds (Blitz)</option>
-                      <option value="60" selected>60 Seconds (Standard)</option>
-                      <option value="90">90 Seconds (Long)</option>
-                      <option value="120">120 Seconds (Marathon)</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                      <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                    </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1" for="teamAInput">Team 1 Name</label>
+                    <input 
+                      id="teamAInput"
+                      type="text" 
+                      class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-400 outline-none transition-all shadow-sm"
+                      value="${teamA}"
+                      maxlength="15"
+                      onkeypress="if(event.key === 'Enter') triggerStartGame()"
+                    />
                   </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1" for="teamBInput">Team 2 Name</label>
+                    <input 
+                      id="teamBInput"
+                      type="text" 
+                      class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-pink-400 outline-none transition-all shadow-sm"
+                      value="${teamB}"
+                      maxlength="15"
+                      onkeypress="if(event.key === 'Enter') triggerStartGame()"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  ${gameMode === 'time' ? `
+                    <label class="block text-sm font-semibold text-gray-700 mb-1" for="timeSelect">Time per Team</label>
+                    <div class="relative">
+                      <select id="timeSelect" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-400 outline-none appearance-none cursor-pointer shadow-sm bg-white font-medium">
+                        <option value="30">30 Seconds (Blitz)</option>
+                        <option value="60" selected>60 Seconds (Standard)</option>
+                        <option value="90">90 Seconds (Long)</option>
+                        <option value="120">120 Seconds (Marathon)</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                      </div>
+                    </div>
+                  ` : `
+                    <label class="block text-sm font-semibold text-gray-700 mb-1" for="questionsSelect">Questions per Team</label>
+                    <div class="relative">
+                      <select id="questionsSelect" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-pink-400 outline-none appearance-none cursor-pointer shadow-sm bg-white font-medium">
+                        <option value="5">5 Questions (Quick)</option>
+                        <option value="10" selected>10 Questions (Standard)</option>
+                        <option value="15">15 Questions (Long)</option>
+                        <option value="20">20 Questions (Marathon)</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                      </div>
+                    </div>
+                  `}
                 </div>
               </div>
 
@@ -593,25 +710,43 @@
       // Generate HTML for beautifully spaced word blanks
       const blanksHTML = generateBlanksHTML(currentQ.idiom);
 
+      // Render Next Button correctly depending on mode and state
+      let nextBtnContent = '';
+      if (gameMode === 'questions' && qCountA >= qLimit && qCountB >= qLimit) {
+          nextBtnContent = `See Results <i data-lucide="award" class="w-7 h-7"></i>`;
+      } else {
+          const nextTeamName = currentTurn === 'A' ? teamB : teamA;
+          if (gameMode === 'questions' || lastAnswerStatus === 'correct') {
+             nextBtnContent = `Pass to ${nextTeamName} <i data-lucide="arrow-right" class="w-7 h-7"></i>`;
+          } else {
+             nextBtnContent = `Next Question <i data-lucide="arrow-right" class="w-7 h-7"></i>`;
+          }
+      }
+
       return `
         <div class="flex-1 flex flex-col font-sans text-gray-800 relative">
-          <!-- Header Scoreboard & Timers -->
+          <!-- Header Scoreboard & Timers/Counters -->
           <header class="bg-white shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-20">
             
             <!-- Team A -->
-            <div class="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-2xl transition-all duration-300 ${currentTurn === 'A' ? 'bg-indigo-50 ring-2 ring-indigo-400 scale-[1.02] shadow-sm' : 'opacity-60'} relative overflow-hidden">
-              <div id="timer-bar-A" class="absolute bottom-0 left-0 h-1.5 bg-indigo-500 transition-all duration-1000 ease-linear" style="width: ${(teamATime / timeLimit) * 100}%;"></div>
-              <div class="flex flex-col relative z-10">
-                <span class="font-bold ${currentTurn === 'A' ? 'text-indigo-900' : 'text-gray-500'} truncate max-w-[100px] text-xs md:text-sm uppercase tracking-wide">${teamA}</span>
-                <span id="time-display-A" class="text-2xl md:text-4xl font-black font-mono transition-colors ${currentTurn === 'A' && !showAnswer ? 'text-indigo-600' : 'text-gray-400'}">${formatTime(teamATime)}</span>
+            <div class="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-2xl transition-all duration-300 ${currentTurn === 'A' ? 'bg-indigo-50 ring-2 ring-indigo-400 scale-[1.02] shadow-sm' : 'opacity-60'} relative overflow-hidden min-w-[120px]">
+              <div id="timer-bar-A" class="absolute bottom-0 left-0 h-1.5 bg-indigo-500 transition-all duration-1000 ease-linear" style="width: ${gameMode === 'time' ? (teamATime / timeLimit) * 100 : (qCountA / qLimit) * 100}%;"></div>
+              <div class="flex flex-col relative z-10 w-full">
+                <div class="flex justify-between items-center gap-2">
+                    <span class="font-bold ${currentTurn === 'A' ? 'text-indigo-900' : 'text-gray-500'} truncate max-w-[80px] text-xs md:text-sm uppercase tracking-wide">${teamA}</span>
+                    ${gameMode === 'questions' ? `<span class="text-xs font-black text-indigo-500 bg-white px-1.5 rounded shadow-sm">${scoreA} pt</span>` : ''}
+                </div>
+                <span id="time-display-A" class="text-2xl md:text-3xl font-black font-mono transition-colors ${currentTurn === 'A' && !showAnswer ? 'text-indigo-600' : 'text-gray-400'}">
+                    ${gameMode === 'time' ? formatTime(teamATime) : `${qCountA}/${qLimit}`}
+                </span>
               </div>
             </div>
             
             <!-- Turn Indicator & Header Actions -->
             <div class="flex flex-col items-center flex-1 mx-2">
               <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm ${isTeamA ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'} ${showAnswer || gameState === 'PAUSED' ? 'animate-pulse' : ''}">
-                <i data-lucide="${gameState === 'PAUSED' || showAnswer ? 'pause-circle' : 'mic'}" class="w-3 h-3"></i> 
-                ${gameState === 'PAUSED' ? 'PAUSED' : showAnswer ? 'TIMER PAUSED' : `${activeTeamName}'s Turn`}
+                <i data-lucide="${gameState === 'PAUSED' || showAnswer ? 'pause-circle' : 'play-circle'}" class="w-3 h-3"></i> 
+                ${gameState === 'PAUSED' ? 'PAUSED' : showAnswer ? (gameMode === 'time' ? 'TIMER PAUSED' : 'ANSWER REVEALED') : `${activeTeamName}'s Turn`}
               </div>
               <div class="flex gap-4 mt-2">
                   <button onclick="togglePause()" aria-label="Pause Game" class="text-xs font-semibold ${gameState === 'PAUSED' ? 'text-indigo-500 font-bold' : 'text-gray-400'} hover:text-indigo-600 transition-colors uppercase tracking-widest" ${showAnswer ? 'disabled' : ''}>
@@ -624,11 +759,16 @@
             </div>
 
             <!-- Team B -->
-            <div class="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-2xl transition-all duration-300 ${currentTurn === 'B' ? 'bg-pink-50 ring-2 ring-pink-400 scale-[1.02] shadow-sm' : 'opacity-60'} relative overflow-hidden">
-              <div id="timer-bar-B" class="absolute bottom-0 right-0 h-1.5 bg-pink-500 transition-all duration-1000 ease-linear" style="width: ${(teamBTime / timeLimit) * 100}%;"></div>
-              <div class="flex flex-col items-end relative z-10">
-                <span class="font-bold ${currentTurn === 'B' ? 'text-pink-900' : 'text-gray-500'} truncate max-w-[100px] text-xs md:text-sm uppercase tracking-wide text-right">${teamB}</span>
-                <span id="time-display-B" class="text-2xl md:text-4xl font-black font-mono transition-colors ${currentTurn === 'B' && !showAnswer ? 'text-pink-600' : 'text-gray-400'}">${formatTime(teamBTime)}</span>
+            <div class="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-2xl transition-all duration-300 ${currentTurn === 'B' ? 'bg-pink-50 ring-2 ring-pink-400 scale-[1.02] shadow-sm' : 'opacity-60'} relative overflow-hidden min-w-[120px]">
+              <div id="timer-bar-B" class="absolute bottom-0 right-0 h-1.5 bg-pink-500 transition-all duration-1000 ease-linear" style="width: ${gameMode === 'time' ? (teamBTime / timeLimit) * 100 : (qCountB / qLimit) * 100}%;"></div>
+              <div class="flex flex-col relative z-10 w-full text-right">
+                <div class="flex justify-between items-center gap-2 flex-row-reverse">
+                    <span class="font-bold ${currentTurn === 'B' ? 'text-pink-900' : 'text-gray-500'} truncate max-w-[80px] text-xs md:text-sm uppercase tracking-wide text-right">${teamB}</span>
+                    ${gameMode === 'questions' ? `<span class="text-xs font-black text-pink-500 bg-white px-1.5 rounded shadow-sm">${scoreB} pt</span>` : ''}
+                </div>
+                <span id="time-display-B" class="text-2xl md:text-3xl font-black font-mono transition-colors ${currentTurn === 'B' && !showAnswer ? 'text-pink-600' : 'text-gray-400'}">
+                    ${gameMode === 'time' ? formatTime(teamBTime) : `${qCountB}/${qLimit}`}
+                </span>
               </div>
             </div>
           </header>
@@ -637,7 +777,7 @@
           <main class="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8 flex flex-col justify-center relative">
             
             ${gameState === 'PAUSED' ? `
-              <!-- Paused Overlay (Hides puzzle to prevent cheating) -->
+              <!-- Paused Overlay -->
               <div class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-white/50 backdrop-blur-md rounded-3xl animate-zoom-in">
                   <div class="bg-white p-8 rounded-3xl shadow-xl text-center flex flex-col items-center">
                       <i data-lucide="pause-circle" class="w-16 h-16 text-indigo-500 mb-4"></i>
@@ -709,8 +849,7 @@
                       onclick="handleNext()"
                       class="w-full py-4 md:py-6 rounded-2xl font-black text-white ${lastAnswerStatus === 'correct' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-200'} shadow-lg transform active:scale-95 transition-all text-xl md:text-2xl flex items-center justify-center gap-3"
                     >
-                      ${lastAnswerStatus === 'correct' ? `Pass to ${currentTurn === 'A' ? teamB : teamA}` : 'Next Question'} 
-                      <i data-lucide="arrow-right" class="w-7 h-7"></i>
+                      ${nextBtnContent}
                     </button>
                   `}
               </div>
@@ -724,18 +863,37 @@
       const isTie = winner === "Tie";
       const loser = winner === teamA ? teamB : teamA;
       
+      let titleText = isTie ? "It's a Tie!" : `${winner} Wins!`;
+      let subtitleText = "";
+
+      if (gameMode === 'time') {
+          if (endedEarly) {
+              titleText = "Game Stopped";
+              subtitleText = "You ended the game early.";
+          } else {
+              subtitleText = `Time's up for ${loser}!`;
+          }
+      } else {
+          if (endedEarly) {
+              titleText = "Game Stopped";
+              subtitleText = winner === "Tie" ? "Tied scores!" : `${winner} was in the lead.`;
+          } else {
+              subtitleText = isTie ? "Both teams scored the same!" : `${winner} scored the most points!`;
+          }
+      }
+      
       return `
         <div class="flex-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
           <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg text-center animate-zoom-in duration-300">
             <div class="relative inline-block mb-6">
-                <i data-lucide="${isTie ? 'stop-circle' : 'alarm-clock'}" class="w-24 h-24 relative z-10 ${isTie ? 'text-gray-400' : 'text-red-500 animate-bounce'}"></i>
+                <i data-lucide="${endedEarly ? 'stop-circle' : (gameMode === 'time' ? 'alarm-clock' : 'award')}" class="w-24 h-24 relative z-10 ${endedEarly ? 'text-gray-400' : (gameMode === 'time' ? 'text-red-500 animate-bounce' : 'text-yellow-500 animate-bounce')}"></i>
             </div>
             
             <h2 class="text-5xl font-black text-gray-800 mb-2">
-              ${isTie ? "Game Stopped" : `${winner} Wins!`}
+              ${titleText}
             </h2>
             <p class="text-lg text-gray-500 mb-8 font-medium">
-                ${isTie ? "You ended the game early." : `Time's up for ${loser}!`}
+                ${subtitleText}
             </p>
 
             <div class="grid grid-cols-2 gap-4 mb-8">
@@ -743,13 +901,17 @@
                 <div class="text-indigo-600 font-bold truncate text-lg mb-1 w-full text-center">${teamA}</div>
                 <div class="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-1">Guessed</div>
                 <div class="text-4xl font-black text-gray-800 mb-3">${scoreA}</div>
-                <div class="text-xs font-mono font-bold px-3 py-1 bg-white rounded-full text-indigo-500 border border-indigo-100 shadow-sm">Time: ${formatTime(teamATime)}</div>
+                <div class="text-xs font-mono font-bold px-3 py-1 bg-white rounded-full text-indigo-500 border border-indigo-100 shadow-sm">
+                  ${gameMode === 'time' ? `Time: ${formatTime(teamATime)}` : `Q: ${qCountA}/${qLimit}`}
+                </div>
               </div>
               <div class="p-5 rounded-2xl bg-pink-50 border border-pink-100 flex flex-col items-center">
                 <div class="text-pink-600 font-bold truncate text-lg mb-1 w-full text-center">${teamB}</div>
                 <div class="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-1">Guessed</div>
                 <div class="text-4xl font-black text-gray-800 mb-3">${scoreB}</div>
-                <div class="text-xs font-mono font-bold px-3 py-1 bg-white rounded-full text-pink-500 border border-pink-100 shadow-sm">Time: ${formatTime(teamBTime)}</div>
+                <div class="text-xs font-mono font-bold px-3 py-1 bg-white rounded-full text-pink-500 border border-pink-100 shadow-sm">
+                  ${gameMode === 'time' ? `Time: ${formatTime(teamBTime)}` : `Q: ${qCountB}/${qLimit}`}
+                </div>
               </div>
             </div>
 
