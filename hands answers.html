@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Fun Learning - Gesture Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MediaPipe Hands Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- Animation & Effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .comic-font { font-family: 'Fredoka One', cursive; }
+        
+        .option-box {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 6px solid transparent;
+        }
+        
+        .selected-A { transform: scale(1.05); border-color: #6366f1 !important; background-color: #eef2ff; box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.3); }
+        .selected-B { transform: scale(1.05); border-color: #ec4899 !important; background-color: #fdf2f8; box-shadow: 0 20px 25px -5px rgba(236, 72, 153, 0.3); }
+        .selected-C { transform: scale(1.05); border-color: #10b981 !important; background-color: #ecfdf5; box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.3); }
+        .selected-D { transform: scale(1.05); border-color: #f59e0b !important; background-color: #fffbeb; box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.3); }
+
+        .character-anim { animation: bounce 0.6s infinite alternate; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
+
+        .feedback-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        .loader-ring { transition: stroke-dashoffset 0.1s linear; }
+        
+        /* Ensures grid flows properly on different sizes */
+        .game-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .game-grid { grid-template-columns: 350px 1fr; }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-4 md:p-6 text-slate-800">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center p-6 overflow-y-auto">
+        <div class="bg-white p-8 md:p-10 rounded-[3rem] shadow-2xl text-center max-w-2xl w-full border-4 border-indigo-100 my-auto">
+            <h1 class="comic-font text-5xl md:text-6xl text-indigo-600 mb-2 text-center drop-shadow-sm">Hand Gesture Quiz!</h1>
+            <p class="text-slate-500 text-lg mb-6 font-bold text-center">Module 5a Review Edition</p>
+            
+            <!-- Tutorial Area -->
+            <div class="bg-slate-50 rounded-3xl p-6 mb-6 border border-slate-200">
+                <h3 class="font-black text-slate-700 mb-4 text-xl">How to play? Show your fingers! 🖐️</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-indigo-100">
+                        <div class="text-4xl mb-2">☝️</div>
+                        <div class="font-bold text-slate-600 text-sm">1 Finger</div>
+                        <div class="font-black text-indigo-600 mt-1">Option A</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-pink-100">
+                        <div class="text-4xl mb-2">✌️</div>
+                        <div class="font-bold text-slate-600 text-sm">2 Fingers</div>
+                        <div class="font-black text-pink-500 mt-1">Option B</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-emerald-100">
+                        <div class="text-4xl mb-2">🤟</div>
+                        <div class="font-bold text-slate-600 text-sm">3 Fingers</div>
+                        <div class="font-black text-emerald-500 mt-1">Option C</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-amber-100">
+                        <div class="text-4xl mb-2">🖐️</div>
+                        <div class="font-bold text-slate-600 text-sm">4 Fingers</div>
+                        <div class="font-black text-amber-500 mt-1">Option D</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Setup Area -->
+            <div class="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-200">
+                <h3 class="font-black text-slate-700 mb-4 text-xl">Teams Setup 👥</h3>
+                <div id="team-setup-container" class="flex flex-wrap gap-2 justify-center mb-4">
+                    <!-- Team tags injected here -->
+                </div>
+                <div class="flex justify-center gap-4">
+                    <button onclick="addTeam()" class="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-xl font-bold hover:bg-indigo-200 transition-colors shadow-sm">+ Add Team</button>
+                    <button onclick="removeTeam()" class="px-5 py-2 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-colors shadow-sm">- Remove Team</button>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <button onclick="startGame()" class="w-full bg-indigo-500 hover:bg-indigo-600 py-4 rounded-full text-2xl comic-font text-white shadow-lg transform transition active:scale-95 flex items-center justify-center gap-3">
+                    PLAY NOW 🎮
+                </button>
+                <button onclick="openTeacherMode()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-full text-lg font-bold transition-colors">
+                    Teacher Dashboard 👩‍🏫
+                </button>
+            </div>
+            <p class="mt-6 text-xs text-slate-400 text-center uppercase tracking-widest">Requires Camera Access • AI Processed Locally</p>
+        </div>
+    </div>
+
+    <!-- TEACHER MODE -->
+    <div id="teacher-modal" class="fixed inset-0 bg-slate-900/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-6 border-b flex justify-between items-center bg-indigo-50">
+                <h2 class="comic-font text-2xl text-indigo-700 text-center">Question Bank (4 Options)</h2>
+                <button onclick="closeTeacherMode()" class="text-3xl text-slate-400 hover:text-red-500 transition-colors">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow space-y-3 bg-slate-50" id="q-list-container">
+                <!-- Danh sách câu hỏi -->
+            </div>
+            <div class="p-6 border-t bg-white">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <input id="new-q-task" type="text" placeholder="Task (e.g. Fill in the blank)" class="col-span-2 md:col-span-4 p-3 border rounded-xl focus:ring-2 ring-indigo-300 bg-slate-50">
+                    <input id="new-q-text" type="text" placeholder="Question text..." class="col-span-2 md:col-span-4 p-3 border rounded-xl focus:ring-2 ring-indigo-300 bg-slate-50">
+                    <input id="new-q-a" type="text" placeholder="Option A" class="p-3 border rounded-xl bg-slate-50">
+                    <input id="new-q-b" type="text" placeholder="Option B" class="p-3 border rounded-xl bg-slate-50">
+                    <input id="new-q-c" type="text" placeholder="Option C" class="p-3 border rounded-xl bg-slate-50">
+                    <input id="new-q-d" type="text" placeholder="Option D" class="p-3 border rounded-xl bg-slate-50">
+                    <select id="new-q-correct" class="p-3 border rounded-xl bg-indigo-50 font-bold text-indigo-600 col-span-2 md:col-span-4">
+                        <option value="A">Correct Answer: Option A</option>
+                        <option value="B">Correct Answer: Option B</option>
+                        <option value="C">Correct Answer: Option C</option>
+                        <option value="D">Correct Answer: Option D</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="saveNewQuestion()" class="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Add Question</button>
+                    <button onclick="closeTeacherMode()" class="flex-1 bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 transition-colors">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME UI -->
+    <div id="game-ui" class="w-full h-full flex flex-col items-center justify-between invisible max-w-6xl mx-auto overflow-hidden">
+        
+        <!-- Top Info Bar -->
+        <div class="w-full flex justify-between items-center px-2 md:px-4 mt-2 gap-4 shrink-0 overflow-hidden">
+            <!-- Progress -->
+            <div class="bg-white/80 backdrop-blur px-6 py-3 rounded-full shadow-sm flex items-center gap-3 flex-1 max-w-[200px] md:max-w-md border border-white shrink-0">
+                <span class="text-indigo-500 font-black text-sm uppercase tracking-wider hidden md:inline">Progress</span>
+                <div class="flex-1 bg-slate-200 h-3 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-indigo-500 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <span id="q-counter" class="font-black text-indigo-600 text-center text-sm">1/20</span>
+            </div>
+            
+            <!-- Dynamic Team Scoreboard -->
+            <div id="scoreboard-container" class="flex gap-2 shrink-0 overflow-x-auto pb-1 flex-1 justify-end items-center">
+                <!-- Team scores injected here -->
+            </div>
+        </div>
+
+        <!-- Question Area -->
+        <div class="relative w-full mt-4 shrink-0 px-2 md:px-0">
+            <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border-b-8 border-indigo-200 text-center relative z-10 flex flex-col items-center justify-center">
+                <!-- Turn Indicator -->
+                <div id="current-turn-display" class="comic-font text-2xl md:text-3xl mb-1 animate-bounce transition-colors">
+                    Team 1's Turn!
+                </div>
+                <span id="display-task" class="text-slate-400 font-bold uppercase tracking-widest text-xs mb-3">Task Goes Here</span>
+                <h2 id="display-question" class="comic-font text-xl md:text-4xl text-slate-700 tracking-tight leading-tight text-center">
+                    ...
+                </h2>
+            </div>
+        </div>
+
+        <!-- Central Gameplay Area (Camera + 4 Options) -->
+        <div class="game-grid w-full flex-grow py-4 px-2 md:px-0 mt-2 min-h-0">
+            
+            <!-- LEFT COLUMN: CAMERA -->
+            <div class="relative w-full h-[220px] md:h-full min-h-[200px] flex flex-col items-center justify-center">
+                <div class="w-full h-full relative overflow-hidden rounded-[24px] border-[6px] border-indigo-500 shadow-[0_12px_24px_rgba(0,0,0,0.15)] bg-black" id="camera-border">
+                    <video id="webcam" class="w-full h-full object-cover transform -scale-x-100" autoplay playsinline></video>
+                    <canvas id="hands-canvas" class="absolute inset-0 w-full h-full pointer-events-none transform -scale-x-100"></canvas>
+                    <div id="gesture-guide-overlay" class="absolute inset-0 flex items-center justify-center pointer-events-none bg-gradient-to-t from-black/60 to-transparent z-10">
+                        <div id="guide-text" class="text-4xl md:text-6xl drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] text-center transition-transform text-white comic-font">Show Hands!</div>
+                    </div>
+                </div>
+
+                <!-- Selection Progress Ring & Character -->
+                <div class="absolute -bottom-6 md:-bottom-10 flex items-center justify-center w-28 h-28 md:w-32 md:h-32">
+                    <svg class="absolute inset-0 w-full h-full -rotate-90 drop-shadow-lg">
+                        <circle cx="50%" cy="50%" r="45%" stroke="white" stroke-width="10" fill="white" />
+                        <circle cx="50%" cy="50%" r="45%" stroke="#f1f5f9" stroke-width="6" fill="none" />
+                        <circle id="tilt-loader" cx="50%" cy="50%" r="45%" stroke="#10b981" stroke-width="6" fill="none" 
+                            stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" class="loader-ring" />
+                    </svg>
+                    <div id="main-char" class="text-4xl md:text-5xl z-10 floating select-none text-center drop-shadow-md">🐱</div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: 4 OPTIONS GRID -->
+            <div class="grid grid-cols-2 grid-rows-2 gap-3 md:gap-4 h-full overflow-y-auto pb-8 md:pb-0">
+                <!-- Option A -->
+                <div id="box-A" class="option-box bg-white/95 backdrop-blur flex flex-col justify-center items-center p-4 md:p-6 rounded-[2rem] shadow-lg text-center border-4 border-dashed border-indigo-200 relative overflow-hidden">
+                    <div class="absolute top-3 left-4 text-slate-200 font-black text-4xl opacity-40 select-none">A</div>
+                    <div class="text-3xl mb-2 text-center z-10 drop-shadow-sm">☝️</div>
+                    <div id="display-a" class="comic-font text-xl md:text-3xl text-indigo-600 text-center z-10 drop-shadow-sm">...</div>
+                </div>
+
+                <!-- Option B -->
+                <div id="box-B" class="option-box bg-white/95 backdrop-blur flex flex-col justify-center items-center p-4 md:p-6 rounded-[2rem] shadow-lg text-center border-4 border-dashed border-pink-200 relative overflow-hidden">
+                    <div class="absolute top-3 right-4 text-slate-200 font-black text-4xl opacity-40 select-none">B</div>
+                    <div class="text-3xl mb-2 text-center z-10 drop-shadow-sm">✌️</div>
+                    <div id="display-b" class="comic-font text-xl md:text-3xl text-pink-500 text-center z-10 drop-shadow-sm">...</div>
+                </div>
+
+                <!-- Option C -->
+                <div id="box-C" class="option-box bg-white/95 backdrop-blur flex flex-col justify-center items-center p-4 md:p-6 rounded-[2rem] shadow-lg text-center border-4 border-dashed border-emerald-200 relative overflow-hidden">
+                    <div class="absolute bottom-3 left-4 text-slate-200 font-black text-4xl opacity-40 select-none">C</div>
+                    <div class="text-3xl mb-2 text-center z-10 drop-shadow-sm">🤟</div>
+                    <div id="display-c" class="comic-font text-xl md:text-3xl text-emerald-600 text-center z-10 drop-shadow-sm">...</div>
+                </div>
+
+                <!-- Option D -->
+                <div id="box-D" class="option-box bg-white/95 backdrop-blur flex flex-col justify-center items-center p-4 md:p-6 rounded-[2rem] shadow-lg text-center border-4 border-dashed border-amber-200 relative overflow-hidden">
+                    <div class="absolute bottom-3 right-4 text-slate-200 font-black text-4xl opacity-40 select-none">D</div>
+                    <div class="text-3xl mb-2 text-center z-10 drop-shadow-sm">🖐️</div>
+                    <div id="display-d" class="comic-font text-xl md:text-3xl text-amber-500 text-center z-10 drop-shadow-sm">...</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FEEDBACK OVERLAY -->
+    <div id="feedback" class="fixed inset-0 pointer-events-none flex items-center justify-center z-[100] hidden bg-white/30 backdrop-blur-sm transition-all">
+        <div class="feedback-pop bg-white p-12 md:p-16 rounded-[4rem] shadow-2xl border-8 border-indigo-100 text-center max-w-2xl w-full mx-4">
+            <h3 id="feedback-title" class="comic-font text-5xl md:text-7xl mb-4 text-center">EXCELLENT!</h3>
+            <p id="feedback-sub" class="text-xl md:text-2xl text-slate-500 font-bold text-center">Great job, keep going!</p>
+            <div id="points-text" class="mt-6 text-3xl font-black text-emerald-500 hidden comic-font">+10 Points!</div>
+        </div>
+    </div>
+
+    <!-- AUDIO -->
+    <audio id="snd-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="snd-wrong" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+
+    <script>
+        // Updated 4-Option Multiple Choice Data with Challenging Distractors
+        let questions = [
+            { task: "Fill in the blank:", q: "She apologized for ______ late to the meeting.", a: "being", b: "to be", c: "be", d: "to being", correct: "A" },
+            { task: "Fill in the blank:", q: "Do you feel like ______ pizza tonight?", a: "order", b: "ordering", c: "to order", d: "ordered", correct: "B" },
+            { task: "Fill in the blank:", q: "______ is a fantastic way to stay healthy.", a: "To swimming", b: "Swim", c: "Swimming", d: "Swims", correct: "C" },
+            { task: "Fill in the blank:", q: "She promised ______ anyone my secret.", a: "not telling", b: "not to tell", c: "to not telling", d: "to don't tell", correct: "B" },
+            { task: "Fill in the blank:", q: "We decided ______ home tonight.", a: "staying", b: "stay", c: "to staying", d: "to stay", correct: "D" },
+            { task: "Fill in the blank:", q: "We can avoid ______ stuck in traffic.", a: "getting", b: "to get", c: "get", d: "to getting", correct: "A" },
+            { task: "Fill in the blank:", q: "I cannot afford ______ on holiday this year.", a: "going", b: "go", c: "to go", d: "to going", correct: "C" },
+            { task: "Fill in the blank:", q: "I'm thinking about ______ my career.", a: "to change", b: "changing", c: "change", d: "to changing", correct: "B" },
+            { task: "Fill in the blank:", q: "She went to the gym ______ weight.", a: "to lose", b: "for losing", c: "for to lose", d: "losing", correct: "A" },
+            { task: "Fill in the blank:", q: "They enjoy ______ in the mountains.", a: "to hike", b: "hike", c: "to hiking", d: "hiking", correct: "D" },
+            { task: "Fill in the blank:", q: "It's no use ______ over spilled milk.", a: "cry", b: "to cry", c: "crying", d: "to crying", correct: "C" },
+            { task: "Fill in the blank:", q: "This book is easy ______.", a: "understanding", b: "to understand", c: "understand", d: "for understanding", correct: "B" },
+            { task: "Fill in the blank:", q: "She succeeded in ______ the exam.", a: "passing", b: "to pass", c: "pass", d: "to passing", correct: "A" },
+            { task: "Fill in the blank:", q: "They refused ______ with the police.", a: "cooperating", b: "cooperate", c: "to cooperating", d: "to cooperate", correct: "D" },
+            { task: "Choose the right form:", q: "He completely forgot ______ a tip.", a: "leaving", b: "leave", c: "to leave", d: "to leaving", correct: "C" },
+            { task: "Choose the right form:", q: "The teacher warned us ______.", a: "not to fail", b: "not failing", c: "to not fail", d: "don't fail", correct: "A" },
+            { task: "Choose the right form:", q: "My parents made me ______ the dishes.", a: "to wash", b: "washing", c: "to washing", d: "wash", correct: "D" },
+            { task: "Choose the right form:", q: "I strongly suggest ______ these vitamins.", a: "to take", b: "taking", c: "take", d: "to taking", correct: "B" },
+            { task: "Choose the right form:", q: "We stopped ______ a photo of the sunset.", a: "taking", b: "take", c: "to take", d: "for taking", correct: "C" },
+            { task: "Choose the right form:", q: "Do you mind ______ the window?", a: "open", b: "to open", c: "opening", d: "to opening", correct: "C" }
+        ];
+
+        // Theme definitions to avoid dynamic tailwind class issues
+        const teamThemes = [
+            { bg: 'bg-indigo-500', text: 'text-indigo-500', border: 'border-indigo-500', light: 'bg-indigo-100', textLight: 'text-indigo-700' },
+            { bg: 'bg-pink-500', text: 'text-pink-500', border: 'border-pink-500', light: 'bg-pink-100', textLight: 'text-pink-700' },
+            { bg: 'bg-emerald-500', text: 'text-emerald-500', border: 'border-emerald-500', light: 'bg-emerald-100', textLight: 'text-emerald-700' },
+            { bg: 'bg-amber-500', text: 'text-amber-500', border: 'border-amber-500', light: 'bg-amber-100', textLight: 'text-amber-700' },
+            { bg: 'bg-cyan-500', text: 'text-cyan-500', border: 'border-cyan-500', light: 'bg-cyan-100', textLight: 'text-cyan-700' },
+            { bg: 'bg-rose-500', text: 'text-rose-500', border: 'border-rose-500', light: 'bg-rose-100', textLight: 'text-rose-700' }
+        ];
+
+        // TEAM STATE
+        let teams = [
+            { name: "Team 1", score: 0, theme: teamThemes[0] },
+            { name: "Team 2", score: 0, theme: teamThemes[1] }
+        ];
+        let currentTeamIndex = 0;
+
+        let currentIndex = 0;
+        let isProcessing = false;
+        let gestureState = "center"; 
+        let selectionProgress = 0; 
+        
+        const HOLD_DURATION = 20; // Number of frames required to lock in an answer
+        
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('hands-canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const tiltLoader = document.getElementById('tilt-loader');
+        const character = document.getElementById('main-char');
+
+        // Setup MediaPipe Hands
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+        
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.65,
+            minTrackingConfidence: 0.65
+        });
+        
+        hands.onResults(onResults);
+
+        // --- TEAM SETUP LOGIC ---
+        function renderTeamSetup() {
+            const container = document.getElementById('team-setup-container');
+            container.innerHTML = teams.map((t, idx) => `
+                <div class="px-4 py-2 rounded-xl font-bold ${t.theme.light} ${t.theme.textLight} shadow-sm border ${t.theme.border} flex items-center gap-2">
+                    ${t.name}
+                </div>
+            `).join('');
+        }
+
+        function addTeam() {
+            if (teams.length >= 6) return; // Max 6 teams
+            const nextIdx = teams.length;
+            teams.push({ name: `Team ${nextIdx + 1}`, score: 0, theme: teamThemes[nextIdx] });
+            renderTeamSetup();
+        }
+
+        function removeTeam() {
+            if (teams.length <= 1) return; // Min 1 team
+            teams.pop();
+            renderTeamSetup();
+        }
+
+        // --- START & GAME LOOP ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        async function startGame() {
+            shuffleArray(questions);
+            
+            // Reset scores
+            teams.forEach(t => t.score = 0);
+            currentTeamIndex = 0;
+            currentIndex = 0;
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('invisible');
+            
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({image: videoElement});
+                },
+                width: 640, height: 480
+            });
+            camera.start();
+            renderGame();
+        }
+
+        function onResults(results) {
+            // Draw Hand Tracking Feedback
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#ffffff', lineWidth: 3});
+                    drawLandmarks(canvasCtx, landmarks, {color: '#6366f1', lineWidth: 1, radius: 4});
+                }
+            }
+            canvasCtx.restore();
+
+            // Process Logic
+            if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0 || isProcessing) {
+                processGesture("center");
+                return;
+            }
+
+            const landmarks = results.multiHandLandmarks[0];
+            let fingersUpCount = 0;
+
+            // Logic: Compare Y coordinate of finger Tip vs Pip joint to determine if it's raised
+            const isFingerUp = (tipIdx, pipIdx) => landmarks[tipIdx].y < landmarks[pipIdx].y;
+
+            if (isFingerUp(8, 6)) fingersUpCount++;   // Index finger
+            if (isFingerUp(12, 10)) fingersUpCount++; // Middle finger
+            if (isFingerUp(16, 14)) fingersUpCount++; // Ring finger
+            if (isFingerUp(20, 18)) fingersUpCount++; // Pinky finger
+
+            // Map finger count to options
+            if (fingersUpCount === 1) processGesture("A");
+            else if (fingersUpCount === 2) processGesture("B");
+            else if (fingersUpCount === 3) processGesture("C");
+            else if (fingersUpCount === 4) processGesture("D");
+            else processGesture("center"); 
+        }
+
+        function processGesture(optionSelected) {
+            if (optionSelected === "center") {
+                selectionProgress = 0;
+                gestureState = "center";
+            } else {
+                if (gestureState !== optionSelected) {
+                    gestureState = optionSelected;
+                    selectionProgress = 0;
+                }
+                selectionProgress++;
+            }
+
+            updateGestureUI(gestureState, selectionProgress);
+
+            if (selectionProgress >= HOLD_DURATION) {
+                const choice = gestureState;
+                selectionProgress = 0;
+                checkAnswer(choice);
+            }
+        }
+
+        function updateGestureUI(state, progress) {
+            const circumference = 283; 
+            const percentage = (progress / HOLD_DURATION) * 100;
+            const dashOffset = circumference - (circumference * percentage / 100);
+            tiltLoader.style.strokeDashoffset = dashOffset;
+
+            const boxes = ['A', 'B', 'C', 'D'];
+            boxes.forEach(opt => document.getElementById(`box-${opt}`).classList.remove(`selected-${opt}`));
+            
+            const guideText = document.getElementById('guide-text');
+
+            if (state !== "center") {
+                document.getElementById(`box-${state}`).classList.add(`selected-${state}`);
+                
+                const colors = { 'A': '#6366f1', 'B': '#ec4899', 'C': '#10b981', 'D': '#f59e0b' };
+                const labels = { 'A': '☝️ Locking A', 'B': '✌️ Locking B', 'C': '🤟 Locking C', 'D': '🖐️ Locking D' };
+                
+                tiltLoader.style.stroke = colors[state];
+                guideText.innerText = labels[state];
+            } else {
+                tiltLoader.style.stroke = "#cbd5e1"; 
+                guideText.innerText = "Show Hands!";
+            }
+        }
+
+        function renderScoreboard() {
+            const container = document.getElementById('scoreboard-container');
+            container.innerHTML = teams.map((t, idx) => {
+                const isActive = idx === currentTeamIndex;
+                const baseClasses = `comic-font px-5 py-2 rounded-full border-2 transition-all duration-300 flex items-center gap-2 shadow-sm whitespace-nowrap`;
+                const activeClasses = isActive 
+                    ? `${t.theme.bg} text-white border-white scale-105 z-10` 
+                    : `bg-white/80 backdrop-blur ${t.theme.text} ${t.theme.border}`;
+                
+                return `
+                    <div class="${baseClasses} ${activeClasses}">
+                        ${t.name}: <span>${t.score}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function checkAnswer(choice) {
+            isProcessing = true;
+            const q = questions[currentIndex];
+            const isCorrect = choice === q.correct;
+            const activeTeam = teams[currentTeamIndex];
+
+            if (isCorrect) {
+                const pointsEarned = 10;
+                activeTeam.score += pointsEarned;
+                handleSuccess(activeTeam, pointsEarned);
+            } else {
+                handleFailure(activeTeam, q.correct);
+            }
+        }
+
+        function advanceTurn() {
+            currentIndex++;
+            currentTeamIndex = (currentTeamIndex + 1) % teams.length;
+        }
+
+        function handleSuccess(team, pointsEarned) {
+            document.getElementById('snd-correct').play();
+            
+            showFeedback("EXCELLENT! 🌟", `Great job, ${team.name}!`, "emerald");
+            character.innerText = "🤩";
+            character.classList.add('character-anim');
+
+            const pt = document.getElementById('points-text');
+            pt.innerText = `+${pointsEarned} Points!`;
+            pt.className = `mt-6 text-3xl font-black ${team.theme.text} comic-font block`;
+            pt.classList.remove('hidden');
+
+            confetti({
+                particleCount: 150, spread: 70, origin: { y: 0.6 },
+                colors: ['#6366f1', '#10b981', '#f59e0b', '#ec4899']
+            });
+
+            setTimeout(() => {
+                advanceTurn();
+                if (currentIndex >= questions.length) {
+                    victory();
+                } else {
+                    renderGame();
+                    hideFeedback();
+                    isProcessing = false;
+                }
+            }, 2500);
+        }
+
+        function handleFailure(team, correctAnswer) {
+            document.getElementById('snd-wrong').play();
+            showFeedback("OOPS! 🌈", `${team.name}, the correct answer was ${correctAnswer}.`, "orange");
+            character.innerText = "🥺";
+
+            setTimeout(() => {
+                advanceTurn();
+                if (currentIndex >= questions.length) {
+                    victory();
+                } else {
+                    renderGame();
+                    hideFeedback();
+                    isProcessing = false;
+                }
+            }, 3000);
+        }
+
+        function showFeedback(title, sub, color) {
+            const f = document.getElementById('feedback');
+            const t = document.getElementById('feedback-title');
+            const s = document.getElementById('feedback-sub');
+            f.classList.remove('hidden');
+            t.innerText = title;
+            s.innerText = sub;
+            t.className = `comic-font text-5xl md:text-7xl mb-4 text-center text-${color}-500 drop-shadow-sm`;
+        }
+
+        function hideFeedback() {
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('points-text').classList.add('hidden');
+            character.classList.remove('character-anim');
+            character.innerText = "🐱";
+            updateGestureUI("center", 0);
+        }
+
+        function renderGame() {
+            if (!questions[currentIndex]) return;
+            const q = questions[currentIndex];
+            const activeTeam = teams[currentTeamIndex];
+            
+            // Update UI based on active team
+            renderScoreboard();
+            const turnDisplay = document.getElementById('current-turn-display');
+            turnDisplay.innerText = `${activeTeam.name}'s Turn!`;
+            
+            // Remove previous color classes
+            turnDisplay.className = `comic-font text-2xl md:text-3xl mb-1 animate-bounce transition-colors ${activeTeam.theme.text}`;
+            
+            const cameraBorder = document.getElementById('camera-border');
+            cameraBorder.className = `w-full h-full relative overflow-hidden rounded-[24px] border-[6px] shadow-[0_12px_24px_rgba(0,0,0,0.15)] bg-black transition-colors ${activeTeam.theme.border}`;
+
+            document.getElementById('display-task').innerText = q.task || "Choose the best option:";
+            document.getElementById('display-question').innerText = q.q;
+            document.getElementById('display-a').innerText = q.a;
+            document.getElementById('display-b').innerText = q.b;
+            document.getElementById('display-c').innerText = q.c;
+            document.getElementById('display-d').innerText = q.d;
+            
+            document.getElementById('q-counter').innerText = `${currentIndex + 1}/${questions.length}`;
+            
+            const progress = (currentIndex / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            
+            const emojis = ["🐱", "🐼", "🦁", "🐰", "🐸", "🐻", "🐶", "🐵"];
+            character.innerText = emojis[currentIndex % emojis.length];
+        }
+
+        function victory() {
+            document.getElementById('progress-bar').style.width = `100%`;
+            renderScoreboard(); // Final update
+
+            // Find winner
+            let maxScore = -1;
+            let winners = [];
+            teams.forEach(t => {
+                if(t.score > maxScore) { maxScore = t.score; winners = [t.name]; }
+                else if(t.score === maxScore) { winners.push(t.name); }
+            });
+
+            const winnerText = winners.length > 1 ? `TIE GAME: ${winners.join(' & ')} win!` : `${winners[0]} Wins!`;
+
+            showFeedback("GAME OVER! 🏆", winnerText, "indigo");
+            document.getElementById('points-text').innerText = `Winning Score: ${maxScore}`;
+            document.getElementById('points-text').className = `mt-6 text-3xl font-black text-indigo-500 comic-font block`;
+            document.getElementById('points-text').classList.remove('hidden');
+
+            const duration = 8000;
+            const end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            })();
+
+            setTimeout(() => location.reload(), 9000);
+        }
+
+        // Initialize team UI on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderTeamSetup();
+        });
+
+        // --- Teacher Mode Logic ---
+        function openTeacherMode() {
+            document.getElementById('teacher-modal').classList.remove('hidden');
+            renderTeacherList();
+        }
+
+        function closeTeacherMode() {
+            document.getElementById('teacher-modal').classList.add('hidden');
+        }
+
+        function renderTeacherList() {
+            const container = document.getElementById('q-list-container');
+            container.innerHTML = questions.map((q, i) => `
+                <div class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                    <div class="text-sm">
+                        <div class="text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">${q.task}</div>
+                        <span class="font-bold text-indigo-600">#${i+1}</span> ${q.q}
+                        <div class="mt-2 grid grid-cols-2 gap-2 text-xs font-medium">
+                            <span class="${q.correct === 'A' ? 'text-indigo-500 font-bold' : 'text-slate-500'}">A: ${q.a}</span>
+                            <span class="${q.correct === 'B' ? 'text-pink-500 font-bold' : 'text-slate-500'}">B: ${q.b}</span>
+                            <span class="${q.correct === 'C' ? 'text-emerald-500 font-bold' : 'text-slate-500'}">C: ${q.c}</span>
+                            <span class="${q.correct === 'D' ? 'text-amber-500 font-bold' : 'text-slate-500'}">D: ${q.d}</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteQuestion(${i})" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg font-bold transition-colors">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function saveNewQuestion() {
+            const task = document.getElementById('new-q-task').value || "Answer:";
+            const q = document.getElementById('new-q-text').value;
+            const a = document.getElementById('new-q-a').value;
+            const b = document.getElementById('new-q-b').value;
+            const c = document.getElementById('new-q-c').value;
+            const d = document.getElementById('new-q-d').value;
+            const correct = document.getElementById('new-q-correct').value;
+            if(q && a && b && c && d) {
+                questions.push({ task, q, a, b, c, d, correct });
+                renderTeacherList();
+                document.getElementById('new-q-text').value = '';
+                document.getElementById('new-q-a').value = '';
+                document.getElementById('new-q-b').value = '';
+                document.getElementById('new-q-c').value = '';
+                document.getElementById('new-q-d').value = '';
+            }
+        }
+
+        function deleteQuestion(i) {
+            questions.splice(i, 1);
+            renderTeacherList();
+        }
+    </script>
+</body>
+</html>
