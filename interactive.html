@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Fun Learning - Tilt Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MediaPipe Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <!-- Animation & Effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .comic-font { font-family: 'Fredoka One', cursive; }
+        
+        .video-container {
+            transform: scaleX(-1); /* Mirror view for students */
+            border-radius: 24px;
+            border: 6px solid #6366f1;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+            background-color: #000;
+        }
+
+        .option-box {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 8px solid transparent;
+        }
+        
+        .selected-left {
+            transform: scale(1.05) rotate(-2deg);
+            border-color: #6366f1 !important;
+            background-color: #eef2ff;
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.3);
+        }
+
+        .selected-right {
+            transform: scale(1.05) rotate(2deg);
+            border-color: #ec4899 !important;
+            background-color: #fdf2f8;
+            box-shadow: 0 20px 25px -5px rgba(236, 72, 153, 0.3);
+        }
+
+        .character-anim {
+            animation: bounce 0.6s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-15px); }
+        }
+
+        .feedback-pop {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulseStreak {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); color: #f59e0b; }
+            100% { transform: scale(1); }
+        }
+        .streak-anim {
+            animation: pulseStreak 0.5s ease-in-out;
+        }
+
+        .loader-ring {
+            transition: stroke-dashoffset 0.1s linear;
+        }
+        
+        #tilt-guide-overlay {
+            transform: scaleX(-1); 
+        }
+
+        /* Mode Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #ef4444;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-4 md:p-6 text-slate-800">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[3rem] shadow-2xl text-center max-w-xl w-full border-4 border-indigo-100">
+            <h1 class="comic-font text-6xl text-indigo-600 mb-2 text-center drop-shadow-sm">Grammar Tilt!</h1>
+            <p class="text-slate-500 text-lg mb-8 font-bold text-center">Module 5a Review Edition</p>
+            
+            <!-- Settings Area -->
+            <div class="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-4 flex items-center justify-center gap-2">
+                    ⚙️ Gameplay Mode
+                </h3>
+                <div class="flex items-center justify-center gap-4">
+                    <span class="font-bold text-indigo-500" id="mode-normal-label">Normal</span>
+                    <div class="relative inline-block w-16 h-8 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="mode-toggle" class="toggle-checkbox absolute block w-8 h-8 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-all duration-300 right-8 border-indigo-500"/>
+                        <label for="mode-toggle" class="toggle-label block overflow-hidden h-8 rounded-full bg-indigo-500 cursor-pointer transition-all duration-300"></label>
+                    </div>
+                    <span class="font-bold text-slate-400" id="mode-inverse-label">Inverse (Brain Challenge!)</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-4 font-medium" id="mode-desc">Normal: Tilt Left to pick Left.<br>Inverse: Tilt Left to pick Right.</p>
+            </div>
+
+            <div class="space-y-4">
+                <button onclick="startGame()" class="w-full bg-emerald-500 hover:bg-emerald-600 py-4 rounded-full text-2xl comic-font text-white shadow-lg transform transition active:scale-95 flex items-center justify-center gap-3">
+                    PLAY NOW 🎮
+                </button>
+                <button onclick="openTeacherMode()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-full text-lg font-bold transition-colors">
+                    Teacher Dashboard 👩‍🏫
+                </button>
+            </div>
+            <p class="mt-8 text-xs text-slate-400 text-center uppercase tracking-widest">Requires Camera Access • No data is saved</p>
+        </div>
+    </div>
+
+    <!-- TEACHER MODE -->
+    <div id="teacher-modal" class="fixed inset-0 bg-slate-900/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-6 border-b flex justify-between items-center bg-indigo-50">
+                <h2 class="comic-font text-2xl text-indigo-700 text-center">Question Bank</h2>
+                <button onclick="closeTeacherMode()" class="text-3xl text-slate-400 hover:text-red-500 transition-colors">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow space-y-3 bg-slate-50" id="q-list-container">
+                <!-- Danh sách câu hỏi -->
+            </div>
+            <div class="p-6 border-t bg-white">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <input id="new-q-task" type="text" placeholder="Task (VD: Write the correct form)" class="col-span-2 p-3 border rounded-xl focus:ring-2 ring-indigo-300 bg-slate-50">
+                    <input id="new-q-text" type="text" placeholder="Question (VD: She loves ___ (swim))" class="col-span-2 p-3 border rounded-xl focus:ring-2 ring-indigo-300 bg-slate-50">
+                    <input id="new-q-a" type="text" placeholder="Option A (Left)" class="p-3 border rounded-xl bg-slate-50">
+                    <input id="new-q-b" type="text" placeholder="Option B (Right)" class="p-3 border rounded-xl bg-slate-50">
+                    <select id="new-q-correct" class="p-3 border rounded-xl bg-indigo-50 font-bold text-indigo-600 col-span-2">
+                        <option value="A">Correct Answer: Option A</option>
+                        <option value="B">Correct Answer: Option B</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="saveNewQuestion()" class="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Add Question</button>
+                    <button onclick="closeTeacherMode()" class="flex-1 bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 transition-colors">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME UI -->
+    <div id="game-ui" class="w-full h-full flex flex-col items-center justify-between invisible max-w-7xl mx-auto">
+        
+        <!-- Top Info Bar -->
+        <div class="w-full flex justify-between items-center px-4 md:px-8 mt-2 gap-4">
+            <!-- Progress -->
+            <div class="bg-white/80 backdrop-blur px-6 py-3 rounded-full shadow-sm flex items-center gap-3 flex-1 max-w-md border border-white">
+                <span class="text-indigo-500 font-black text-sm uppercase tracking-wider">Progress</span>
+                <div class="flex-1 bg-slate-200 h-3 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-indigo-500 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <span id="q-counter" class="font-black text-indigo-600 text-center text-sm">1/20</span>
+            </div>
+            
+            <!-- Streak & Score -->
+            <div class="flex gap-3">
+                <div id="streak-container" class="bg-white/80 backdrop-blur px-6 py-3 rounded-full shadow-sm border border-white font-bold text-orange-500 flex items-center gap-2 transition-all">
+                    🔥 Streak: <span id="streak-val" class="text-xl">0</span>
+                </div>
+                <div class="comic-font text-2xl text-emerald-500 bg-white/80 backdrop-blur px-8 py-2 rounded-full shadow-sm border border-white flex items-center gap-2">
+                    Score: <span id="score-val">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Area -->
+        <div class="relative w-full max-w-4xl mt-6">
+            <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border-b-8 border-indigo-200 text-center relative z-10 flex flex-col items-center justify-center min-h-[160px]">
+                <span id="display-task" class="text-indigo-400 font-bold uppercase tracking-widest text-sm mb-3">Task Goes Here</span>
+                <h2 id="display-question" class="comic-font text-3xl md:text-5xl text-slate-700 tracking-tight leading-tight text-center">
+                    ...
+                </h2>
+            </div>
+            <div class="absolute -top-8 -left-8 text-7xl transform -rotate-12 select-none pointer-events-none drop-shadow-md">💡</div>
+            <div class="absolute -bottom-8 -right-8 text-7xl transform rotate-12 select-none pointer-events-none drop-shadow-md">🎯</div>
+        </div>
+
+        <!-- Central Gameplay Area -->
+        <div class="w-full flex justify-between items-center px-2 md:px-4 gap-4 md:gap-8 flex-grow py-6">
+            
+            <!-- Option A (Left) -->
+            <div id="box-a" class="option-box bg-white/90 backdrop-blur flex-1 min-h-[280px] flex flex-col justify-center items-center p-8 rounded-[3rem] shadow-lg text-center border-4 border-dashed border-indigo-200 relative overflow-hidden">
+                <div class="absolute top-4 left-4 text-slate-200 font-black text-6xl opacity-30 select-none">A</div>
+                <div class="text-6xl mb-4 text-center z-10 drop-shadow-sm">👈</div>
+                <div id="display-a" class="comic-font text-4xl md:text-5xl text-indigo-600 text-center z-10 drop-shadow-sm">...</div>
+                <div class="mt-6 text-indigo-400 font-black text-xs tracking-widest uppercase text-center bg-indigo-50 px-4 py-2 rounded-full z-10" id="hint-a">Tilt to select</div>
+            </div>
+
+            <!-- CAMERA CENTER HUB -->
+            <div class="relative w-[320px] h-[240px] md:w-[400px] md:h-[300px] flex flex-col items-center justify-center shrink-0">
+                <!-- Video Feed -->
+                <div class="video-container w-full h-full relative overflow-hidden">
+                    <video id="webcam" class="w-full h-full object-cover" autoplay playsinline></video>
+                    <!-- Visual feedback on camera -->
+                    <div id="tilt-guide-overlay" class="absolute inset-0 flex items-center justify-center pointer-events-none bg-gradient-to-t from-black/40 to-transparent">
+                        <div id="guide-arrow" class="text-7xl drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] text-center transition-transform"></div>
+                    </div>
+                </div>
+
+                <!-- Selection Progress Ring & Character -->
+                <div class="absolute -bottom-20 flex items-center justify-center w-36 h-36">
+                    <svg class="absolute inset-0 w-full h-full -rotate-90 drop-shadow-md">
+                        <circle cx="72" cy="72" r="60" stroke="white" stroke-width="12" fill="white" />
+                        <circle cx="72" cy="72" r="60" stroke="#f1f5f9" stroke-width="8" fill="none" />
+                        <circle id="tilt-loader" cx="72" cy="72" r="60" stroke="#10b981" stroke-width="8" fill="none" 
+                            stroke-dasharray="377" stroke-dashoffset="377" stroke-linecap="round" class="loader-ring" />
+                    </svg>
+                    <div id="main-char" class="text-6xl z-10 floating select-none text-center drop-shadow-md">🐱</div>
+                </div>
+            </div>
+
+            <!-- Option B (Right) -->
+            <div id="box-b" class="option-box bg-white/90 backdrop-blur flex-1 min-h-[280px] flex flex-col justify-center items-center p-8 rounded-[3rem] shadow-lg text-center border-4 border-dashed border-pink-200 relative overflow-hidden">
+                <div class="absolute top-4 right-4 text-slate-200 font-black text-6xl opacity-30 select-none">B</div>
+                <div class="text-6xl mb-4 text-center z-10 drop-shadow-sm">👉</div>
+                <div id="display-b" class="comic-font text-4xl md:text-5xl text-pink-500 text-center z-10 drop-shadow-sm">...</div>
+                <div class="mt-6 text-pink-400 font-black text-xs tracking-widest uppercase text-center bg-pink-50 px-4 py-2 rounded-full z-10" id="hint-b">Tilt to select</div>
+            </div>
+
+        </div>
+
+        <!-- Footer Decoration -->
+        <div class="w-full text-center pb-4 opacity-50 text-slate-600 font-bold text-xs uppercase tracking-widest flex justify-center items-center gap-2">
+            <span>Powered by AI Vision</span> • <span id="footer-mode-text">Normal Mode</span>
+        </div>
+
+    </div>
+
+    <!-- FEEDBACK OVERLAY -->
+    <div id="feedback" class="fixed inset-0 pointer-events-none flex items-center justify-center z-[100] hidden bg-white/20 backdrop-blur-sm transition-all">
+        <div class="feedback-pop bg-white p-16 rounded-[4rem] shadow-2xl border-8 border-indigo-100 text-center max-w-2xl w-full mx-4">
+            <h3 id="feedback-title" class="comic-font text-6xl md:text-7xl mb-4 text-center">EXCELLENT!</h3>
+            <p id="feedback-sub" class="text-2xl text-slate-500 font-bold text-center">Great job, keep going!</p>
+            <div id="combo-text" class="mt-6 text-3xl font-black text-orange-500 hidden comic-font">Combo x2!</div>
+        </div>
+    </div>
+
+    <!-- AUDIO -->
+    <audio id="snd-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="snd-wrong" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+
+    <script>
+        // Data derived from Module 5a Review - Optimized for quick Tilt Gameplay
+        let questions = [
+            { task: "Fill in the blank:", q: "She apologized for ______ late.", a: "being", b: "to be", correct: "A" },
+            { task: "Fill in the blank:", q: "Do you feel like ______ pizza?", a: "to order", b: "ordering", correct: "B" },
+            { task: "Fill in the blank:", q: "______ is a fantastic way to stay healthy.", a: "Swimming", b: "To swim", correct: "A" },
+            { task: "Fill in the blank:", q: "She promised ______ anyone my secret.", a: "not telling", b: "not to tell", correct: "B" },
+            { task: "Fill in the blank:", q: "We decided ______ home tonight.", a: "to stay", b: "staying", correct: "A" },
+            { task: "Fill in the blank:", q: "We can avoid ______ stuck in traffic.", a: "to get", b: "getting", correct: "B" },
+            { task: "Fill in the blank:", q: "I cannot afford ______ on holiday.", a: "to go", b: "going", correct: "A" },
+            { task: "Fill in the blank:", q: "I'm thinking about ______ my career.", a: "changing", b: "to change", correct: "A" },
+            { task: "Fill in the blank:", q: "She went to the gym ______ weight.", a: "for losing", b: "to lose", correct: "B" },
+            { task: "Fill in the blank:", q: "They enjoy ______ in the mountains.", a: "hiking", b: "to hike", correct: "A" },
+            { task: "Fill in the blank:", q: "It's no use ______ over spilled milk.", a: "to cry", b: "crying", correct: "B" },
+            { task: "Fill in the blank:", q: "This book is easy ______.", a: "to understand", b: "understanding", correct: "A" },
+            { task: "Fill in the blank:", q: "She succeeded in ______ the exam.", a: "passing", b: "to pass", correct: "A" },
+            { task: "Fill in the blank:", q: "They refused ______ with the police.", a: "cooperating", b: "to cooperate", correct: "B" },
+            { task: "Choose the right form:", q: "He completely forgot ______ a tip.", a: "forgetting", b: "to leave", correct: "B" },
+            { task: "Choose the right form:", q: "The teacher warned us ______.", a: "not to fail", b: "not failing", correct: "A" },
+            { task: "Choose the right form:", q: "My parents made me ______ the dishes.", a: "to wash", b: "wash", correct: "B" },
+            { task: "Choose the right form:", q: "I strongly suggest ______ these vitamins.", a: "taking", b: "to take", correct: "A" },
+            { task: "Choose the right form:", q: "We stopped ______ a photo of the sunset.", a: "to take", b: "taking", correct: "A" },
+            { task: "Choose the right form:", q: "Do you mind ______ the window?", a: "to open", b: "opening", correct: "B" }
+        ];
+
+        let currentIndex = 0;
+        let score = 0;
+        let streak = 0;
+        let isProcessing = false;
+        let tiltState = "center"; 
+        let selectionProgress = 0; 
+        
+        let isInverseMode = false; // Default based on toggle
+
+        const HOLD_DURATION = 18; 
+        const TILT_SENSITIVITY = 0.085;
+
+        const videoElement = document.getElementById('webcam');
+        const tiltLoader = document.getElementById('tilt-loader');
+        const character = document.getElementById('main-char');
+        const modeToggle = document.getElementById('mode-toggle');
+
+        // Toggle UI Logic
+        modeToggle.addEventListener('change', (e) => {
+            isInverseMode = e.target.checked;
+            document.getElementById('mode-normal-label').className = isInverseMode ? 'font-bold text-slate-400' : 'font-bold text-indigo-500';
+            document.getElementById('mode-inverse-label').className = isInverseMode ? 'font-bold text-red-500' : 'font-bold text-slate-400';
+            
+            if(isInverseMode) {
+                document.getElementById('mode-desc').innerText = "Brain Challenge: Tilt Left to select the RIGHT option!";
+                document.getElementById('mode-desc').classList.add('text-red-500');
+            } else {
+                document.getElementById('mode-desc').innerText = "Normal: Tilt Left to select the LEFT option.";
+                document.getElementById('mode-desc').classList.remove('text-red-500');
+            }
+        });
+
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
+
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        faceMesh.onResults(handleResults);
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        async function startGame() {
+            shuffleArray(questions); // Shuffle questions on start
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('invisible');
+            
+            document.getElementById('footer-mode-text').innerText = isInverseMode ? 'INVERSE MODE (Brain Challenge)' : 'NORMAL MODE';
+
+            // Set hints based on mode
+            if(isInverseMode) {
+                document.getElementById('hint-a').innerText = "Tilt Right to select";
+                document.getElementById('hint-b').innerText = "Tilt Left to select";
+            } else {
+                document.getElementById('hint-a').innerText = "Tilt Left to select";
+                document.getElementById('hint-b').innerText = "Tilt Right to select";
+            }
+            
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await faceMesh.send({image: videoElement});
+                },
+                width: 640, height: 480
+            });
+            camera.start();
+            renderGame();
+        }
+
+        function handleResults(results) {
+            if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0 || isProcessing) {
+                updateTiltUI("center", 0);
+                return;
+            }
+
+            const landmarks = results.multiFaceLandmarks[0];
+            const leftEye = landmarks[33]; 
+            const rightEye = landmarks[263];
+            
+            const dy = leftEye.y - rightEye.y;
+            const dx = Math.abs(leftEye.x - rightEye.x);
+            const rawTilt = dy / dx;
+
+            if (isInverseMode) {
+                // INVERSE LOGIC: Nghiêng Trái -> Chọn Phải
+                if (rawTilt > TILT_SENSITIVITY) processTilt("right"); 
+                else if (rawTilt < -TILT_SENSITIVITY) processTilt("left");  
+                else processTilt("center");
+            } else {
+                // NORMAL LOGIC: Nghiêng Trái -> Chọn Trái
+                if (rawTilt > TILT_SENSITIVITY) processTilt("left"); 
+                else if (rawTilt < -TILT_SENSITIVITY) processTilt("right");  
+                else processTilt("center");
+            }
+        }
+
+        function processTilt(side) {
+            if (side === "center") {
+                selectionProgress = 0;
+                tiltState = "center";
+            } else {
+                if (tiltState !== side) {
+                    tiltState = side;
+                    selectionProgress = 0;
+                }
+                selectionProgress++;
+            }
+
+            updateTiltUI(tiltState, selectionProgress);
+
+            if (selectionProgress >= HOLD_DURATION) {
+                const choice = tiltState === "left" ? "A" : "B";
+                selectionProgress = 0;
+                checkAnswer(choice);
+            }
+        }
+
+        function updateTiltUI(state, progress) {
+            const circumference = 377; // 2 * pi * r (r=60)
+            const percentage = (progress / HOLD_DURATION) * 100;
+            const dashOffset = circumference - (circumference * percentage / 100);
+            tiltLoader.style.strokeDashoffset = dashOffset;
+
+            const boxA = document.getElementById('box-a');
+            const boxB = document.getElementById('box-b');
+            const guide = document.getElementById('guide-arrow');
+
+            boxA.classList.remove('selected-left');
+            boxB.classList.remove('selected-right');
+            guide.innerText = "";
+
+            if (state === "left") {
+                boxA.classList.add('selected-left');
+                guide.innerText = isInverseMode ? "🤯" : "⬅️";
+                tiltLoader.style.stroke = "#6366f1"; // Indigo for left
+            } else if (state === "right") {
+                boxB.classList.add('selected-right');
+                guide.innerText = isInverseMode ? "🤯" : "➡️";
+                tiltLoader.style.stroke = "#ec4899"; // Pink for right
+            } else {
+                tiltLoader.style.stroke = "#10b981"; // Emerald default
+            }
+            guide.style.transform = "scaleX(-1)"; 
+        }
+
+        function checkAnswer(choice) {
+            isProcessing = true;
+            const q = questions[currentIndex];
+            const isCorrect = choice === q.correct;
+
+            if (isCorrect) {
+                streak++;
+                const comboMultiplier = streak > 2 ? (streak * 0.5) : 1;
+                const pointsEarned = Math.floor(10 * comboMultiplier);
+                score += pointsEarned;
+                
+                document.getElementById('score-val').innerText = score;
+                document.getElementById('streak-val').innerText = streak;
+                
+                const sc = document.getElementById('streak-container');
+                sc.classList.remove('streak-anim');
+                void sc.offsetWidth; // trigger reflow
+                sc.classList.add('streak-anim');
+
+                handleSuccess(comboMultiplier);
+            } else {
+                streak = 0;
+                document.getElementById('streak-val').innerText = streak;
+                handleFailure();
+            }
+        }
+
+        function handleSuccess(comboMultiplier) {
+            document.getElementById('snd-correct').play();
+            
+            const titles = ["EXCELLENT! 🌟", "AMAZING! ⚡", "BRILLIANT! 🎯", "PERFECT! 🚀"];
+            const randTitle = titles[Math.floor(Math.random() * titles.length)];
+            
+            showFeedback(randTitle, "You nailed it!", "emerald");
+            character.innerText = "🤩";
+            character.classList.add('character-anim');
+
+            if(streak > 2) {
+                const ct = document.getElementById('combo-text');
+                ct.innerText = `Combo x${streak}🔥 (+${Math.floor(10 * comboMultiplier)} pts)`;
+                ct.classList.remove('hidden');
+            }
+
+            confetti({
+                particleCount: 150 + (streak * 20),
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#6366f1', '#10b981', '#f59e0b', '#ec4899']
+            });
+
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex >= questions.length) {
+                    victory();
+                } else {
+                    renderGame();
+                    hideFeedback();
+                    isProcessing = false;
+                }
+            }, 2000);
+        }
+
+        function handleFailure() {
+            document.getElementById('snd-wrong').play();
+            showFeedback("OOPS! 🌈", "Let's review that one. Try the next!", "orange");
+            character.innerText = "🥺";
+
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex >= questions.length) {
+                    victory();
+                } else {
+                    renderGame();
+                    hideFeedback();
+                    isProcessing = false;
+                }
+            }, 2000);
+        }
+
+        function showFeedback(title, sub, color) {
+            const f = document.getElementById('feedback');
+            const t = document.getElementById('feedback-title');
+            const s = document.getElementById('feedback-sub');
+            f.classList.remove('hidden');
+            t.innerText = title;
+            s.innerText = sub;
+            t.className = `comic-font text-6xl md:text-7xl mb-4 text-center text-${color}-500 drop-shadow-sm`;
+        }
+
+        function hideFeedback() {
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('combo-text').classList.add('hidden');
+            character.classList.remove('character-anim');
+            character.innerText = "🐱";
+            updateTiltUI("center", 0);
+        }
+
+        function renderGame() {
+            if (!questions[currentIndex]) return;
+            const q = questions[currentIndex];
+            
+            document.getElementById('display-task').innerText = q.task || "Choose the best option:";
+            document.getElementById('display-question').innerText = q.q;
+            document.getElementById('display-a').innerText = q.a;
+            document.getElementById('display-b').innerText = q.b;
+            
+            document.getElementById('q-counter').innerText = `${currentIndex + 1}/${questions.length}`;
+            
+            const progress = (currentIndex / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            
+            const emojis = ["🐱", "🐼", "🦁", "🐰", "🐸", "🐻", "🐶", "🐵"];
+            character.innerText = emojis[currentIndex % emojis.length];
+        }
+
+        function victory() {
+            document.getElementById('progress-bar').style.width = `100%`;
+            showFeedback("SUPERSTAR! 🏆", `You completed the game with Score: ${score}!`, "indigo");
+            
+            const duration = 5000;
+            const end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            })();
+
+            setTimeout(() => location.reload(), 6000);
+        }
+
+        // --- Teacher Mode Logic ---
+        function openTeacherMode() {
+            document.getElementById('teacher-modal').classList.remove('hidden');
+            renderTeacherList();
+        }
+
+        function closeTeacherMode() {
+            document.getElementById('teacher-modal').classList.add('hidden');
+        }
+
+        function renderTeacherList() {
+            const container = document.getElementById('q-list-container');
+            container.innerHTML = questions.map((q, i) => `
+                <div class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                    <div class="text-sm">
+                        <div class="text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">${q.task}</div>
+                        <span class="font-bold text-indigo-600">#${i+1}</span> ${q.q}
+                        <div class="mt-2 flex gap-4 text-xs font-medium">
+                            <span class="${q.correct === 'A' ? 'text-emerald-500 font-bold' : 'text-slate-500'}">A: ${q.a}</span>
+                            <span class="${q.correct === 'B' ? 'text-emerald-500 font-bold' : 'text-slate-500'}">B: ${q.b}</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteQuestion(${i})" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg font-bold transition-colors">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function saveNewQuestion() {
+            const task = document.getElementById('new-q-task').value || "Answer:";
+            const q = document.getElementById('new-q-text').value;
+            const a = document.getElementById('new-q-a').value;
+            const b = document.getElementById('new-q-b').value;
+            const c = document.getElementById('new-q-correct').value;
+            if(q && a && b) {
+                questions.push({ task, q, a, b, correct: c });
+                renderTeacherList();
+                document.getElementById('new-q-text').value = '';
+                document.getElementById('new-q-a').value = '';
+                document.getElementById('new-q-b').value = '';
+            }
+        }
+
+        function deleteQuestion(i) {
+            questions.splice(i, 1);
+            renderTeacherList();
+        }
+    </script>
+</body>
+</html>
