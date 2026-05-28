@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undercover Lingo - Expert IELTS 5 Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #F8FAFC;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .shadow-soft {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 3px rgba(0,0,0,0.02);
+        }
+        .shadow-float {
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 5px rgba(0,0,0,0.01);
+        }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.98) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .anim-view-enter {
+            animation: fadeInScale 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.90); opacity: 0; }
+            50% { transform: scale(1.03); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .anim-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .anim-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .toggle-switch { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="text-slate-800 antialiased overflow-x-hidden min-h-screen">
+
+    <!-- App Container -->
+    <div id="app" class="min-h-screen flex flex-col p-4 md:p-8">
+        <!-- Views will be dynamically swapped here by JS -->
+    </div>
+
+    <script>
+        // --- CONSTANTS & DATA ---
+        const PRESET_WORDS = [
+            // === NEW INTEGRATION: EXPERT IELTS 5 (MODULES 1-5) TARGET PAIRS ===
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Library', w2: 'Bookstore' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Lecture Hall', w2: 'Classroom' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Laboratory', w2: 'Research Center' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Campus', w2: 'Park' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Dormitory', w2: 'Apartment' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Haze', w2: 'Fog' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Drought', w2: 'Heatwave' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Hurricane', w2: 'Typhoon' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Rainforest', w2: 'Jungle' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Grassland', w2: 'Desert' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Coral Reef', w2: 'Aquarium' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Internship', w2: 'Apprenticeship' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Full-time', w2: 'Part-time' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Lecturer', w2: 'Tutor' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Salary', w2: 'Bonus' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Manager', w2: 'Director' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Ferry', w2: 'Cruise Ship' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Sledge', w2: 'Ski' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Coach', w2: 'Bus' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Smartphone', w2: 'Tablet' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Fitness Tracker', w2: 'Smartwatch' },
+            { category: 'Expert IELTS 5 (M1-5)', w1: 'Billboard', w2: 'Poster' },
+
+            // === ORIGINAL PRESET DICTIONARY DECK ===
+            { category: 'Food (Fruit)', w1: 'Apple', w2: 'Orange' },
+            { category: 'Food (Fruit)', w1: 'Peach', w2: 'Plum' },
+            { category: 'Food (Fruit)', w1: 'Strawberry', w2: 'Raspberry' },
+            { category: 'Food (Vegetables)', w1: 'Potato', w2: 'Sweet Potato' },
+            { category: 'Food (Vegetables)', w1: 'Broccoli', w2: 'Cauliflower' },
+            { category: 'Food (Vegetables)', w1: 'Onion', w2: 'Garlic' },
+            { category: 'Food (Meals)', w1: 'Breakfast', w2: 'Lunch' },
+            { category: 'Food (Dessert)', w1: 'Cake', w2: 'Pie' },
+            { category: 'Food (Dessert)', w1: 'Cookie', w2: 'Biscuit' },
+            { category: 'Food (Drinks)', w1: 'Coffee', w2: 'Tea' },
+            { category: 'Food (Drinks)', w1: 'Juice', w2: 'Soda' },
+            { category: 'Food (Kitchenware)', w1: 'Fork', w2: 'Spoon' },
+            { category: 'Food (Kitchenware)', w1: 'Plate', w2: 'Bowl' },
+            { category: 'Food (Kitchenware)', w1: 'Pot', w2: 'Pan' },
+            { category: 'Food (Kitchenware)', w1: 'Cup', w2: 'Glass' },
+            { category: 'Animals (Pets)', w1: 'Dog', w2: 'Cat' },
+            { category: 'Animals (Pets)', w1: 'Hamster', w2: 'Guinea Pig' },
+            { category: 'Animals (Farm)', w1: 'Sheep', w2: 'Goat' },
+            { category: 'Animals (Farm)', w1: 'Cow', w2: 'Horse' },
+            { category: 'Animals (Wild)', w1: 'Lion', w2: 'Tiger' },
+            { category: 'Animals (Wild)', w1: 'Crocodile', w2: 'Alligator' },
+            { category: 'Animals (Wild)', w1: 'Monkey', w2: 'Ape' },
+            { category: 'Animals (Birds)', w1: 'Pigeon', w2: 'Dove' },
+            { category: 'Animals (Birds)', w1: 'Crow', w2: 'Raven' },
+            { category: 'Animals (Insects)', w1: 'Butterfly', w2: 'Moth' },
+            { category: 'Animals (Insects)', w1: 'Bee', w2: 'Wasp' },
+            { category: 'Animals (Aquatic)', w1: 'Dolphin', w2: 'Whale' },
+            { category: 'Animals (Aquatic)', w1: 'Shark', w2: 'Ray' },
+            { category: 'Animals (Aquatic)', w1: 'Crab', w2: 'Lobster' },
+            { category: 'Animals (Aquatic)', w1: 'Frog', w2: 'Toad' },
+            { category: 'Animals (Aquatic)', w1: 'Squid', w2: 'Octopus' },
+            { category: 'Nature (Water)', w1: 'River', w2: 'Lake' },
+            { category: 'Nature (Water)', w1: 'Sea', w2: 'Ocean' },
+            { category: 'Nature (Water)', w1: 'Pond', w2: 'Pool' },
+            { category: 'Nature (Land)', w1: 'Mountain', w2: 'Hill' },
+            { category: 'Nature (Land)', w1: 'Forest', w2: 'Jungle' },
+            { category: 'Nature (Land)', w1: 'Desert', w2: 'Beach' },
+            { category: 'Nature (Plants)', w1: 'Tree', w2: 'Bush' },
+            { category: 'Nature (Plants)', w1: 'Flower', w2: 'Weed' },
+            { category: 'Nature (Plants)', w1: 'Grass', w2: 'Moss' },
+            { category: 'Nature (Plants)', w1: 'Leaf', w2: 'Branch' },
+            { category: 'Nature (Weather)', w1: 'Rain', w2: 'Snow' },
+            { category: 'Nature (Weather)', w1: 'Hurricane', w2: 'Tornado' },
+            { category: 'Nature (Space)', w1: 'Star', w2: 'Planet' },
+            { category: 'Nature (Space)', w1: 'Meteor', w2: 'Asteroid' },
+            { category: 'Home (Furniture)', w1: 'Sofa', w2: 'Couch' },
+            { category: 'Home (Furniture)', w1: 'Chair', w2: 'Stool' },
+            { category: 'Home (Furniture)', w1: 'Desk', w2: 'Table' },
+            { category: 'Home (Rooms)', w1: 'Kitchen', w2: 'Dining Room' },
+            { category: 'Home (Rooms)', w1: 'Attic', w2: 'Basement' },
+            { category: 'Home (Rooms)', w1: 'Balcony', w2: 'Patio' },
+            { category: 'Home (Buildings)', w1: 'House', w2: 'Apartment' },
+            { category: 'Home (Buildings)', w1: 'Castle', w2: 'Palace' },
+            { category: 'Home (Electronics)', w1: 'Television', w2: 'Monitor' },
+            { category: 'Home (Electronics)', w1: 'Laptop', w2: 'Tablet' },
+            { category: 'Home (Electronics)', w1: 'Fridge', w2: 'Freezer' },
+            { category: 'Home (Bath)', w1: 'Soap', w2: 'Shampoo' },
+            { category: 'Home (Bath)', w1: 'Towel', w2: 'Sponge' },
+            { category: 'Clothing (Outerwear)', w1: 'Jacket', w2: 'Coat' },
+            { category: 'Clothing (Outerwear)', w1: 'Sweater', w2: 'Hoodie' },
+            { category: 'Clothing (Footwear)', w1: 'Shoe', w2: 'Boot' },
+            { category: 'Clothing (Footwear)', w1: 'Sandal', w2: 'Slipper' },
+            { category: 'Clothing (Accessories)', w1: 'Clock', w2: 'Watch' },
+            { category: 'Clothing (Accessories)', w1: 'Hat', w2: 'Cap' },
+            { category: 'Transport (Road)', w1: 'Car', w2: 'Bus' },
+            { category: 'Transport (Road)', w1: 'Motorcycle', w2: 'Bicycle' },
+            { category: 'Transport (Road)', w1: 'Truck', w2: 'Van' },
+            { category: 'Transport (Other)', w1: 'Ship', w2: 'Boat' },
+            { category: 'Transport (Other)', w1: 'Airplane', w2: 'Helicopter' },
+            { category: 'Places (City)', w1: 'Street', w2: 'Avenue' },
+            { category: 'Places (City)', w1: 'Village', w2: 'Town' },
+            { category: 'Places (City)', w1: 'Bridge', w2: 'Tunnel' },
+            { category: 'Places (Institutions)', w1: 'School', w2: 'University' },
+            { category: 'Places (Institutions)', w1: 'Hospital', w2: 'Clinic' },
+            { category: 'Places (Institutions)', w1: 'Library', w2: 'Museum' },
+            { category: 'Places (Entertainment)', w1: 'Cinema', w2: 'Theater' },
+            { category: 'Places (Entertainment)', w1: 'Park', w2: 'Garden' },
+            { category: 'Places (Entertainment)', w1: 'Zoo', w2: 'Aquarium' },
+            { category: 'People (Professions)', w1: 'Doctor', w2: 'Nurse' },
+            { category: 'People (Professions)', w1: 'Teacher', w2: 'Professor' },
+            { category: 'People (Professions)', w1: 'Policeman', w2: 'Firefighter' },
+            { category: 'People (Professions)', w1: 'Chef', w2: 'Waiter' },
+            { category: 'People (Professions)', w1: 'Actor', w2: 'Singer' },
+            { category: 'People (Family)', w1: 'Brother', w2: 'Sister' },
+            { category: 'People (Family)', w1: 'Uncle', w2: 'Aunt' },
+            { category: 'Body (Limbs)', w1: 'Hand', w2: 'Foot' },
+            { category: 'Body (Limbs)', w1: 'Arm', w2: 'Leg' },
+            { category: 'Body (Limbs)', w1: 'Finger', w2: 'Toe' },
+            { category: 'Body (Limbs)', w1: 'Knee', w2: 'Elbow' },
+            { category: 'Body (Face)', w1: 'Eye', w2: 'Ear' },
+            { category: 'Body (Face)', w1: 'Mouth', w2: 'Nose' },
+            { category: 'Time (Periods)', w1: 'Morning', w2: 'Evening' },
+            { category: 'Time (Periods)', w1: 'Day', w2: 'Night' },
+            { category: 'Time (Seasons)', w1: 'Summer', w2: 'Winter' },
+            { category: 'Time (Seasons)', w1: 'Spring', w2: 'Autumn' },
+            { category: 'Time (Units)', w1: 'Month', w2: 'Year' },
+            { category: 'Time (Units)', w1: 'Century', w2: 'Decade' },
+            { category: 'Materials', w1: 'Wood', w2: 'Metal' },
+            { category: 'Materials', w1: 'Plastic', w2: 'Glass' },
+            { category: 'Materials', w1: 'Paper', w2: 'Cardboard' },
+            { category: 'Materials', w1: 'Gold', w2: 'Silver' },
+            { category: 'Tools', w1: 'Hammer', w2: 'Screwdriver' },
+            { category: 'Tools', w1: 'Pen', w2: 'Pencil' },
+            { category: 'Tools', w1: 'Brush', w2: 'Comb' },
+            { category: 'Tools', w1: 'Guitar', w2: 'Piano' }
+        ];
+
+        const UNIQUE_CATEGORIES = ['All Topics', ...new Set(PRESET_WORDS.map(p => p.category))];
+
+        const AVATAR_COLORS = [
+            'bg-[#EF4444]', 'bg-[#3B82F6]', 'bg-[#10B981]', 'bg-[#F59E0B]',
+            'bg-[#8B5CF6]', 'bg-[#EC4899]', 'bg-[#14B8A6]', 'bg-[#F97316]'
+        ];
+
+        // --- GLOBAL STATE ---
+        const state = {
+            gameState: 'setup', 
+            players: [],
+            scores: {},
+            wordMode: 'preset',
+            deckScope: 'ielts', // NEW: Pool scope tracking variable ('all' or 'ielts')
+            selectedCategory: 'All Topics',
+            customWords: { w1: '', w2: '' },
+            setupError: '',
+            undercoverCount: 1,
+            includeMrWhite: false, 
+            
+            activePlayers: [],
+            currentPlayerIndex: 0,
+            showWord: false,
+            eliminatedThisRound: null,
+            pendingVote: null,
+            winner: null,
+            roundWords: { civ: '', und: '' },
+            roundSpeakerOrder: [],
+            currentSpeakerIndex: 0,
+            roundNumber: 1,
+            showHostPeek: false
+        };
+
+        const tracking = {
+            gameState: null,
+            speakerIndex: -1,
+            showWord: false,
+            prevProgress: 0
+        };
+
+        // --- HELPER FUNCTIONS ---
+        function getAvatar(player, size = "md") {
+            const initials = player.name.substring(0, 2).toUpperCase();
+            const sizeClasses = size === "sm" ? "w-8 h-8 md:w-10 md:h-10 text-[10px] md:text-xs" : size === "lg" ? "w-16 h-16 md:w-24 md:h-24 text-xl md:text-3xl" : "w-10 h-10 md:w-12 md:h-12 text-sm md:text-base";
+            return `<div class="${player.color} ${sizeClasses} rounded-full flex items-center justify-center text-white font-black shadow-sm shrink-0 transition-transform duration-300 hover:scale-110">${initials}</div>`;
+        }
+
+        function updateRoleBounds() {
+            if (state.players.length > 0) {
+                const maxBadGuys = Math.max(1, state.players.length - 2);
+                let currentBadGuys = state.undercoverCount + (state.includeMrWhite ? 1 : 0);
+                
+                if (currentBadGuys > maxBadGuys) {
+                    state.undercoverCount = Math.max(1, maxBadGuys - (state.includeMrWhite ? 1 : 0));
+                    if (state.undercoverCount + (state.includeMrWhite ? 1 : 0) > maxBadGuys) {
+                        state.includeMrWhite = false;
+                    }
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('undercoverPlayers', JSON.stringify(state.players));
+            localStorage.setItem('undercoverScores', JSON.stringify(state.scores));
+            localStorage.setItem('undercoverSettings', JSON.stringify({
+                includeMrWhite: state.includeMrWhite,
+                undercoverCount: state.undercoverCount,
+                deckScope: state.deckScope
+            }));
+        }
+
+        function loadData() {
+            const p = localStorage.getItem('undercoverPlayers');
+            const s = localStorage.getItem('undercoverScores');
+            const set = localStorage.getItem('undercoverSettings');
+            if (p) state.players = JSON.parse(p);
+            if (s) state.scores = JSON.parse(s);
+            if (set) {
+                const parsedSettings = JSON.parse(set);
+                state.includeMrWhite = parsedSettings.includeMrWhite || false;
+                state.undercoverCount = parsedSettings.undercoverCount || 1;
+                state.deckScope = parsedSettings.deckScope || 'ielts';
+            }
+            updateRoleBounds();
+        }
+
+        window.setDeckScope = function(scope) {
+            state.deckScope = scope;
+            state.selectedCategory = 'All Topics'; // Reset individual category selector on scope change
+            saveData();
+            renderApp();
+        };
+
+        window.clearScores = function() {
+            if (confirm("Are you sure you want to reset all scores to 0?")) {
+                for (let key in state.scores) state.scores[key] = 0;
+                saveData();
+                renderApp();
+            }
+        };
+
+        window.clearAllPlayers = function() {
+            if (confirm("Are you sure you want to remove all players from the roster?")) {
+                state.players = [];
+                state.scores = {};
+                updateRoleBounds();
+                saveData();
+                renderApp();
+            }
+        };
+
+        // --- TIMER LOGIC ---
+        let timerInt = null;
+        let timerSecs = 90;
+        let timerRunning = false;
+
+        window.toggleTimer = function() {
+            timerRunning = !timerRunning;
+            const btn = document.getElementById('timer-btn-icon');
+            const display = document.getElementById('timer-display');
+            
+            if (timerRunning) {
+                btn.setAttribute('data-lucide', 'pause');
+                lucide.createIcons();
+                timerInt = setInterval(() => {
+                    if (timerSecs > 0) {
+                        timerSecs--;
+                        const m = Math.floor(timerSecs / 60).toString().padStart(2, '0');
+                        const s = (timerSecs % 60).toString().padStart(2, '0');
+                        display.innerText = `${m}:${s}`;
+                    } else {
+                        clearInterval(timerInt);
+                        timerRunning = false;
+                        display.classList.replace('text-slate-800', 'text-red-500');
+                        btn.setAttribute('data-lucide', 'play');
+                        lucide.createIcons();
+                    }
+                }, 1000);
+            } else {
+                btn.setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+                clearInterval(timerInt);
+            }
+        };
+
+        window.resetTimer = function() {
+            clearInterval(timerInt);
+            timerRunning = false;
+            timerSecs = 90;
+            const display = document.getElementById('timer-display');
+            if (display) {
+                display.innerText = "01:30";
+                display.classList.replace('text-red-500', 'text-slate-800');
+            }
+            const btn = document.getElementById('timer-btn-icon');
+            if (btn) {
+                btn.setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+            }
+        };
+
+        // --- ACTION HANDLERS ---
+        window.handleAddPlayer = function(e) {
+            e.preventDefault();
+            const input = document.getElementById('newPlayerName');
+            const name = input.value.trim();
+            if (!name) return;
+            
+            if (state.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                state.setupError = "Player name must be unique!";
+                renderApp();
+                return;
+            }
+
+            const newId = Date.now().toString();
+            const color = AVATAR_COLORS[state.players.length % AVATAR_COLORS.length];
+            
+            state.players.push({ id: newId, name: name, color: color });
+            state.scores[newId] = 0;
+            state.setupError = '';
+            
+            updateRoleBounds();
+            saveData();
+            renderApp();
+        };
+
+        window.removePlayer = function(id) {
+            state.players = state.players.filter(p => p.id !== id);
+            delete state.scores[id];
+            updateRoleBounds();
+            saveData();
+            renderApp();
+        };
+
+        window.setWordMode = function(mode) {
+            state.wordMode = mode;
+            renderApp();
+        };
+
+        window.setCategory = function(category) {
+            state.selectedCategory = category;
+            renderApp();
+        };
+
+        window.updateCustomWord = function(num, value) {
+            if (num === 1) state.customWords.w1 = value;
+            if (num === 2) state.customWords.w2 = value;
+        };
+
+        window.changeUndercoverCount = function(delta) {
+            const min = 1;
+            const max = Math.max(1, state.players.length - 2 - (state.includeMrWhite ? 1 : 0));
+            state.undercoverCount = Math.min(max, Math.max(min, state.undercoverCount + delta));
+            saveData();
+            renderApp();
+        };
+
+        window.toggleMrWhite = function() {
+            state.includeMrWhite = !state.includeMrWhite;
+            updateRoleBounds();
+            saveData();
+            renderApp();
+        };
+
+        window.startGame = function() {
+            if (state.players.length < 3) {
+                state.setupError = "You need at least 3 players to start!";
+                renderApp(); return;
+            }
+            
+            const totalBadGuys = state.undercoverCount + (state.includeMrWhite ? 1 : 0);
+            if (totalBadGuys >= state.players.length - 1) {
+                state.setupError = "Too many bad guys! You need at least 2 Civilians.";
+                renderApp(); return;
+            }
+
+            let w1, w2;
+            if (state.wordMode === 'preset') {
+                let availableWords = PRESET_WORDS;
+                
+                // NEW Feature logic parsing targeted subpool ranges explicitly
+                if (state.deckScope === 'ielts') {
+                    availableWords = PRESET_WORDS.filter(p => p.category === 'Expert IELTS 5 (M1-5)');
+                } else {
+                    if (state.selectedCategory !== 'All Topics') {
+                        availableWords = PRESET_WORDS.filter(p => p.category === state.selectedCategory);
+                    }
+                }
+                
+                if (availableWords.length === 0) {
+                    state.setupError = "No word entries match the requested topic constraint selection.";
+                    renderApp(); return;
+                }
+
+                const randomIdx = Math.floor(Math.random() * availableWords.length);
+                w1 = availableWords[randomIdx].w1;
+                w2 = availableWords[randomIdx].w2;
+            } else {
+                if (!state.customWords.w1.trim() || !state.customWords.w2.trim()) {
+                    state.setupError = "Please enter both custom words!";
+                    renderApp(); return;
+                }
+                w1 = state.customWords.w1.trim();
+                w2 = state.customWords.w2.trim();
+            }
+
+            const isW1Civ = Math.random() > 0.5;
+            const civWord = isW1Civ ? w1 : w2;
+            const undWord = isW1Civ ? w2 : w1;
+            state.roundWords = { civ: civWord, und: undWord };
+
+            let assignedPlayers = state.players.map((p, idx) => {
+                let role = 'civilian';
+                let word = civWord;
+                
+                if (idx < state.undercoverCount) {
+                    role = 'undercover';
+                    word = undWord;
+                } else if (state.includeMrWhite && idx === state.undercoverCount) {
+                    role = 'mrwhite';
+                    word = 'You are Mr. White! You have no word. Blend in!';
+                }
+                
+                return { ...p, role: role, word: word, isAlive: true };
+            });
+
+            for (let i = assignedPlayers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [assignedPlayers[i], assignedPlayers[j]] = [assignedPlayers[j], assignedPlayers[i]];
+            }
+
+            state.activePlayers = assignedPlayers;
+            state.gameState = 'reveal';
+            state.currentPlayerIndex = 0;
+            state.showWord = false;
+            state.setupError = '';
+            state.roundNumber = 1;
+            
+            window.resetTimer();
+            renderApp();
+        };
+
+        window.setShowWord = function(show) {
+            state.showWord = show;
+            renderApp();
+        };
+
+        window.handleNextReveal = function() {
+            state.showWord = false;
+            if (state.currentPlayerIndex + 1 < state.activePlayers.length) {
+                state.currentPlayerIndex += 1;
+                renderApp();
+            } else {
+                state.gameState = 'round';
+                const alivePlayers = state.activePlayers.filter(p => p.isAlive);
+                const startIndex = Math.floor(Math.random() * alivePlayers.length);
+                state.roundSpeakerOrder = [...alivePlayers.slice(startIndex), ...alivePlayers.slice(0, startIndex)];
+                state.currentSpeakerIndex = 0;
+                state.showHostPeek = false;
+                renderApp();
+            }
+        };
+
+        window.nextSpeaker = function() {
+            if (state.currentSpeakerIndex < state.roundSpeakerOrder.length) {
+                state.currentSpeakerIndex++;
+                renderApp();
+            }
+        };
+
+        window.prevSpeaker = function() {
+            if (state.currentSpeakerIndex > 0) {
+                state.currentSpeakerIndex--;
+                renderApp();
+            }
+        };
+
+        window.toggleHostPeek = function() {
+            state.showHostPeek = !state.showHostPeek;
+            renderApp();
+        };
+
+        window.setPendingVote = function(id) {
+            state.pendingVote = state.pendingVote === id ? null : id;
+            renderApp();
+        };
+
+        window.confirmElimination = function() {
+            if (!state.pendingVote) return;
+
+            const targetId = state.pendingVote;
+            state.activePlayers = state.activePlayers.map(p => 
+                p.id === targetId ? { ...p, isAlive: false } : p
+            );
+            
+            state.eliminatedThisRound = state.activePlayers.find(p => p.id === targetId);
+            state.pendingVote = null;
+
+            const alivePlayers = state.activePlayers.filter(p => p.isAlive);
+            const aliveUndercovers = alivePlayers.filter(p => p.role === 'undercover').length;
+            const aliveMrWhites = alivePlayers.filter(p => p.role === 'mrwhite').length;
+            const aliveCivilians = alivePlayers.filter(p => p.role === 'civilian').length;
+            const aliveBadGuys = aliveUndercovers + aliveMrWhites;
+
+            let matchWinner = null;
+            if (aliveBadGuys === 0) {
+                matchWinner = 'civilians';
+            } else if (aliveBadGuys >= aliveCivilians) {
+                matchWinner = 'badguys';
+            }
+
+            if (matchWinner) {
+                state.winner = matchWinner;
+                state.activePlayers.forEach(p => {
+                    if (matchWinner === 'civilians' && p.role === 'civilian') {
+                        state.scores[p.id] += 2;
+                    } else if (matchWinner === 'badguys') {
+                        if (p.role === 'undercover') state.scores[p.id] += 10;
+                        if (p.role === 'mrwhite' && p.isAlive) state.scores[p.id] += 15;
+                        if (p.role === 'mrwhite' && !p.isAlive) state.scores[p.id] += 5; 
+                    }
+                });
+                saveData();
+                state.gameState = 'gameover';
+                setTimeout(() => {
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                }, 300);
+            } else {
+                state.gameState = 'result';
+            }
+            renderApp();
+        };
+
+        window.nextRound = function() {
+            const alivePlayers = state.activePlayers.filter(p => p.isAlive);
+            const startIndex = Math.floor(Math.random() * alivePlayers.length);
+            state.roundSpeakerOrder = [...alivePlayers.slice(startIndex), ...alivePlayers.slice(0, startIndex)];
+            state.currentSpeakerIndex = 0;
+            state.gameState = 'round';
+            state.roundNumber++;
+            state.showHostPeek = false;
+            window.resetTimer();
+            renderApp();
+        };
+
+        window.resetGame = function() {
+            state.gameState = 'setup';
+            state.winner = null;
+            state.eliminatedThisRound = null;
+            state.pendingVote = null;
+            state.roundSpeakerOrder = [];
+            state.currentSpeakerIndex = 0;
+            state.roundNumber = 1;
+            renderApp();
+        };
+
+        window.goToVote = function() {
+            state.gameState = 'vote';
+            renderApp();
+        };
+
+        // --- RENDERERS ---
+        function renderSetup() {
+            // Exclude specialized dynamic list lines from triggering legacy standard layouts explicitly
+            const customDropdownCategories = UNIQUE_CATEGORIES.filter(c => c !== 'Expert IELTS 5 (M1-5)');
+            const categoryOptions = customDropdownCategories.map(cat => 
+                `<option value="${cat}" ${state.selectedCategory === cat ? 'selected' : ''}>${cat}</option>`
+            ).join('');
+
+            const playerListHtml = state.players.map(p => `
+                <div class="bg-white p-3 md:p-4 rounded-2xl flex items-center gap-3 md:gap-4 border border-slate-100 shadow-soft transition-all hover:-translate-y-0.5">
+                    ${getAvatar(p)}
+                    <span class="font-bold flex-1 text-slate-700 text-sm md:text-base truncate">${p.name}</span>
+                    <div class="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-bold border border-slate-100">
+                        <i data-lucide="trophy" class="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-500"></i> ${state.scores[p.id]}
+                    </div>
+                    <button onclick="window.removePlayer('${p.id}')" class="text-slate-300 hover:text-red-500 ml-1 transition p-1 shrink-0">
+                        <i data-lucide="x" class="w-4 h-4 md:w-5 md:h-5"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-5xl bg-white rounded-3xl md:rounded-[2.5rem] shadow-float border border-slate-100/50 p-5 sm:p-8 md:p-12">
+                    
+                    <div class="text-center mb-8 md:mb-10">
+                        <div class="inline-flex items-center justify-center p-3 md:p-4 bg-[#EEF2FF] text-[#4F46E5] rounded-2xl md:rounded-3xl mb-4 shadow-sm">
+                            <i data-lucide="users" class="w-6 h-6 md:w-8 md:h-8"></i>
+                        </div>
+                        <h1 class="text-3xl md:text-5xl font-black text-slate-800 tracking-tight mb-2">
+                            Undercover Lingo
+                        </h1>
+                        <p class="text-indigo-600 font-bold uppercase tracking-widest text-[10px] md:text-sm">Language Learning Masterclass</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+                        
+                        <!-- Left Panel: Players -->
+                        <div class="flex flex-col">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-400">
+                                    Roster (${state.players.length})
+                                </h2>
+                                <div class="flex gap-2">
+                                    ${state.players.length > 0 ? `
+                                        <button onclick="window.clearScores()" title="Reset all scores to 0" class="text-xs font-bold text-slate-400 hover:text-[#4F46E5] transition active:scale-95 flex items-center justify-center w-8 h-8 bg-slate-50 md:bg-transparent rounded-md">
+                                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                        </button>
+                                        <button onclick="window.clearAllPlayers()" title="Clear all players" class="text-xs font-bold text-slate-400 hover:text-red-500 transition active:scale-95 flex items-center justify-center w-8 h-8 bg-slate-50 md:bg-transparent rounded-md">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <form onsubmit="window.handleAddPlayer(event)" class="flex gap-2 md:gap-3 mb-5">
+                                <input type="text" id="newPlayerName" placeholder="Enter player name" class="flex-1 px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 focus:bg-white transition-all font-semibold text-slate-700 text-sm md:text-base" />
+                                <button type="submit" class="bg-slate-800 text-white px-5 rounded-xl hover:bg-slate-900 transition shadow-md active:scale-95 flex items-center justify-center">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                </button>
+                            </form>
+                            
+                            <div class="flex flex-col gap-2 max-h-[35vh] md:max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar">
+                                ${playerListHtml}
+                                ${state.players.length === 0 ? `
+                                    <div class="text-center py-10 text-slate-300 border-2 border-dashed border-slate-100 rounded-2xl">
+                                        <i data-lucide="user-plus" class="w-8 h-8 mx-auto mb-3 opacity-50"></i>
+                                        <p class="font-bold text-slate-400 text-sm">No players added yet</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Configurations -->
+                        <div class="flex flex-col">
+                            
+                            <div class="mb-6">
+                                <h2 class="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">
+                                    Vocabulary Matchup Mode
+                                </h2>
+                                
+                                <div class="flex bg-slate-100 p-1 rounded-xl mb-4">
+                                    <button onclick="window.setWordMode('preset')" class="flex-1 py-2 text-xs md:text-sm font-bold rounded-lg transition-all ${state.wordMode === 'preset' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}">System Decks</button>
+                                    <button onclick="window.setWordMode('custom')" class="flex-1 py-2 text-xs md:text-sm font-bold rounded-lg transition-all ${state.wordMode === 'custom' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}">Custom Pairs</button>
+                                </div>
+
+                                ${state.wordMode === 'preset' ? `
+                                    <div class="flex flex-col gap-4">
+                                        <!-- NEW: Interactive Targeted Vocabulary Scope Button Switchers -->
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <button onclick="window.setDeckScope('ielts')" class="py-2.5 px-3 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${state.deckScope === 'ielts' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-extrabold shadow-sm' : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100'}">
+                                                <i data-lucide="graduation-cap" class="w-4 h-4"></i> Expert IELTS 5
+                                            </button>
+                                            <button onclick="window.setDeckScope('all')" class="py-2.5 px-3 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${state.deckScope === 'all' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-extrabold shadow-sm' : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100'}">
+                                                <i data-lucide="globe" class="w-4 h-4"></i> Random All Topics
+                                            </button>
+                                        </div>
+
+                                        <!-- Secondary Variable Contextual Dropdowns -->
+                                        ${state.deckScope === 'all' ? `
+                                            <div class="relative anim-pop">
+                                                <select onchange="window.setCategory(this.value)" class="w-full pl-4 pr-10 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 font-bold text-slate-700 cursor-pointer appearance-none text-sm">
+                                                    ${categoryOptions}
+                                                </select>
+                                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-xs text-indigo-700 font-semibold flex items-center gap-2 anim-pop shadow-inner">
+                                                <i data-lucide="info" class="w-4 h-4 shrink-0"></i> Pulling exclusively from Modules 1-5 curation (Higher Ed, Environment, Careers, & Travel).
+                                            </div>
+                                        `}
+                                    </div>
+                                ` : `
+                                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full anim-pop">
+                                        <input type="text" placeholder="Word 1" value="${state.customWords.w1}" onchange="window.updateCustomWord(1, this.value)" class="w-full sm:flex-1 px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 text-sm font-bold text-slate-700" />
+                                        <div class="text-slate-300 font-black italic text-xs shrink-0">VS</div>
+                                        <input type="text" placeholder="Word 2" value="${state.customWords.w2}" onchange="window.updateCustomWord(2, this.value)" class="w-full sm:flex-1 px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-[#4F46E5] bg-slate-50 text-sm font-bold text-slate-700" />
+                                    </div>
+                                `}
+                            </div>
+
+                            <div class="mb-6">
+                                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                                <i data-lucide="eye-off" class="w-4 h-4 text-slate-400"></i> Undercovers
+                                            </h2>
+                                        </div>
+                                        <div class="flex items-center gap-2 bg-white shadow-sm border border-slate-100 rounded-xl p-1 shrink-0">
+                                            <button onclick="window.changeUndercoverCount(-1)" class="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                                            <span class="font-black text-slate-800 text-base w-6 text-center">${state.undercoverCount}</span>
+                                            <button onclick="window.changeUndercoverCount(1)" class="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
+                                        <div>
+                                            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                                <i data-lucide="ghost" class="w-4 h-4 text-slate-400"></i> Mr. White (Blank Card)
+                                            </h2>
+                                        </div>
+                                        <button onclick="window.toggleMrWhite()" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full toggle-switch ${state.includeMrWhite ? 'bg-[#4F46E5]' : 'bg-slate-300'}" role="switch">
+                                            <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow toggle-switch ${state.includeMrWhite ? 'translate-x-5' : 'translate-x-1'}"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${state.setupError ? `
+                                <div class="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-sm font-bold flex items-center gap-2 anim-pop mb-4">
+                                    <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i> ${state.setupError}
+                                </div>
+                            ` : ''}
+
+                            <div class="mt-auto">
+                                <button onclick="window.startGame()" class="w-full bg-[#4F46E5] text-white font-black text-base py-4 rounded-full shadow-lg shadow-indigo-100 hover:bg-[#4338CA] transition-all flex items-center justify-center gap-2">
+                                    LAUNCH ROUND <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderReveal() {
+            const currentPlayer = state.activePlayers[state.currentPlayerIndex];
+            const prevProgress = tracking.prevProgress || 0;
+            const isNewReveal = tracking.showWord !== state.showWord && state.showWord;
+            const revealAnim = isNewReveal ? 'anim-pop' : '';
+            
+            const isMrWhite = currentPlayer.role === 'mrwhite';
+            const wordColorClass = isMrWhite ? 'text-slate-800' : 'text-[#4F46E5]';
+            const boxClass = isMrWhite ? 'bg-slate-100 border-slate-300' : 'bg-[#EEF2FF] border-indigo-100';
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-lg bg-white rounded-3xl shadow-float border border-slate-100 relative overflow-hidden flex flex-col">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-slate-50">
+                        <div id="reveal-progress-bar" class="h-full bg-[#4F46E5] transition-all duration-700" style="width: ${prevProgress}%"></div>
+                    </div>
+                    
+                    <div class="p-8 md:p-14 mt-4 text-center">
+                        <div class="flex justify-center mb-6">
+                            ${getAvatar(currentPlayer, 'lg')}
+                        </div>
+                        <h3 class="text-3xl font-black text-slate-800 mb-8 tracking-tight">${currentPlayer.name}</h3>
+                        
+                        ${state.showWord ? `
+                            <div class="${revealAnim}">
+                                <p class="text-slate-400 mb-2 font-bold uppercase tracking-widest text-xs">Secret Target Allocation Card:</p>
+                                <div class="${boxClass} border rounded-2xl p-6 mb-8 shadow-inner break-words">
+                                    <div class="${isMrWhite ? 'text-xl' : 'text-3xl'} font-black ${wordColorClass} tracking-tight leading-snug">${currentPlayer.word}</div>
+                                </div>
+                                <button onclick="window.handleNextReveal()" class="w-full bg-slate-800 text-white py-4 rounded-full font-black text-base hover:bg-slate-900 transition active:scale-95">
+                                    Conceal & Route Session
+                                </button>
+                            </div>
+                        ` : `
+                            <div>
+                                <p class="text-slate-500 mb-8 font-bold text-sm px-2">Ensure no one else is looking<br>before you reveal your word.</p>
+                                <button onclick="window.setShowWord(true)" class="w-full bg-[#4F46E5] text-white py-4 rounded-full font-black text-base shadow-lg shadow-indigo-100 hover:bg-[#4338CA] transition flex items-center justify-center gap-2">
+                                    <i data-lucide="eye" class="w-5 h-5"></i> View Secret Word
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                    <div class="bg-slate-50 py-4 text-center font-bold tracking-widest uppercase text-[10px] text-slate-400 border-t border-slate-100">
+                        Roster Index ${state.currentPlayerIndex + 1} of ${state.activePlayers.length}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderRound() {
+            const aliveCount = state.activePlayers.filter(p => p.isAlive).length;
+            
+            const playersHtml = state.activePlayers.map(p => {
+                if (!p.isAlive) {
+                    return `
+                        <div class="bg-slate-100 border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 opacity-50 grayscale shadow-inner min-h-[100px]">
+                            <div class="relative">
+                                ${getAvatar(p, window.innerWidth < 640 ? "sm" : "md")}
+                                <div class="absolute inset-0 flex items-center justify-center bg-slate-900/60 rounded-full text-white"><i data-lucide="skull" class="w-4 h-4"></i></div>
+                            </div>
+                            <span class="font-bold line-through text-slate-500 truncate w-full text-center text-xs">${p.name}</span>
+                        </div>
+                    `;
+                }
+
+                const hasSpoken = state.roundSpeakerOrder && 
+                                  state.roundSpeakerOrder.findIndex(sp => sp.id === p.id) < state.currentSpeakerIndex;
+                
+                const containerClasses = hasSpoken ? "opacity-50 bg-slate-50 border-slate-100" : "bg-white hover:border-[#4F46E5]/30 hover:-translate-y-1 hover:shadow-md border-white";
+                const textClasses = hasSpoken ? "text-slate-400" : "text-slate-800";
+
+                return `
+                    <div class="p-3 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-soft transition-all duration-300 min-h-[100px] ${containerClasses}">
+                        ${getAvatar(p, window.innerWidth < 640 ? "sm" : "md")}
+                        <span class="font-bold truncate w-full text-center text-xs ${textClasses}">${p.name}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const isNewSpeaker = tracking.speakerIndex !== state.currentSpeakerIndex;
+            const speakerAnim = isNewSpeaker ? 'anim-pop' : '';
+
+            return `
+            <div class="flex-1 flex flex-col w-full max-w-5xl mx-auto relative pb-6">
+                
+                <div class="flex justify-between items-center mb-6 relative z-10">
+                    <span class="bg-white px-4 py-2 rounded-full text-[10px] font-black tracking-widest uppercase text-slate-400 shadow-sm border border-slate-100">
+                        Round ${state.roundNumber} &bull; ${aliveCount} Players Left
+                    </span>
+                    
+                    <div class="relative">
+                        <button onclick="window.toggleHostPeek()" class="bg-white hover:bg-slate-50 text-slate-400 p-2.5 rounded-full transition shadow-sm border border-slate-100" title="Host Word Peek">
+                            ${state.showHostPeek ? '<i data-lucide="eye-off" class="w-4 h-4"></i>' : '<i data-lucide="eye" class="w-4 h-4"></i>'}
+                        </button>
+                        ${state.showHostPeek ? `
+                            <div class="absolute right-0 top-full mt-2 bg-slate-800 text-white p-4 rounded-2xl shadow-xl border border-slate-700 w-48 z-50">
+                                <p class="text-slate-400 font-bold mb-1 uppercase tracking-widest text-[10px]">Civilians</p>
+                                <p class="font-black text-sm mb-3 text-[#818cf8] truncate">${state.roundWords.civ}</p>
+                                <p class="text-slate-400 font-bold mb-1 uppercase tracking-widest text-[10px]">Undercovers</p>
+                                <p class="font-black text-sm text-[#c084fc] truncate">${state.roundWords.und}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                ${(() => {
+                    if (state.roundSpeakerOrder && state.currentSpeakerIndex < state.roundSpeakerOrder.length) {
+                        const currentSpeaker = state.roundSpeakerOrder[state.currentSpeakerIndex];
+                        return `
+                            <div class="bg-[#EEF2FF] rounded-3xl p-6 sm:p-10 mb-8 flex flex-col items-center text-center shadow-sm relative overflow-hidden ${speakerAnim}">
+                                <p class="text-[#4F46E5] font-black uppercase tracking-widest text-xs mb-4">
+                                    Speaker Active Node: ${state.currentSpeakerIndex + 1} of ${state.roundSpeakerOrder.length}
+                                </p>
+                                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 mb-6">
+                                    ${getAvatar(currentSpeaker, "lg")}
+                                    <h2 class="text-3xl md:text-5xl font-black text-indigo-950 tracking-tight">${currentSpeaker.name}</h2>
+                                </div>
+                                <div class="flex gap-2 z-10 w-full sm:w-auto justify-center">
+                                    <button onclick="window.prevSpeaker()" class="${state.currentSpeakerIndex === 0 ? 'opacity-0 pointer-events-none w-0 overflow-hidden' : 'hover:bg-white'} text-[#4F46E5] font-bold p-3 rounded-xl transition flex items-center justify-center shrink-0">
+                                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                                    </button>
+                                    <button onclick="window.nextSpeaker()" class="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-black py-3 px-6 rounded-xl transition shadow-md flex items-center justify-center gap-2 active:scale-95 text-sm flex-1 sm:flex-none">
+                                        Next Player Clue <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else if (state.roundSpeakerOrder) {
+                        return `
+                            <div class="bg-emerald-50 rounded-3xl p-8 text-center shadow-sm relative overflow-hidden ${speakerAnim}">
+                                <p class="text-emerald-700 font-black uppercase tracking-widest text-base relative z-10 mb-2">
+                                    All Active Speakers Complete!
+                                </p>
+                                <p class="text-emerald-600 font-bold relative z-10 mb-6 text-sm px-4">
+                                    Use the cross-discussion timer baseline block to debate inconsistencies.
+                                </p>
+                                <button onclick="window.prevSpeaker()" class="text-emerald-700 font-bold hover:bg-white/60 px-5 py-2 rounded-xl transition relative z-10 text-xs flex items-center justify-center mx-auto gap-2">
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Adjust prior entry
+                                </button>
+                            </div>
+                        `;
+                    }
+                    return '';
+                })()}
+
+                <div class="mb-10">
+                    <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-4 px-2">Active Field Roster Matrix:</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        ${playersHtml}
+                    </div>
+                </div>
+
+                <div class="flex flex-col lg:flex-row items-center justify-between gap-6 bg-white p-5 rounded-3xl shadow-soft border border-slate-100 mt-auto">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                        <div id="timer-display" class="bg-slate-100 rounded-xl px-6 py-3 font-mono text-2xl font-black text-slate-800 tracking-widest text-center w-full sm:w-44 shadow-inner">
+                            01:30
+                        </div>
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <button onclick="window.toggleTimer()" class="flex-1 bg-[#EEF2FF] hover:bg-indigo-100 text-[#4F46E5] p-3 rounded-xl transition active:scale-95">
+                                <i id="timer-btn-icon" data-lucide="play" class="w-6 h-6 fill-current"></i>
+                            </button>
+                            <button onclick="window.resetTimer()" class="flex-1 bg-white border-2 border-slate-800 hover:bg-slate-50 text-slate-800 p-3 rounded-xl transition active:scale-95">
+                                <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button onclick="window.goToVote()" class="w-full lg:w-auto bg-[#EF4444] text-white font-black py-4 px-8 rounded-full shadow-lg shadow-red-100 hover:bg-red-600 transition-all text-base flex items-center justify-center gap-2">
+                        <i data-lucide="vote" class="w-5 h-5"></i> COMMENCE TRIAL VOTING
+                    </button>
+                </div>
+
+            </div>`;
+        }
+
+        function renderVote() {
+            const aliveCount = state.activePlayers.filter(p => p.isAlive).length;
+            
+            const optionsHtml = state.activePlayers.map(p => {
+                if (!p.isAlive) {
+                    return `
+                        <div class="p-4 rounded-2xl bg-slate-100 border border-slate-200 opacity-50 grayscale flex items-center gap-3 cursor-not-allowed">
+                            <div class="relative shrink-0">
+                                ${getAvatar(p)}
+                                <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full text-white text-xs"><i data-lucide="skull" class="w-3 h-3"></i></div>
+                            </div>
+                            <span class="line-through text-slate-500 font-bold text-base truncate">${p.name}</span>
+                        </div>
+                    `;
+                }
+
+                const isSelected = state.pendingVote === p.id;
+                const baseClasses = isSelected 
+                    ? 'border-[#EF4444] bg-red-50 text-[#EF4444] shadow-md ring-4 ring-red-500/10 scale-[1.01]' 
+                    : 'border-white bg-white text-slate-700 hover:border-slate-200 hover:shadow-md';
+                const circleClasses = isSelected ? 'border-[#EF4444] bg-[#EF4444] text-white' : 'border-slate-200 bg-slate-50';
+                
+                return `
+                    <button onclick="window.setPendingVote('${p.id}')" class="p-4 rounded-2xl text-left font-black text-lg transition-all duration-300 flex justify-between items-center border-2 shadow-soft ${baseClasses}">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            ${getAvatar(p)}
+                            <span class="truncate">${p.name}</span>
+                        </div>
+                        <div class="h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-300 ${circleClasses}">
+                            ${isSelected ? '<i data-lucide="check" class="w-4 h-4 anim-pop font-bold"></i>' : ''}
+                        </div>
+                    </button>
+                `;
+            }).join('');
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-3xl flex flex-col">
+                    <div class="text-center mb-8">
+                        <span class="bg-white/80 px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase text-slate-500 shadow-sm border border-slate-100 mb-4 inline-block">
+                            Trial Parameters &bull; ${aliveCount} Players Remaining
+                        </span>
+                        <h1 class="text-3xl font-black text-slate-800 tracking-tight mb-2 flex items-center justify-center gap-2">
+                            Cast Exile Ballots
+                        </h1>
+                        <p class="text-slate-500 font-bold text-sm">Identify the mismatching linguistic node actor.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                        ${optionsHtml}
+                    </div>
+                    
+                    <div class="flex flex-col items-center gap-3 w-full max-w-md mx-auto mt-auto sm:mt-0">
+                        ${state.pendingVote ? `
+                            <button onclick="window.confirmElimination()" class="w-full bg-[#EF4444] text-white font-black py-4 rounded-full shadow-lg shadow-red-200 hover:bg-red-600 transition-all text-base hover:-translate-y-0.5">
+                                Eject Identified Node Card
+                            </button>
+                        ` : `
+                            <div class="w-full bg-slate-200/50 text-slate-400 font-black py-4 rounded-full text-center text-base border-2 border-dashed border-slate-300">
+                                Assign target parameter marker
+                            </div>
+                        `}
+                        <button onclick="window.nextRound()" class="text-slate-500 font-bold py-3 px-6 hover:bg-white rounded-full transition flex items-center justify-center gap-2 text-sm">
+                            <i data-lucide="x" class="w-4 h-4"></i> Resume Contextual Assessment
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderResult() {
+            const eliminated = state.eliminatedThisRound;
+            
+            let bgClass = 'bg-blue-50 border-blue-100';
+            let lblClass = 'text-blue-400';
+            let txtClass = 'text-blue-600';
+            let roleTxt = 'CIVILIAN';
+            
+            if (eliminated?.role === 'undercover') {
+                bgClass = 'bg-purple-50 border-purple-100';
+                lblClass = 'text-purple-400';
+                txtClass = 'text-purple-600';
+                roleTxt = 'UNDERCOVER AGENT';
+            } else if (eliminated?.role === 'mrwhite') {
+                bgClass = 'bg-slate-100 border-slate-200';
+                lblClass = 'text-slate-500';
+                txtClass = 'text-slate-800';
+                roleTxt = 'MR. WHITE';
+            }
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-md bg-white rounded-3xl shadow-float border border-slate-100 text-center relative overflow-hidden flex flex-col">
+                    <div class="bg-slate-800 p-6 text-white relative">
+                        <span class="bg-white/10 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase text-slate-300 inline-block">
+                            Ejection Reveal Metrics
+                        </span>
+                    </div>
+                    <div class="p-8 relative z-10 bg-white">
+                        <div class="flex justify-center mb-6">
+                            ${getAvatar(state.eliminatedThisRound, 'lg')}
+                        </div>
+                        <h2 class="text-3xl font-black text-slate-800 mb-2 tracking-tight">${state.eliminatedThisRound?.name}</h2>
+                        <p class="text-slate-500 mb-8 font-bold text-sm">has been processed out of the session active layer.</p>
+                        
+                        <div class="p-6 rounded-2xl mb-8 border relative z-10 ${bgClass} anim-pop shadow-inner">
+                            <p class="text-[10px] font-black uppercase tracking-widest mb-2 ${lblClass}">Allocated Class Role was:</p>
+                            <p class="text-2xl font-black tracking-tight ${txtClass}">
+                                ${roleTxt}
+                            </p>
+                        </div>
+
+                        <button onclick="window.nextRound()" class="w-full bg-slate-900 text-white font-black py-4 rounded-full shadow-lg hover:bg-slate-800 transition-all text-base">
+                            Advance Framework
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderGameover() {
+            const isCivWin = state.winner === 'civilians';
+            const headerBg = isCivWin ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'bg-[#FAF5FF] text-[#9333EA]';
+            const headerTitle = isCivWin ? 'Civilians Rule!' : 'Infiltrators Overran!';
+            const headerSub = isCivWin ? 'Standard +2 Base Points granted onto Roster' : '+10 Undercovers / +15 Active Mr. White Survivor Units';
+            const iconColor = isCivWin ? 'text-[#818CF8]' : 'text-[#C084FC]';
+            
+            const sortedPlayers = [...state.activePlayers].sort((x, y) => state.scores[y.id] - state.scores[x.id]);
+            
+            const recapHtml = state.activePlayers.map(p => {
+                let rBadge = p.role === 'undercover' ? 'bg-purple-100 text-purple-700' : 
+                             p.role === 'mrwhite' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700';
+                return `
+                <div class="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl mb-2 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        ${getAvatar(p, 'sm')}
+                        <span class="font-bold text-slate-700 text-sm">${p.name}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${rBadge}">
+                        ${p.role}
+                    </span>
+                </div>
+                `;
+            }).join('');
+
+            const leaderboardHtml = sortedPlayers.map((p, index) => {
+                return `
+                <li class="flex justify-between items-center text-sm bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                    <div class="flex items-center gap-3 overflow-hidden pr-2">
+                        <div class="w-5 text-slate-300 font-black text-center text-sm shrink-0">#${index + 1}</div>
+                        ${getAvatar(p, 'sm')}
+                        <span class="font-bold text-slate-700 truncate">${p.name}</span>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="font-black text-lg text-slate-800 w-6 text-right">${state.scores[p.id]}</span>
+                    </div>
+                </li>
+                `;
+            }).join('');
+
+            return `
+            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-5xl bg-white rounded-3xl shadow-float border border-slate-100/50 overflow-hidden flex flex-col">
+                    
+                    <div class="p-8 md:p-14 text-center relative ${headerBg}">
+                        <h1 class="text-3xl md:text-5xl font-black mb-2 flex justify-center items-center gap-4 tracking-tight relative z-10">
+                            <i data-lucide="trophy" class="w-10 h-10 md:w-14 md:h-14 ${iconColor} anim-float"></i> 
+                            ${headerTitle}
+                        </h1>
+                        <p class="font-bold uppercase tracking-widest text-[10px] relative z-10 opacity-80">${headerSub}</p>
+                    </div>
+
+                    <div class="p-6 md:p-10">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            
+                            <!-- Array Allocations Summary -->
+                            <div class="flex flex-col">
+                                <h2 class="text-slate-800 font-black text-lg mb-4 flex items-center gap-2">
+                                    <div class="bg-amber-100 text-amber-600 p-2 rounded-lg"><i data-lucide="book-open" class="w-5 h-5"></i></div>
+                                    Target Matchup Verification Keys
+                                </h2>
+                                <div class="bg-amber-50/60 rounded-2xl p-5 border border-amber-100 flex-1 flex flex-col">
+                                    <div class="grid grid-cols-2 gap-4 mb-6 text-center">
+                                        <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col justify-center overflow-hidden border border-slate-100">
+                                            <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Civilians</p>
+                                            <p class="text-base font-black text-[#4F46E5] truncate">${state.roundWords.civ}</p>
+                                        </div>
+                                        <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col justify-center overflow-hidden border border-slate-100">
+                                            <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Undercovers</p>
+                                            <p class="text-base font-black text-[#9333EA] truncate">${state.roundWords.und}</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-slate-400 font-bold uppercase tracking-widest text-[9px] mb-3">Identity allocation history map:</p>
+                                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-[180px]">
+                                        ${recapHtml}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Score Leaderboard -->
+                            <div class="flex flex-col h-full max-h-[380px]">
+                                <h3 class="text-slate-800 font-black text-lg mb-4 flex items-center gap-2">
+                                    <div class="bg-slate-100 text-slate-600 p-2 rounded-lg"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
+                                    Cumulative Classroom Scoreboard
+                                </h3>
+                                <ul class="space-y-2 overflow-y-auto custom-scrollbar pr-2 flex-1 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                    ${leaderboardHtml}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <button onclick="window.resetGame()" class="w-full bg-slate-900 text-white font-black py-4 rounded-full shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 text-base">
+                            <i data-lucide="refresh-cw" class="w-5 h-5"></i> ITERATE NEW SESSION ENTRY
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        // --- CORE APP RENDERER ---
+        function renderApp() {
+            const app = document.getElementById('app');
+            let html = '';
+
+            switch (state.gameState) {
+                case 'setup': html = renderSetup(); break;
+                case 'reveal': html = renderReveal(); break;
+                case 'round': html = renderRound(); break;
+                case 'vote': html = renderVote(); break;
+                case 'result': html = renderResult(); break;
+                case 'gameover': html = renderGameover(); break;
+            }
+
+            app.innerHTML = html;
+            
+            if (tracking.gameState !== state.gameState) {
+                const view = app.firstElementChild;
+                if (view) view.classList.add('anim-view-enter');
+                tracking.gameState = state.gameState;
+            }
+
+            if (state.gameState === 'reveal') {
+                setTimeout(() => {
+                    const bar = document.getElementById('reveal-progress-bar');
+                    const currentProgress = ((state.currentPlayerIndex + (state.showWord ? 1 : 0)) / state.activePlayers.length) * 100;
+                    if (bar) bar.style.width = currentProgress + '%';
+                    tracking.prevProgress = currentProgress;
+                }, 50);
+            } else {
+                tracking.prevProgress = 0;
+            }
+
+            tracking.speakerIndex = state.currentSpeakerIndex;
+            tracking.showWord = state.showWord;
+            
+            lucide.createIcons();
+        }
+
+        // Initialize App Context
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            renderApp();
+
+            window.addEventListener('beforeunload', function (e) {
+                if (state.gameState !== 'setup' && state.gameState !== 'gameover') {
+                    e.preventDefault();
+                    e.returnValue = 'A game session loop is actively processing.';
+                    return 'A game session loop is actively processing.';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
