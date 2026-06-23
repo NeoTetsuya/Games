@@ -26,7 +26,6 @@
         const { useState, useEffect, useRef } = React;
         const html = htm.bind(React.createElement);
 
-        // --- Custom Inline SVG Components to replace Lucide Imports ---
         const Volume2 = () => html`
             <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -155,7 +154,6 @@
             </svg>
         `;
 
-        // --- Sound Synthesizer Fallback ---
         class GameSynth {
             constructor() {
                 this.ctx = null;
@@ -186,11 +184,11 @@
                 }
             }
             playStart() {
-                // Dramatic game show introductory theme arpeggio (A Major climb)
+                // Majestic procedural start chime
                 const notes = [220, 277.18, 329.63, 440, 554.37, 659.25, 880];
                 notes.forEach((freq, index) => {
                     setTimeout(() => {
-                        this.playTone(freq, 'triangle', 0.6, 0.15);
+                        this.playTone(freq, 'triangle', 0.6, 0.12);
                     }, index * 120);
                 });
             }
@@ -204,7 +202,7 @@
                 setTimeout(() => this.playTone(196, 'sawtooth', 0.6, 0.2), 200); // G3
             }
             playThinking() {
-                // Subtle tension building ambient tone
+                // Soft underlying rhythmic waves for anticipation
                 this.playTone(110, 'sine', 1.5, 0.08); // low A2
                 setTimeout(() => {
                     this.playTone(116.54, 'sine', 1.5, 0.05); // low chromatic rise
@@ -220,7 +218,6 @@
 
         const synth = new GameSynth();
 
-        // --- External Audio Loader ---
         const sounds = {
             correct: new Audio('https://raw.githubusercontent.com/NeoTetsuya/audio-files/main/correct.mp3'),
             start: new Audio('https://raw.githubusercontent.com/NeoTetsuya/audio-files/main/start%20game.mp3'),
@@ -228,6 +225,13 @@
             thinking: new Audio('https://raw.githubusercontent.com/NeoTetsuya/audio-files/main/question.mp3')
         };
         sounds.thinking.loop = true;
+
+        const triggerSynthFallback = (type) => {
+            if (type === 'correct') synth.playCorrect();
+            if (type === 'wrong') synth.playWrong();
+            if (type === 'start') synth.playStart();
+            if (type === 'thinking') synth.playThinking();
+        };
 
         const playExternalSound = (type, isMuted) => {
             if (isMuted) return;
@@ -250,13 +254,6 @@
             }
         };
 
-        const triggerSynthFallback = (type) => {
-            if (type === 'correct') synth.playCorrect();
-            if (type === 'wrong') synth.playWrong();
-            if (type === 'start') synth.playStart();
-            if (type === 'thinking') synth.playThinking();
-        };
-
         const stopExternalSound = (type) => {
             try {
                 if (sounds[type]) {
@@ -273,7 +270,6 @@
 
         const safetyMilestones = [4, 9, 14]; 
 
-        // --- Question Bank: Mix of Grammar (A1-B2 Tiers) without labels ---
         const questionBank = [
             // DIFFICULTY 1: A1 - A2 Diagnostic Grammar (Levels 1 - 5)
             { id: 1, text: "___ lives in London with his sister.", options: ["He", "Him", "His", "Himself"], correctIndex: 0, difficulty: 1 },
@@ -449,12 +445,8 @@
             };
 
             const startGame = () => {
-                // Instantly prime the AudioContext via direct event pathway
                 handleInteractionAudioUnlock();
-                
-                // Play Game Start intro chord/arpeggio
                 playExternalSound('start', isMuted);
-                
                 setGameState('playing');
                 setGlobalRound(0);
                 globalRoundRef.current = 0;
@@ -475,20 +467,14 @@
 
             const loadNextQuestion = () => {
                 const activeTeam = teamsRef.current[teamTurnRef.current];
-                const teamLevel = activeTeam.level; // current index (0 to 14)
+                const teamLevel = activeTeam.level; 
 
-                // Level-Locked Tiers:
-                // Levels 1-5 (indices 0 to 4): A1-A2 (Difficulty 1)
-                // Levels 6-10 (indices 5 to 9): B1 (Difficulty 2)
-                // Levels 11-15 (indices 10 to 14): B2 (Difficulty 3)
                 let targetDiff = 1;
                 if (teamLevel >= 5 && teamLevel <= 9) targetDiff = 2;
                 if (teamLevel >= 10) targetDiff = 3;
 
-                // Pull only available questions corresponding to that difficulty
                 let available = questionBank.filter(q => q.difficulty === targetDiff && !usedQuestionsRef.current.has(q.id));
                 if (available.length === 0) {
-                    // Fallback to absolute pool if a difficulty runs dry
                     available = questionBank.filter(q => !usedQuestionsRef.current.has(q.id));
                 }
 
@@ -512,8 +498,7 @@
                 setTimeLeft(timeLimit);
 
                 if (globalRoundRef.current === 0 && teamTurnRef.current === 0) {
-                    // Slight timeout delay so intro music isn't cut off instantly
-                    setTimeout(() => playExternalSound('thinking', isMuted), 3500);
+                    setTimeout(() => playExternalSound('thinking', isMuted), 2500);
                 } else {
                     playExternalSound('thinking', isMuted);
                 }
@@ -821,9 +806,9 @@
                                             synth.playTone(300, 'sine', 0.1);
                                             setGameState('setup');
                                         }}
-                                        class="text-xs font-bold text-slate-400 hover:text-white hover:underline uppercase tracking-wider"
+                                        class="text-xs font-bold text-slate-400 hover:text-white hover:underline uppercase tracking-wider flex items-center gap-1.5"
                                     >
-                                        &larr; Back to Setup
+                                        ← Back to Setup
                                     </button>
 
                                     <button 
@@ -1185,16 +1170,16 @@
                                 <div class="flex justify-center mb-2 text-blue-400"><${BarChart2} /></div>
                                 <h3 class="text-xl font-black text-yellow-400 mb-6 uppercase tracking-wider">Audience Polling</h3>
                                 
-                                <div class="flex items-end justify-between gap-3 h-40 mb-8 px-4">
+                                <div class="flex items-end justify-between gap-3 h-44 mb-8 px-4">
                                     ${audienceResults.map((pct, idx) => html`
                                         <div key=${idx} class="flex-1 flex flex-col items-center h-full justify-end">
                                             <span class="text-[11px] font-bold text-slate-300 mb-1">${pct}%</span>
-                                            <div class="w-full flex items-end justify-center">
+                                            <div class="w-full h-28 flex items-end justify-center bg-slate-950/60 rounded-lg p-1.5 border border-slate-850">
                                                 <div 
-                                                    class=${`w-full max-w-[32px] rounded-t-md transition-all duration-1000 ${
-                                                        idx === currentQuestion.correctIndex ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-gradient-to-t from-blue-600 to-blue-400'
+                                                    class=${`w-full max-w-[24px] rounded-t-md transition-all duration-700 ${
+                                                        idx === currentQuestion.correctIndex ? 'bg-gradient-to-t from-emerald-500 to-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'bg-gradient-to-t from-blue-500 to-blue-300'
                                                     }`}
-                                                    style=${{ height: `${pct || 1}%`, minHeight: '3px' }}
+                                                    style=${{ height: `${pct || 2}%` }}
                                                 />
                                             </div>
                                             <span class="mt-2 font-black text-sm text-yellow-400">
