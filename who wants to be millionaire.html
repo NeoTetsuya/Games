@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Who Wants to Be a Millionaire - Team Edition</title>
+    <!-- React 18 Production Build CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Native compiler-free JSX companion -->
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js" crossorigin></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Web Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-950">
+    <div id="root"></div>
+
+    <script>
+        const { useState, useEffect, useRef } = React;
+        const html = htm.bind(React.createElement);
+
+        // --- Custom Inline SVG Components to replace Lucide Imports ---
+        const Volume2 = () => html`
+            <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+        `;
+
+        const VolumeX = () => html`
+            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+        `;
+
+        const Users = () => html`
+            <svg className="w-3.5 h-3.5 mb-0.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+        `;
+
+        const Phone = () => html`
+            <svg className="w-3.5 h-3.5 mb-0.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+        `;
+
+        const User = () => html`
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+        `;
+
+        const Tv = () => html`
+            <svg className="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                <polyline points="17 2 12 7 7 2"></polyline>
+            </svg>
+        `;
+
+        const Trophy = () => html`
+            <svg className="w-16 h-16 text-yellow-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                <path d="M4 22h16"></path>
+                <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path>
+                <path d="M12 2a6 6 0 0 1 6 6v3.5c0 3.04-2.46 5.5-5.5 5.5h-1C8.46 17 6 14.54 6 11.5V8a6 6 0 0 1 6-6z"></path>
+            </svg>
+        `;
+
+        const Plus = () => html`
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        `;
+
+        const Trash2 = () => html`
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+        `;
+
+        const Award = () => html`
+            <svg className="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="7"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+            </svg>
+        `;
+
+        const Clock = () => html`
+            <svg className="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        `;
+
+        const ArrowRight = () => html`
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+        `;
+
+        const HelpCircle = () => html`
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        `;
+
+        const Play = () => html`
+            <svg className="w-4 h-4 fill-current" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+        `;
+
+        const CheckCircle = () => html`
+            <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        `;
+
+        const XCircle = () => html`
+            <svg className="w-8 h-8 text-rose-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+        `;
+
+        const BarChart2 = () => html`
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+        `;
+
+        // --- Sound Synthesizer Fallback ---
+        class GameSynth {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playTone(freq, type, duration, vol = 0.1) {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {
+                    console.warn("Synth failed", e);
+                }
+            }
+            playCorrect() {
+                this.playTone(523.25, 'triangle', 0.2, 0.15); // C5
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.2, 0.15), 150); // E5
+                setTimeout(() => this.playTone(783.99, 'triangle', 0.4, 0.2), 300); // G5
+            }
+            playWrong() {
+                this.playTone(220, 'sawtooth', 0.5, 0.2); // A3
+                setTimeout(() => this.playTone(196, 'sawtooth', 0.6, 0.2), 200); // G3
+            }
+            playSelect() {
+                this.playTone(440, 'sine', 0.1, 0.1); // A4
+            }
+            playTick() {
+                this.playTone(880, 'sine', 0.05, 0.05); // high click
+            }
+        }
+
+        const synth = new GameSynth();
+
+        // --- External Audio Loader ---
+        const sounds = {
+            correct: new Audio('https://raw.githubusercontent.com/NeoTetsuya/audio-files/main/correct.mp3'),
+            start: new Audio('https://raw.githubusercontent.com/NeoTetsuya/audio-files/main/start%20game.mp3'),
+            wrong: new Audio('https://raw.githubusercontent.com/NeoTetsuya/audio-files/main/wrong.mp3'),
+            thinking: new Audio('https://raw.githubusercontent.com/NeoTetsuya/audio-files/main/question.mp3')
+        };
+        sounds.thinking.loop = true;
+
+        const playExternalSound = (type, isMuted) => {
+            if (isMuted) return;
+            try {
+                if (type === 'correct' || type === 'wrong') {
+                    sounds.thinking.pause();
+                }
+                const audio = sounds[type];
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play().catch(() => {
+                        if (type === 'correct') synth.playCorrect();
+                        if (type === 'wrong') synth.playWrong();
+                    });
+                }
+            } catch (e) {
+                if (type === 'correct') synth.playCorrect();
+                if (type === 'wrong') synth.playWrong();
+            }
+        };
+
+        const stopExternalSound = (type) => {
+            try {
+                if (sounds[type]) {
+                    sounds[type].pause();
+                }
+            } catch (e) {}
+        };
+
+        const prizeMoney = [
+            100, 200, 300, 500, 1000, 
+            2000, 4000, 8000, 16000, 32000, 
+            64000, 125000, 250000, 500000, 1000000
+        ];
+
+        const safetyMilestones = [4, 9, 14]; 
+
+        // --- Question Bank: Mix of Grammar (A1-B2 Tiers) without labels ---
+        const questionBank = [
+            // DIFFICULTY 1: A1 - A2 Diagnostic Grammar (Levels 1 - 5)
+            { id: 1, text: "___ lives in London with his sister.", options: ["He", "Him", "His", "Himself"], correctIndex: 0, difficulty: 1 },
+            { id: 2, text: "Look! The children ___ football in the garden.", options: ["play", "plays", "are playing", "playing"], correctIndex: 2, difficulty: 1 },
+            { id: 3, text: "Yesterday, they ___ to the cinema.", options: ["go", "went", "gone", "was go"], correctIndex: 1, difficulty: 1 },
+            { id: 4, text: "I live ___ a beautiful apartment near the center.", options: ["on", "at", "in", "to"], correctIndex: 2, difficulty: 1 },
+            { id: 5, text: "How ___ sugar do we need for the tea?", options: ["many", "much", "lot of", "any"], correctIndex: 1, difficulty: 1 },
+            { id: 6, text: "There is ___ orange and two apples in the basket.", options: ["a", "an", "the", "some"], correctIndex: 1, difficulty: 1 },
+            { id: 7, text: "My new laptop is ___ than my old one.", options: ["fast", "faster", "more fast", "fastest"], correctIndex: 1, difficulty: 1 },
+            { id: 8, text: "The training starts ___ 9:00 AM on Monday.", options: ["on", "in", "at", "to"], correctIndex: 2, difficulty: 1 },
+            { id: 9, text: "Excuse me, ___ you swim when you were five years old?", options: ["can", "did", "could", "should"], correctIndex: 2, difficulty: 1 },
+            { id: 10, text: "All the ___ played happily in the school playground.", options: ["childs", "childrens", "children", "childes"], correctIndex: 2, difficulty: 1 },
+            { id: 11, text: "We ___ go to the beach in the summer.", options: ["always", "always do", "are always", "do always"], correctIndex: 0, difficulty: 1 },
+            { id: 12, text: "I borrowed my ___ car to drive to the conference yesterday.", options: ["sister", "sisters'", "sister's", "sister is"], correctIndex: 2, difficulty: 1 },
+            { id: 13, text: "She wanted to buy the dress, ___ she didn't have enough money.", options: ["and", "but", "because", "so"], correctIndex: 1, difficulty: 1 },
+            { id: 14, text: "We don't have ___ bread left; we should buy some.", options: ["some", "no", "any", "many"], correctIndex: 2, difficulty: 1 },
+            { id: 15, text: "___ jacket is this? Is it yours?", options: ["Who", "Whose", "Which", "What"], correctIndex: 1, difficulty: 1 },
+
+            // DIFFICULTY 2: B1 Diagnostic Grammar (Levels 6 - 10)
+            { id: 16, text: "She ___ in Paris for three years, but she moved last month.", options: ["has lived", "lived", "was living", "has been living"], correctIndex: 1, difficulty: 2 },
+            { id: 17, text: "We have been working on this design ___ last December.", options: ["since", "for", "during", "ago"], correctIndex: 0, difficulty: 2 },
+            { id: 18, text: "If I ___ more money, I would buy an electric car.", options: ["will have", "have", "had", "would have"], correctIndex: 2, difficulty: 2 },
+            { id: 19, text: "I really enjoy ___ to classical music when studying.", options: ["to listen", "listening", "listen", "to listening"], correctIndex: 1, difficulty: 2 },
+            { id: 20, text: "This amazing bridge ___ by a famous architect in 1920.", options: ["built", "was built", "has been built", "is built"], correctIndex: 1, difficulty: 2 },
+            { id: 21, text: "The doctor ___ performed the surgery was highly recommended.", options: ["which", "whose", "who", "whom"], correctIndex: 2, difficulty: 2 },
+            { id: 22, text: "We ___ television when the lights suddenly went out.", options: ["watched", "were watching", "have watched", "are watching"], correctIndex: 1, difficulty: 2 },
+            { id: 23, text: "You ___ smoke inside the building; it is strictly prohibited.", options: ["must", "don't have to", "mustn't", "shouldn't"], correctIndex: 2, difficulty: 2 },
+            { id: 24, text: "When I was a kid, I ___ spend my holidays at my grandparents' farm.", options: ["used to", "usually", "am used to", "would used to"], correctIndex: 0, difficulty: 2 },
+            { id: 25, text: "By the time the train arrived, they ___ for over an hour.", options: ["had been waiting", "had waited", "waited", "were waiting"], correctIndex: 0, difficulty: 2 },
+            { id: 26, text: "The final test was ___ difficult as the practice one.", options: ["not as", "less", "more", "the least"], correctIndex: 0, difficulty: 2 },
+            { id: 27, text: "You live near the park, ___ you?", options: ["don't", "do", "isn't", "aren't"], correctIndex: 0, difficulty: 2 },
+            { id: 28, text: "He told me that he ___ busy the day before.", options: ["is", "has been", "had been", "was being"], correctIndex: 2, difficulty: 2 },
+            { id: 29, text: "The water was ___ cold for the children to swim in safely.", options: ["too much", "too", "enough", "very much"], correctIndex: 1, difficulty: 2 },
+            { id: 30, text: "We ___ print the tickets; a digital copy on our phone is fine.", options: ["must not", "should not", "don't have to", "haven't to"], correctIndex: 2, difficulty: 2 },
+
+            // DIFFICULTY 3: B2 Diagnostic Grammar (Levels 11 - 15)
+            { id: 31, text: "If you had studied harder, you ___ the exam last week.", options: ["would pass", "would have passed", "passed", "will pass"], correctIndex: 1, difficulty: 3 },
+            { id: 32, text: "Rarely ___ such a spectacular sunset in my entire life.", options: ["I have seen", "did I saw", "have I seen", "I saw"], correctIndex: 2, difficulty: 3 },
+            { id: 33, text: "I wish I ___ my camera on this beautiful trip!", options: ["didn't forget", "hadn't forgotten", "haven't forgotten", "not forget"], correctIndex: 1, difficulty: 3 },
+            { id: 34, text: "We had our kitchen ___ by professional decorators last month.", options: ["paint", "painted", "to paint", "painting"], correctIndex: 1, difficulty: 3 },
+            { id: 35, text: "___ the heavy rain, they decided to go hiking anyway.", options: ["Although", "Even though", "Despite", "In spite"], correctIndex: 2, difficulty: 3 },
+            { id: 36, text: "She accused him of ___ her personal journal without permission.", options: ["to read", "read", "having read", "to have read"], correctIndex: 2, difficulty: 3 },
+            { id: 37, text: "She looks very happy. She ___ received some wonderful news.", options: ["must have", "should have", "can have", "might has"], correctIndex: 0, difficulty: 3 },
+            { id: 38, text: "The company for ___ she works is based in New York.", options: ["which", "whom", "who", "whose"], correctIndex: 0, difficulty: 3 },
+            { id: 39, text: "By this time next year, they ___ the new highway construction.", options: ["will finish", "will be finishing", "will have finished", "have finished"], correctIndex: 2, difficulty: 3 },
+            { id: 40, text: "I regret ___ you that the flight has been delayed.", options: ["to tell", "telling", "tell", "to telling"], correctIndex: 0, difficulty: 3 },
+            { id: 41, text: "If I had won the lottery last year, I ___ rich today.", options: ["would have been", "will be", "would be", "am"], correctIndex: 2, difficulty: 3 },
+            { id: 42, text: "I'd rather you ___ tell anyone about our secret.", options: ["don't", "didn't", "haven't", "won't"], correctIndex: 1, difficulty: 3 },
+            { id: 43, text: "We will go ahead with the garden picnic ___ it rains heavily.", options: ["provided that", "as long as", "unless", "if"], correctIndex: 2, difficulty: 3 },
+            { id: 44, text: "It was the director ___ made the final decision about the budget.", options: ["which", "who", "whom", "whose"], correctIndex: 1, difficulty: 3 },
+            { id: 45, text: "The doctor suggested that he ___ a week off from work.", options: ["takes", "take", "should took", "has taken"], correctIndex: 1, difficulty: 3 }
+        ];
+
+        const shuffleQuestionOptions = (question) => {
+            const optionsWithMeta = question.options.map((opt, idx) => ({
+                text: opt,
+                isCorrect: idx === question.correctIndex
+            }));
+            for (let i = optionsWithMeta.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [optionsWithMeta[i], optionsWithMeta[j]] = [optionsWithMeta[j], optionsWithMeta[i]];
+            }
+            return {
+                ...question,
+                options: optionsWithMeta.map(o => o.text),
+                correctIndex: optionsWithMeta.findIndex(o => o.isCorrect)
+            };
+        };
+
+        function App() {
+            const [gameState, setGameState] = useState('setup'); 
+            const [isMuted, setIsMuted] = useState(false);
+            const [timeLimit, setTimeLimit] = useState(30);
+            const [mobileTab, setMobileTab] = useState('question');
+
+            const [teams, setTeams] = useState([
+                { id: 1, name: 'Team Alpha', score: 0, level: 0, lifelines: { fiftyFifty: true, phoneFriend: true, askAudience: true } },
+                { id: 2, name: 'Team Bravo', score: 0, level: 0, lifelines: { fiftyFifty: true, phoneFriend: true, askAudience: true } }
+            ]);
+
+            const [globalRound, setGlobalRound] = useState(0);
+            const [currentTeamTurn, setCurrentTeamTurn] = useState(0);
+            const [currentQuestion, setCurrentQuestion] = useState(null);
+
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+            const [hiddenAnswers, setHiddenAnswers] = useState([]);
+            const [turnMessage, setTurnMessage] = useState("");
+
+            const [timeLeft, setTimeLeft] = useState(30);
+            const [audienceResults, setAudienceResults] = useState(null);
+            const [phoneFriendAdvice, setPhoneFriendAdvice] = useState(null);
+
+            const usedQuestionsRef = useRef(new Set());
+            const globalRoundRef = useRef(0);
+            const teamTurnRef = useRef(0);
+            const teamsRef = useRef(teams);
+
+            useEffect(() => {
+                teamsRef.current = teams;
+            }, [teams]);
+
+            const toggleMute = () => {
+                const nextMuted = !isMuted;
+                setIsMuted(nextMuted);
+                window.isAudioMuted = nextMuted;
+                if (nextMuted) {
+                    stopExternalSound('thinking');
+                } else if (gameState === 'playing' && selectedAnswer === null && !isAnswerRevealed) {
+                    playExternalSound('thinking', false);
+                }
+            };
+
+            const handleInteractionAudioUnlock = () => {
+                synth.init();
+            };
+
+            useEffect(() => {
+                if (gameState !== 'playing' || selectedAnswer !== null || isAnswerRevealed || audienceResults || phoneFriendAdvice) {
+                    return;
+                }
+                if (timeLeft === 0) {
+                    handleTimeOut();
+                    return;
+                }
+                const timer = setInterval(() => {
+                    setTimeLeft(prev => {
+                        if (prev <= 6 && !isMuted) {
+                            synth.playTick();
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [timeLeft, gameState, selectedAnswer, isAnswerRevealed, audienceResults, phoneFriendAdvice, isMuted]);
+
+            const handleTimeOut = () => {
+                stopExternalSound('thinking');
+                setSelectedAnswer(-1);
+                setIsAnswerRevealed(true);
+                playExternalSound('wrong', isMuted);
+                setTurnMessage(`Time's up! The right answer was "${currentQuestion.options[currentQuestion.correctIndex]}".`);
+                setTimeout(() => {
+                    advanceTurn();
+                }, 3500);
+            };
+
+            const addTeam = () => {
+                if (teams.length < 4) {
+                    setTeams([
+                        ...teams, 
+                        { 
+                            id: Date.now(), 
+                            name: `Team ${String.fromCharCode(65 + teams.length)}`, 
+                            score: 0, 
+                            level: 0, 
+                            lifelines: { fiftyFifty: true, phoneFriend: true, askAudience: true } 
+                        }
+                    ]);
+                    synth.playTone(400, 'sine', 0.15);
+                }
+            };
+
+            const removeTeam = (id) => {
+                if (teams.length > 2) {
+                    setTeams(teams.filter(t => t.id !== id));
+                    synth.playTone(300, 'sine', 0.15);
+                }
+            };
+
+            const updateTeamName = (id, name) => {
+                setTeams(teams.map(t => t.id === id ? { ...t, name } : t));
+            };
+
+            const startGame = () => {
+                handleInteractionAudioUnlock();
+                playExternalSound('start', isMuted);
+                setGameState('playing');
+                setGlobalRound(0);
+                globalRoundRef.current = 0;
+                setCurrentTeamTurn(0);
+                teamTurnRef.current = 0;
+                usedQuestionsRef.current = new Set();
+                
+                const resetTeams = teams.map(t => ({
+                    ...t,
+                    score: 0,
+                    level: 0,
+                    lifelines: { fiftyFifty: true, phoneFriend: true, askAudience: true }
+                }));
+                setTeams(resetTeams);
+                teamsRef.current = resetTeams;
+                loadNextQuestion();
+            };
+
+            const loadNextQuestion = () => {
+                const activeTeam = teamsRef.current[teamTurnRef.current];
+                const teamLevel = activeTeam.level; // current index (0 to 14)
+
+                // Level-Locked Tiers:
+                // Levels 1-5 (indices 0 to 4): A1-A2 (Difficulty 1)
+                // Levels 6-10 (indices 5 to 9): B1 (Difficulty 2)
+                // Levels 11-15 (indices 10 to 14): B2 (Difficulty 3)
+                let targetDiff = 1;
+                if (teamLevel >= 5 && teamLevel <= 9) targetDiff = 2;
+                if (teamLevel >= 10) targetDiff = 3;
+
+                // Pull only available questions corresponding to that difficulty
+                let available = questionBank.filter(q => q.difficulty === targetDiff && !usedQuestionsRef.current.has(q.id));
+                if (available.length === 0) {
+                    // Fallback to absolute pool if a difficulty runs dry
+                    available = questionBank.filter(q => !usedQuestionsRef.current.has(q.id));
+                }
+
+                if (available.length > 0) {
+                    const selected = available[Math.floor(Math.random() * available.length)];
+                    const shuffled = shuffleQuestionOptions(selected);
+                    setCurrentQuestion(shuffled);
+                    usedQuestionsRef.current.add(selected.id);
+                } else {
+                    playExternalSound('wrong', isMuted);
+                    setGameState('result');
+                    return;
+                }
+
+                setSelectedAnswer(null);
+                setIsAnswerRevealed(false);
+                setHiddenAnswers([]);
+                setTurnMessage("");
+                setAudienceResults(null);
+                setPhoneFriendAdvice(null);
+                setTimeLeft(timeLimit);
+
+                if (globalRoundRef.current === 0 && teamTurnRef.current === 0) {
+                    setTimeout(() => playExternalSound('thinking', isMuted), 2500);
+                } else {
+                    playExternalSound('thinking', isMuted);
+                }
+            };
+
+            const handleAnswerClick = (index) => {
+                if (selectedAnswer !== null || isAnswerRevealed) return;
+                synth.playSelect();
+                stopExternalSound('thinking');
+                setSelectedAnswer(index);
+
+                setTimeout(() => {
+                    setIsAnswerRevealed(true);
+                    const activeTeam = teamsRef.current[teamTurnRef.current];
+                    const isCorrect = index === currentQuestion.correctIndex;
+
+                    if (isCorrect) {
+                        playExternalSound('correct', isMuted);
+                        const wonAmount = prizeMoney[activeTeam.level];
+                        const newLevel = activeTeam.level + 1;
+                        setTurnMessage(`Correct! ${activeTeam.name} advances to ${formatMoney(wonAmount)}!`);
+                        
+                        setTeams(prev => prev.map((t, idx) => 
+                            idx === teamTurnRef.current 
+                                ? { ...t, score: wonAmount, level: Math.min(newLevel, prizeMoney.length) } 
+                                : t
+                        ));
+                    } else {
+                        playExternalSound('wrong', isMuted);
+                        
+                        let checkpointPrize = 0;
+                        const currentLvl = activeTeam.level;
+                        if (currentLvl >= 10) {
+                            checkpointPrize = prizeMoney[9]; 
+                        } else if (currentLvl >= 5) {
+                            checkpointPrize = prizeMoney[4]; 
+                        }
+
+                        setTurnMessage(`Incorrect! Right answer: "${currentQuestion.options[currentQuestion.correctIndex]}". Reached safety net: ${formatMoney(checkpointPrize)}`);
+                        
+                        setTeams(prev => prev.map((t, idx) => 
+                            idx === teamTurnRef.current 
+                                ? { ...t, score: checkpointPrize } 
+                                : t
+                        ));
+                    }
+
+                    setTimeout(() => {
+                        advanceTurn();
+                    }, 4000);
+
+                }, 2000);
+            };
+
+            const use5050 = () => {
+                const activeTeam = teams[currentTeamTurn];
+                if (!activeTeam.lifelines.fiftyFifty || selectedAnswer !== null) return;
+                synth.playTone(600, 'sine', 0.25);
+
+                setTeams(prev => prev.map((t, idx) => 
+                    idx === currentTeamTurn ? { ...t, lifelines: { ...t.lifelines, fiftyFifty: false } } : t
+                ));
+
+                const wrongIndices = [0, 1, 2, 3].filter(i => i !== currentQuestion.correctIndex);
+                wrongIndices.sort(() => Math.random() - 0.5);
+                setHiddenAnswers([wrongIndices[0], wrongIndices[1]]);
+            };
+
+            const usePhoneFriend = () => {
+                const activeTeam = teams[currentTeamTurn];
+                if (!activeTeam.lifelines.phoneFriend || selectedAnswer !== null) return;
+                synth.playTone(600, 'sine', 0.25);
+
+                setTeams(prev => prev.map((t, idx) => 
+                    idx === currentTeamTurn ? { ...t, lifelines: { ...t.lifelines, phoneFriend: false } } : t
+                ));
+
+                const correctLetter = ['A', 'B', 'C', 'D'][currentQuestion.correctIndex];
+                const wrongs = [0, 1, 2, 3].filter(i => i !== currentQuestion.correctIndex && !hiddenAnswers.includes(i));
+                const randomWrongLetter = ['A', 'B', 'C', 'D'][wrongs[Math.floor(Math.random() * wrongs.length)]];
+
+                const dice = Math.random();
+                let speech = "";
+                if (dice > 0.65) {
+                    speech = `I am absolutely sure! The correct answer is definitely ${correctLetter}. Go lock it in!`;
+                } else if (dice > 0.35) {
+                    speech = `I'm fairly sure it's ${correctLetter}. Though there is a small chance it might be ${randomWrongLetter}.`;
+                } else {
+                    speech = `This is tricky... I have a gut feeling about ${randomWrongLetter}, but don't count on me entirely!`;
+                }
+                setPhoneFriendAdvice(speech);
+            };
+
+            const useAskAudience = () => {
+                const activeTeam = teams[currentTeamTurn];
+                if (!activeTeam.lifelines.askAudience || selectedAnswer !== null) return;
+                synth.playTone(600, 'sine', 0.25);
+
+                setTeams(prev => prev.map((t, idx) => 
+                    idx === currentTeamTurn ? { ...t, lifelines: { ...t.lifelines, askAudience: false } } : t
+                ));
+
+                const activeIndices = [0, 1, 2, 3].filter(i => !hiddenAnswers.includes(i));
+                const isAudienceSmart = Math.random() > 0.3; 
+                const favoriteIdx = isAudienceSmart ? currentQuestion.correctIndex : activeIndices[Math.floor(Math.random() * activeIndices.length)];
+
+                let results = [0, 0, 0, 0];
+                let favorValue = Math.floor(Math.random() * 20) + 45; 
+                if (activeIndices.length === 2) {
+                    favorValue = Math.floor(Math.random() * 20) + 65; 
+                }
+
+                results[favoriteIdx] = favorValue;
+                let remaining = 100 - favorValue;
+                const others = activeIndices.filter(i => i !== favoriteIdx);
+
+                others.forEach((idx, i) => {
+                    if (i === others.length - 1) {
+                        results[idx] = remaining;
+                    } else {
+                        const val = Math.floor(Math.random() * remaining);
+                        results[idx] = val;
+                        remaining -= val;
+                    }
+                });
+                setAudienceResults(results);
+            };
+
+            const advanceTurn = () => {
+                let nextTeam = teamTurnRef.current + 1;
+                let nextGlobalRound = globalRoundRef.current;
+
+                if (nextTeam >= teamsRef.current.length) {
+                    nextTeam = 0;
+                    nextGlobalRound++;
+                }
+
+                if (nextGlobalRound >= prizeMoney.length) {
+                    playExternalSound('wrong', isMuted);
+                    setGameState('result');
+                } else {
+                    teamTurnRef.current = nextTeam;
+                    globalRoundRef.current = nextGlobalRound;
+                    setCurrentTeamTurn(nextTeam);
+                    setGlobalRound(nextGlobalRound);
+                    loadNextQuestion();
+                }
+            };
+
+            const formatMoney = (amount) => {
+                return "$" + amount.toLocaleString();
+            };
+
+            const activeTeam = teams[currentTeamTurn] || {};
+            const currentPrizeIndex = Math.min(activeTeam.level || 0, prizeMoney.length - 1);
+            const currentPrize = prizeMoney[currentPrizeIndex];
+
+            const timerPercentage = (timeLeft / timeLimit) * 100;
+            let timerColor = 'from-green-500 to-emerald-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]';
+            if (timeLeft <= 10 && timeLeft > 5) {
+                timerColor = 'from-amber-500 to-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]';
+            } else if (timeLeft <= 5) {
+                timerColor = 'from-red-600 to-rose-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.8)]';
+            }
+
+            return html`
+                <div 
+                    className="min-h-screen text-white bg-slate-950 font-sans flex flex-col justify-between overflow-x-hidden"
+                    style=${{
+                        backgroundImage: `radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.45) 0%, rgba(2, 6, 23, 0.95) 100%), url('https://img-eshop.cdn.nintendo.net/i/8e49cfc9c08d4e47dba94a79e429aba0d81f2eba83935d529403bc258a1f4f5c.jpg?w=1000')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundAttachment: 'fixed'
+                    }}
+                    onClick=${handleInteractionAudioUnlock}
+                >
+                    <header className="flex justify-between items-center p-4 border-b border-blue-900/60 bg-slate-900/80 backdrop-blur-md z-30">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-600 to-yellow-400 flex items-center justify-center shadow-lg border border-yellow-300">
+                                <${Tv} />
+                            </div>
+                            <div>
+                                <h1 className="text-md sm:text-lg font-black tracking-wider text-yellow-400 uppercase">Millionaire</h1>
+                                <p className="text-[10px] text-blue-300 uppercase tracking-widest font-semibold">CEFR Diagnostic</p>
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick=${toggleMute}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/30 bg-slate-800/80 hover:bg-slate-700 hover:border-blue-400 transition-all text-xs"
+                        >
+                            ${isMuted ? html`
+                                <${VolumeX} />
+                                <span className="hidden sm:inline text-red-400">Audio Muted</span>
+                            ` : html`
+                                <${Volume2} />
+                                <span className="hidden sm:inline text-green-400">Audio Live</span>
+                            `}
+                        </button>
+                    </header>
+
+                    <main className="flex-1 flex flex-col justify-center max-w-7xl w-full mx-auto p-3 sm:p-6 relative z-10">
+                        ${gameState === 'setup' && html`
+                            <div className="w-full max-w-2xl mx-auto bg-slate-900/90 border border-blue-500/40 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl transition-all">
+                                <h2 className="text-3xl font-black text-center text-yellow-400 tracking-wider mb-2 uppercase drop-shadow">CEFR Grammar Setup</h2>
+                                <p className="text-slate-300 text-sm text-center mb-8">Enter your competing team names and select a quiz timer limit.</p>
+                                
+                                <div className="space-y-4 mb-6">
+                                    ${teams.map((team, idx) => html`
+                                        <div key=${team.id} className="flex items-center gap-3 bg-slate-950/60 p-2.5 rounded-xl border border-blue-900/40">
+                                            <span className="bg-blue-950 text-yellow-400 font-extrabold px-3 py-2 rounded-lg border border-blue-800 text-sm">
+                                                Team ${idx + 1}
+                                            </span>
+                                            <input 
+                                                type="text" 
+                                                value=${team.name}
+                                                onChange=${(e) => updateTeamName(team.id, e.target.value)}
+                                                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 text-sm"
+                                                placeholder="Enter team name..."
+                                            />
+                                            ${teams.length > 2 && html`
+                                                <button 
+                                                    onClick=${() => removeTeam(team.id)}
+                                                    className="p-2 bg-red-950 hover:bg-red-900 border border-red-800 rounded-lg text-red-400 transition-colors"
+                                                    title="Remove Team"
+                                                >
+                                                    <${Trash2} />
+                                                </button>
+                                            `}
+                                        </div>
+                                    `)}
+                                </div>
+
+                                <div className="flex justify-between items-center mb-8">
+                                    <button 
+                                        onClick=${addTeam}
+                                        disabled=${teams.length >= 4}
+                                        className="flex items-center gap-2 px-4 py-2 border border-blue-500 text-blue-400 rounded-lg bg-blue-950/40 hover:bg-blue-950 hover:text-white transition-all text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        <${Plus} /> Add Team
+                                    </button>
+                                    
+                                    <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                        <${Clock} />
+                                        <select 
+                                            value=${timeLimit}
+                                            onChange=${(e) => setTimeLimit(Number(e.target.value))}
+                                            className="bg-transparent border-none text-white focus:outline-none text-xs font-bold cursor-pointer"
+                                        >
+                                            <option value=${15} className="bg-slate-900">15s Timer</option>
+                                            <option value=${30} className="bg-slate-900">30s Timer</option>
+                                            <option value=${45} className="bg-slate-900">45s Timer</option>
+                                            <option value=${60} className="bg-slate-900">60s Timer</option>
+                                            <option value=${90} className="bg-slate-900">90s Timer</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-800 pt-6 flex justify-end">
+                                    <button 
+                                        onClick=${() => {
+                                            synth.playTone(500, 'sine', 0.2);
+                                            setGameState('intro');
+                                        }}
+                                        className="flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-yellow-600 to-yellow-400 text-slate-950 font-black rounded-xl hover:scale-105 hover:from-yellow-500 hover:to-yellow-300 transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] text-sm tracking-widest uppercase"
+                                    >
+                                        Proceed to Video <${ArrowRight} />
+                                    </button>
+                                </div>
+                            </div>
+                        `}
+
+                        ${gameState === 'intro' && html`
+                            <div class="w-full max-w-4xl mx-auto bg-slate-900/95 border border-blue-500/40 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl transition-all">
+                                <div class="text-center mb-6">
+                                    <h2 class="text-2xl sm:text-3xl font-black text-yellow-400 uppercase tracking-widest">Diagnostic Rules</h2>
+                                    <p class="text-slate-300 text-xs mt-1">Difficulty climbs as follows: Levels 1-5 (A1-A2), Levels 6-10 (B1), and Levels 11-15 (B2)</p>
+                                </div>
+
+                                <div class="relative aspect-video w-full rounded-xl overflow-hidden border border-blue-500/30 shadow-[0_0_30px_rgba(56,189,248,0.2)] bg-slate-950 mb-4">
+                                    <iframe 
+                                        class="absolute inset-0 w-full h-full"
+                                        src="https://www.youtube.com/embed/5zPZisiNeN0?si=ViqSUkwIuXtept7C" 
+                                        title="Who Wants To Be A Millionaire - Guide" 
+                                        frameborder="0" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                        allowfullscreen
+                                    ></iframe>
+                                </div>
+
+                                <div class="text-center mb-6">
+                                    <a 
+                                        href="https://www.youtube.com/watch?v=5zPZisiNeN0" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        class="text-xs text-blue-400 hover:text-blue-300 underline transition-colors inline-flex items-center gap-1.5"
+                                    >
+                                        <${HelpCircle} /> Video failing to load? Open directly in YouTube.
+                                    </a>
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between border-t border-slate-800 pt-6">
+                                    <button 
+                                        onClick=${() => {
+                                            synth.playTone(300, 'sine', 0.1);
+                                            setGameState('setup');
+                                        }}
+                                        class="text-xs font-bold text-slate-400 hover:text-white hover:underline uppercase tracking-wider"
+                                    >
+                                        &larr; Back to Setup
+                                    </button>
+
+                                    <button 
+                                        onClick=${startGame}
+                                        class="flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-yellow-600 to-yellow-400 text-slate-950 font-black rounded-xl hover:scale-105 hover:from-yellow-500 hover:to-yellow-300 transition-all shadow-[0_0_20px_rgba(250,204,21,0.45)] text-sm tracking-widest uppercase"
+                                    >
+                                        <${Play} /> Start Quiz Show
+                                    </button>
+                                </div>
+                            </div>
+                        `}
+
+                        ${gameState === 'playing' && html`
+                            <div class="flex flex-col xl:flex-row gap-6 h-full items-stretch">
+                                <div class="flex xl:hidden gap-1.5 p-1 bg-slate-900/90 border border-slate-800 rounded-xl mb-4 text-xs font-bold">
+                                    <button 
+                                        onClick=${() => setMobileTab('question')}
+                                        class=${`flex-1 py-2.5 text-center rounded-lg transition-all ${mobileTab === 'question' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Active Question
+                                    </button>
+                                    <button 
+                                        onClick=${() => setMobileTab('teams')}
+                                        class=${`flex-1 py-2.5 text-center rounded-lg transition-all ${mobileTab === 'teams' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Teams (${teams.length})
+                                    </button>
+                                    <button 
+                                        onClick=${() => setMobileTab('ladder')}
+                                        class=${`flex-1 py-2.5 text-center rounded-lg transition-all ${mobileTab === 'ladder' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Money Tree
+                                    </button>
+                                </div>
+
+                                <div class=${`w-full xl:w-[22%] flex flex-col gap-4 ${mobileTab === 'teams' ? 'flex' : 'hidden xl:flex'}`}>
+                                    <div class="bg-slate-900/85 border border-blue-900/50 rounded-2xl p-4 flex-1 backdrop-blur-md shadow-lg flex flex-col">
+                                        <h3 class="text-center font-black text-yellow-400 text-sm tracking-widest uppercase border-b border-blue-900/40 pb-3 mb-4">Competitors</h3>
+                                        
+                                        <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+                                            ${teams.map((team, idx) => {
+                                                const isTurn = idx === currentTeamTurn;
+                                                return html`
+                                                    <div 
+                                                        key=${team.id} 
+                                                        class=${`p-4 rounded-xl border-2 transition-all duration-300 relative ${
+                                                            isTurn 
+                                                                ? 'bg-blue-950/80 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.25)] scale-102' 
+                                                                : 'bg-slate-950/40 border-slate-800/80 opacity-60'
+                                                        }`}
+                                                    >
+                                                        <div class="flex justify-between items-start gap-1 mb-1">
+                                                            <span class="font-extrabold text-sm sm:text-base truncate max-w-[120px]">${team.name}</span>
+                                                            ${isTurn && html`
+                                                                <span class="text-[9px] bg-yellow-500 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase animate-pulse">
+                                                                    On Stage
+                                                                </span>
+                                                            `}
+                                                        </div>
+                                                        <div class="text-green-400 font-black text-lg mb-2">
+                                                            ${formatMoney(team.score)}
+                                                        </div>
+
+                                                        <div class="flex gap-2 text-[10px] text-slate-400 font-bold">
+                                                            <span class=${team.lifelines.fiftyFifty ? 'text-blue-400' : 'text-slate-600 line-through'}>50:50</span>
+                                                            <span>•</span>
+                                                            <span class=${team.lifelines.phoneFriend ? 'text-purple-400' : 'text-slate-600 line-through'}>📞 Call</span>
+                                                            <span>•</span>
+                                                            <span class=${team.lifelines.askAudience ? 'text-teal-400' : 'text-slate-600 line-through'}>👥 Ask</span>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-900/85 border border-blue-900/50 rounded-2xl p-4 backdrop-blur-md shadow-lg">
+                                        <h3 class="text-[10px] font-black text-center text-slate-400 tracking-widest uppercase mb-3.5">Active Lifelines</h3>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button 
+                                                onClick=${use5050}
+                                                disabled=${!activeTeam.lifelines?.fiftyFifty || selectedAnswer !== null}
+                                                class=${`h-11 rounded-lg border flex flex-col items-center justify-center font-extrabold text-[10px] sm:text-xs transition-all ${
+                                                    !activeTeam.lifelines?.fiftyFifty || selectedAnswer !== null
+                                                        ? 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed line-through'
+                                                        : 'bg-blue-950/50 border-blue-500/40 text-yellow-400 hover:bg-blue-900 hover:scale-105 active:scale-95'
+                                                }`}
+                                                title="50:50"
+                                            >
+                                                <span>50:50</span>
+                                            </button>
+
+                                            <button 
+                                                onClick=${usePhoneFriend}
+                                                disabled=${!activeTeam.lifelines?.phoneFriend || selectedAnswer !== null}
+                                                class=${`h-11 rounded-lg border flex flex-col items-center justify-center font-extrabold text-[10px] sm:text-xs transition-all ${
+                                                    !activeTeam.lifelines?.phoneFriend || selectedAnswer !== null
+                                                        ? 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed line-through'
+                                                        : 'bg-purple-950/50 border-purple-500/40 text-yellow-400 hover:bg-purple-900 hover:scale-105 active:scale-95'
+                                                }`}
+                                                title="Phone A Friend"
+                                            >
+                                                <${Phone} />
+                                            </button>
+
+                                            <button 
+                                                onClick=${useAskAudience}
+                                                disabled=${!activeTeam.lifelines?.askAudience || selectedAnswer !== null}
+                                                class=${`h-11 rounded-lg border flex flex-col items-center justify-center font-extrabold text-[10px] sm:text-xs transition-all ${
+                                                    !activeTeam.lifelines?.askAudience || selectedAnswer !== null
+                                                        ? 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed line-through'
+                                                        : 'bg-teal-950/50 border-teal-500/40 text-yellow-400 hover:bg-teal-900 hover:scale-105 active:scale-95'
+                                                }`}
+                                                title="Ask the Audience"
+                                            >
+                                                <${Users} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class=${`flex-1 flex flex-col justify-between relative min-h-[50vh] ${mobileTab === 'question' ? 'flex' : 'hidden xl:flex'}`}>
+                                    <div class="bg-slate-900/60 border border-blue-900/30 rounded-2xl p-4 text-center mb-4 relative overflow-hidden backdrop-blur-sm">
+                                        <div class="text-yellow-400 font-extrabold text-[10px] tracking-wider uppercase mb-1">
+                                            Now Answering: ${activeTeam.name} (${activeTeam.level < 5 ? 'A1-A2 Level' : activeTeam.level < 10 ? 'B1 Level' : 'B2 Level'})
+                                        </div>
+                                        <div class="text-xl sm:text-3xl font-black text-green-400 drop-shadow">
+                                            Playing for ${formatMoney(currentPrize)}
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4 bg-slate-900/60 p-4 rounded-2xl border border-blue-900/30">
+                                        <div class="flex justify-between items-center mb-1.5 text-xs font-bold text-slate-300">
+                                            <span class="flex items-center gap-1"><${Clock} /> Thinking Time</span>
+                                            <span>${timeLeft}s remaining</span>
+                                        </div>
+                                        <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800 p-[1px]">
+                                            <div 
+                                                class=${`h-full rounded-full bg-gradient-to-r transition-all duration-1000 ease-linear ${timerColor}`}
+                                                style=${{ width: `${timerPercentage}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="flex-1 flex items-center justify-center my-4 relative">
+                                        ${turnMessage && html`
+                                            <div class="absolute inset-x-0 mx-auto w-full max-w-lg z-30 animate-bounce p-4">
+                                                <div class=${`p-4 rounded-xl border-2 text-center shadow-2xl flex flex-col items-center gap-2 ${
+                                                    turnMessage.includes('Correct') 
+                                                        ? 'bg-emerald-950 border-emerald-400 text-emerald-100' 
+                                                        : 'bg-rose-950 border-rose-400 text-rose-100'
+                                                }`}>
+                                                    ${turnMessage.includes('Correct') ? html`<${CheckCircle} />` : html`<${XCircle} />`}
+                                                    <p class="font-extrabold text-sm sm:text-base leading-snug">${turnMessage}</p>
+                                                </div>
+                                            </div>
+                                        `}
+
+                                        <div class="w-full bg-gradient-to-b from-slate-900 to-slate-950 border-y-2 sm:border-2 border-blue-400/80 rounded-none sm:rounded-2xl py-8 px-6 sm:px-10 text-center shadow-[inset_0_0_20px_rgba(56,189,248,0.2)]">
+                                            <h2 class="text-lg sm:text-xl lg:text-2xl font-black tracking-wide leading-relaxed">
+                                                ${currentQuestion?.text}
+                                            </h2>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                                        ${currentQuestion?.options.map((option, idx) => {
+                                            const letters = ['A', 'B', 'C', 'D'];
+                                            const isHidden = hiddenAnswers.includes(idx);
+                                            
+                                            let optionStateClass = 'border-blue-500/40 bg-slate-900 hover:bg-blue-900/40 hover:border-blue-400';
+                                            
+                                            if (selectedAnswer === idx && !isAnswerRevealed) {
+                                                optionStateClass = 'border-amber-400 bg-amber-500 text-slate-950 font-black';
+                                            } else if (isAnswerRevealed) {
+                                                if (idx === currentQuestion.correctIndex) {
+                                                    optionStateClass = 'border-emerald-400 bg-emerald-500 text-slate-950 font-black animate-pulse';
+                                                } else if (selectedAnswer === idx) {
+                                                    optionStateClass = 'border-rose-400 bg-rose-600 text-white font-black';
+                                                }
+                                            }
+
+                                            return html`
+                                                <button
+                                                    key=${idx}
+                                                    onClick=${() => handleAnswerClick(idx)}
+                                                    disabled=${selectedAnswer !== null || isHidden}
+                                                    class=${`min-h-[56px] rounded-xl border p-3 flex items-center transition-all ${optionStateClass} ${
+                                                        isHidden ? 'opacity-0 cursor-default select-none pointer-events-none' : 'opacity-100'
+                                                    }`}
+                                                >
+                                                    <span class=${`text-xs font-black mr-3 px-2 py-1 rounded bg-slate-950/80 border border-slate-800 ${selectedAnswer === idx ? 'text-slate-950 bg-white border-white' : 'text-yellow-400'}`}>
+                                                        ${letters[idx]}
+                                                    </span>
+                                                    <span class="text-sm sm:text-base text-left flex-1 font-bold leading-tight">${option}</span>
+                                                </button>
+                                            `;
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div class=${`w-full xl:w-[28%] bg-slate-900/85 border border-blue-900/50 rounded-2xl p-4 backdrop-blur-md shadow-lg flex flex-col justify-between ${mobileTab === 'ladder' ? 'flex' : 'hidden xl:flex'}`}>
+                                    <h3 class="text-center font-black text-blue-400 text-sm tracking-widest uppercase border-b border-blue-900/40 pb-3 mb-3">
+                                        Money Tree (CEFR Tiers)
+                                    </h3>
+
+                                    <div class="flex items-end mb-2 pr-1">
+                                        <div class="w-[85px]" />
+                                        <div class="flex-1 flex gap-1.5 justify-between">
+                                            ${teams.map((t, idx) => html`
+                                                <div 
+                                                    key=${t.id} 
+                                                    class=${`flex-1 text-center font-black text-[9px] truncate border-b-2 pb-1 ${
+                                                        idx === currentTeamTurn ? 'text-yellow-400 border-yellow-400' : 'text-slate-500 border-slate-800'
+                                                    }`}
+                                                >
+                                                    ${t.name.split(' ')[0]}
+                                                </div>
+                                            `)}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex-1 flex flex-col justify-between space-y-[2px] mb-2">
+                                        ${[...prizeMoney].reverse().map((amount, revIdx) => {
+                                            const levelIndex = prizeMoney.length - 1 - revIdx;
+                                            const isCheckpoint = safetyMilestones.includes(levelIndex);
+                                            let tierLabel = "A1-A2";
+                                            if (levelIndex >= 5 && levelIndex <= 9) tierLabel = "B1";
+                                            if (levelIndex >= 10) tierLabel = "B2";
+
+                                            return html`
+                                                <div 
+                                                    key=${amount} 
+                                                    class=${`flex items-center rounded-lg px-1 py-0.5 transition-colors ${
+                                                        isCheckpoint ? 'bg-yellow-400/5 border-y border-yellow-400/20' : 'hover:bg-slate-800/40'
+                                                    }`}
+                                                >
+                                                    <span class=${`w-[85px] font-mono text-right text-[11px] sm:text-xs font-black pr-3 flex justify-between items-center ${
+                                                        isCheckpoint ? 'text-yellow-400' : 'text-slate-300'
+                                                    }`}>
+                                                        <span class="text-[9px] text-blue-400 font-sans tracking-tight">${tierLabel}</span>
+                                                        <span>${formatMoney(amount)}</span>
+                                                    </span>
+
+                                                    <div class="flex-1 flex gap-1.5 h-4 sm:h-5">
+                                                        ${teams.map((t, idx) => {
+                                                            const displayLevel = Math.min(t.level, prizeMoney.length - 1);
+                                                            const isCurrentlyHere = levelIndex === displayLevel;
+                                                            const hasPassedThis = levelIndex < displayLevel;
+                                                            const isActiveTurn = idx === currentTeamTurn;
+
+                                                            let bgStateClass = 'bg-slate-950/40 border border-slate-800/60';
+                                                            let markerText = '';
+
+                                                            if (isCurrentlyHere) {
+                                                                if (isActiveTurn) {
+                                                                    bgStateClass = 'bg-yellow-400 border-yellow-200 border scale-110 z-10';
+                                                                    markerText = '♦';
+                                                                } else {
+                                                                    bgStateClass = 'bg-blue-600 border-blue-400 text-white border opacity-90';
+                                                                    markerText = '✦';
+                                                                }
+                                                            } else if (hasPassedThis) {
+                                                                bgStateClass = 'bg-emerald-950/50 border border-emerald-900/40 text-emerald-400';
+                                                                markerText = '✓';
+                                                            }
+
+                                                            return html`
+                                                                <div 
+                                                                    key=${t.id} 
+                                                                    class=${`flex-1 rounded flex items-center justify-center transition-all text-[9px] font-black ${bgStateClass}`}
+                                                                >
+                                                                    <span class=${isCurrentlyHere && isActiveTurn ? 'text-slate-950' : ''}>
+                                                                        ${markerText}
+                                                                    </span>
+                                                                </div>
+                                                            `;
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            `;
+                                        })}
+                                    </div>
+
+                                    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 text-[10px] text-slate-400 font-medium">
+                                        <p class="flex items-center gap-1.5 mb-1 text-yellow-400 font-extrabold uppercase">
+                                            <${Award} /> Checkpoint nets:
+                                        </p>
+                                        <span>Drops safely to B1 milestone <strong class="text-yellow-400">$1,000</strong> or B2 milestone <strong class="text-yellow-400">$32,000</strong> once reached!</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `}
+
+                        ${gameState === 'result' && html`
+                            <div class="w-full max-w-2xl mx-auto bg-slate-900/95 border border-yellow-500/40 rounded-2xl p-6 sm:p-10 backdrop-blur-xl shadow-2xl text-center">
+                                <div class="flex justify-center mb-4 text-6xl animate-bounce">
+                                    <${Trophy} />
+                                </div>
+                                
+                                <h2 class="text-4xl font-black text-yellow-400 tracking-wider uppercase mb-1 drop-shadow">Diagnostic Complete</h2>
+                                <p class="text-slate-300 text-sm mb-8">CEFR Final Diagnostic Scoreboard</p>
+
+                                <div class="space-y-4 mb-10 text-left">
+                                    ${[...teams]
+                                        .sort((a, b) => b.score - a.score)
+                                        .map((team, idx) => {
+                                            const isWinner = idx === 0;
+                                            return html`
+                                                <div 
+                                                    key=${team.id} 
+                                                    class=${`p-4 rounded-xl border flex items-center justify-between ${
+                                                        isWinner 
+                                                            ? 'bg-gradient-to-r from-blue-950 to-slate-900 border-yellow-400' 
+                                                            : 'bg-slate-950/50 border-slate-800'
+                                                    }`}
+                                                >
+                                                    <div class="flex items-center gap-4">
+                                                        <span class=${`text-2xl font-black ${isWinner ? 'text-yellow-400' : 'text-slate-500'}`}>
+                                                            #{idx + 1}
+                                                        </span>
+                                                        <div>
+                                                            <p class="font-extrabold text-base">${team.name}</p>
+                                                            <p class="text-[10px] text-slate-400 uppercase tracking-widest">
+                                                                Reached level ${team.level}/15 (${team.level < 5 ? 'Diagnosed: A1-A2' : team.level < 10 ? 'Diagnosed: B1' : 'Diagnosed: B2'})
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="font-black text-xl text-green-400">
+                                                            ${formatMoney(team.score)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        })}
+                                </div>
+
+                                <button 
+                                    onClick=${() => {
+                                        synth.playTone(523.25, 'triangle', 0.1);
+                                        setGameState('setup');
+                                    }}
+                                    class="px-8 py-3.5 bg-slate-850 hover:bg-slate-800 border border-blue-500/30 hover:border-blue-400 rounded-xl font-bold transition-colors text-xs tracking-wider uppercase text-blue-300 hover:text-white"
+                                >
+                                    Configure New Play
+                                </button>
+                            </div>
+                        `}
+                    </main>
+
+                    <footer class="text-center py-4 border-t border-blue-900/40 bg-slate-950/80 text-[10px] text-slate-500 mt-4 z-20">
+                        <p>© 2026 Who Wants to Be a Millionaire • CEFR Grammar Diagnostic Edition</p>
+                    </footer>
+
+                    ${audienceResults && html`
+                        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4">
+                            <div class="bg-slate-900 border border-blue-400/50 rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative">
+                                <div class="flex justify-center mb-2 text-blue-400"><${BarChart2} /></div>
+                                <h3 class="text-xl font-black text-yellow-400 mb-6 uppercase tracking-wider">Audience Polling</h3>
+                                
+                                <div class="flex items-end justify-between gap-3 h-40 mb-8 px-4">
+                                    ${audienceResults.map((pct, idx) => html`
+                                        <div key=${idx} class="flex-1 flex flex-col items-center h-full justify-end">
+                                            <span class="text-[11px] font-bold text-slate-300 mb-1">${pct}%</span>
+                                            <div class="w-full flex items-end justify-center">
+                                                <div 
+                                                    class=${`w-full max-w-[32px] rounded-t-md transition-all duration-1000 ${
+                                                        idx === currentQuestion.correctIndex ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-gradient-to-t from-blue-600 to-blue-400'
+                                                    }`}
+                                                    style=${{ height: `${pct || 1}%`, minHeight: '3px' }}
+                                                />
+                                            </div>
+                                            <span class="mt-2 font-black text-sm text-yellow-400">
+                                                ${['A', 'B', 'C', 'D'][idx]}
+                                            </span>
+                                        </div>
+                                    `)}
+                                </div>
+
+                                <button 
+                                    onClick=${() => {
+                                        synth.playTone(300, 'sine', 0.1);
+                                        setAudienceResults(null);
+                                    }}
+                                    class="w-full py-3 bg-blue-950 hover:bg-blue-900 border border-blue-500/40 hover:border-blue-400 rounded-xl font-bold transition-all text-xs uppercase text-blue-300 hover:text-white"
+                                >
+                                    Resume Game
+                                </button>
+                            </div>
+                        </div>
+                    `}
+
+                    ${phoneFriendAdvice && html`
+                        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4">
+                            <div class="bg-slate-900 border border-purple-400/50 rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative">
+                                <div class="flex justify-center mb-2 text-purple-400"><${Phone} /></div>
+                                <h3 class="text-xl font-black text-yellow-400 mb-4 uppercase tracking-wider">Line Connection Live</h3>
+                                
+                                <div class="bg-slate-950/80 p-5 rounded-xl border border-slate-800/80 text-left mb-6 flex gap-4 items-start">
+                                    <div class="p-2.5 bg-purple-950/50 rounded-lg text-purple-400 shrink-0">
+                                        <${User} />
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-400 font-extrabold uppercase mb-1">Your Friend says:</p>
+                                        <p class="text-sm italic text-slate-200 leading-relaxed font-semibold">"${phoneFriendAdvice}"</p>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick=${() => {
+                                        synth.playTone(300, 'sine', 0.1);
+                                        setPhoneFriendAdvice(null);
+                                    }}
+                                    class="w-full py-3 bg-purple-950 hover:bg-purple-900 border border-purple-500/40 hover:border-purple-400 rounded-xl font-bold transition-all text-xs uppercase text-purple-300 hover:text-white"
+                                >
+                                    Thank Friend & Resume
+                                </button>
+                            </div>
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(html`<${App} />`);
+    </script>
+</body>
+</html>
